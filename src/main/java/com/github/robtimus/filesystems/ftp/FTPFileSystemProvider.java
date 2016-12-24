@@ -220,7 +220,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * <li>{@link #copy(Path, Path, CopyOption...)}
      * </ul>
      * <p>
-     * Note: while the returned input stream is not closed, the path's file system will not be accessible.
+     * Note: while the returned input stream is not closed, the path's file system will have one available connection fewer.
      * It is therefore essential that the input stream is closed as soon as possible.
      */
     @Override
@@ -242,7 +242,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * <li>{@link #copy(Path, Path, CopyOption...)}
      * </ul>
      * <p>
-     * Note: while the returned output stream is not closed, the path's file system will not be accessible.
+     * Note: while the returned output stream is not closed, the path's file system will have one available connection fewer.
      * It is therefore essential that the output stream is closed as soon as possible.
      */
     @Override
@@ -267,7 +267,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * This method does not support any file attributes to be set. If any file attributes are given, an {@link UnsupportedOperationException} will be
      * thrown.
      * <p>
-     * Note: while the returned channel is not closed, the path's file system will not be accessible.
+     * Note: while the returned channel is not closed, the path's file system will have one available connection fewer.
      * It is therefore essential that the channel is closed as soon as possible.
      */
     @Override
@@ -481,7 +481,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * Send a keep-alive signal for an FTP file system.
      *
      * @param fs The FTP file system to send a keep-alive signal for.
-     * @throws ProviderMismatchException If the given file system is an FTP file system (not created by an {@code FTPFileSystemProvider}).
+     * @throws ProviderMismatchException If the given file system is not an FTP file system (not created by an {@code FTPFileSystemProvider}).
      * @throws IOException If an I/O error occurred.
      */
     public static void keepAlive(FileSystem fs) throws IOException {

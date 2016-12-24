@@ -289,12 +289,12 @@ class FTPFileSystem extends FileSystem {
         OpenOptions openOptions = OpenOptions.forNewOutputStream(options);
 
         try (Client client = clientPool.get()) {
-            return newOutputStream(client, path, false, openOptions);
+            return newOutputStream(client, path, false, openOptions).out;
         }
     }
 
     @SuppressWarnings("resource")
-    private FTPFileOutputStream newOutputStream(Client client, FTPPath path, boolean requireFTPFile, OpenOptions options) throws IOException {
+    private FTPFileAndOutputStreamPair newOutputStream(Client client, FTPPath path, boolean requireFTPFile, OpenOptions options) throws IOException {
 
         // retrieve the file unless create is true and createNew is false, because then the file can be created
         FTPFile ftpFile = null;
@@ -316,42 +316,17 @@ class FTPFileSystem extends FileSystem {
         }
 
         OutputStream out = client.newOutputStream(path.path(), options);
-        return new FTPFileOutputStream(ftpFile, out);
+        return new FTPFileAndOutputStreamPair(ftpFile, out);
     }
 
-    private static final class FTPFileOutputStream extends OutputStream {
+    private static final class FTPFileAndOutputStreamPair {
 
         private final FTPFile ftpFile;
         private final OutputStream out;
 
-        private FTPFileOutputStream(FTPFile ftpFile, OutputStream out) {
+        private FTPFileAndOutputStreamPair(FTPFile ftpFile, OutputStream out) {
             this.ftpFile = ftpFile;
             this.out = out;
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            out.write(b);
-        }
-
-        @Override
-        public void write(byte[] b) throws IOException {
-            out.write(b);
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            out.write(b, off, len);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            out.flush();
-        }
-
-        @Override
-        public void close() throws IOException {
-            out.close();
         }
     }
 
@@ -374,9 +349,9 @@ class FTPFileSystem extends FileSystem {
 
             // if append then we need the FTP file, to find the initial position of the channel
             boolean requireFTPFile = openOptions.append;
-            FTPFileOutputStream out = newOutputStream(client, path, requireFTPFile, openOptions);
-            long initialPosition = out.ftpFile == null ? 0 : out.ftpFile.getSize();
-            return FileSystemProviderSupport.createSeekableByteChannel(out, initialPosition);
+            FTPFileAndOutputStreamPair outPair = newOutputStream(client, path, requireFTPFile, openOptions);
+            long initialPosition = outPair.ftpFile == null ? 0 : outPair.ftpFile.getSize();
+            return FileSystemProviderSupport.createSeekableByteChannel(outPair.out, initialPosition);
         }
     }
 
@@ -527,7 +502,7 @@ class FTPFileSystem extends FileSystem {
         client.storeFile(target.path(), local.getInputStream(), options, Collections.<OpenOption>emptySet());
     }
 
-    // don't use ByteArrayOutputStream directory, because its toByteArray() method creates a copy; instead use it directly
+    // don't use ByteArrayOutputStream directly, because its toByteArray() method creates a copy; instead use it directly
     private static final class LocalFile extends ByteArrayOutputStream {
 
         private LocalFile(long size) {

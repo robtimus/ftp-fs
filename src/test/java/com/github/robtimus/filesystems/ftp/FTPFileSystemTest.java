@@ -478,7 +478,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         }
     }
 
-    // MemoryFileStore.newByteChannel
+    // FTPFileSystem.newByteChannel
 
     @Test
     public void testNewByteChannelRead() throws IOException {
@@ -1265,7 +1265,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         getFileSystem().checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE);
     }
 
-    // FTPFileSystem.readAttributes (FTPFileAttributes variant)
+    // FTPFileSystem.readAttributes (PosixFileAttributes variant)
 
     @Test
     public void testReadAttributesFileFollowLinks() throws IOException {
@@ -1435,7 +1435,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         getFileSystem().readAttributes(createPath("/foo"));
     }
 
-    // MemoryFileStore.readAttributes (map variant)
+    // FTPFileSystem.readAttributes (map variant)
 
     @Test
     public void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {

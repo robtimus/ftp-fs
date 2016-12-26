@@ -19,6 +19,7 @@ package com.github.robtimus.filesystems.ftp;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -121,9 +122,12 @@ public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
     }
 
     private byte[] readRemaining(InputStream input) throws IOException {
-        // available is safe to use here
-        byte[] b = new byte[input.available()];
-        assertEquals(b.length, input.read(b));
-        return b;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = input.read(buffer)) != -1) {
+            output.write(buffer, 0, len);
+        }
+        return output.toByteArray();
     }
 }

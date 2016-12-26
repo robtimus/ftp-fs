@@ -429,7 +429,7 @@ class FTPFileSystem extends FileSystem {
             if (link == null) {
                 throw new NotLinkException(path.path());
             }
-            return new FTPPath(this, link.getLink());
+            return path.resolveSibling(link.getLink());
         }
     }
 
@@ -885,7 +885,7 @@ class FTPFileSystem extends FileSystem {
             // The file is returned using getFTPFile(), which returns the . (current directory) entry for directories.
             // List the parent (if any) instead.
 
-            final String parentPath = path.parentPath();
+            final String parentPath = toAbsolutePath(path).parentPath();
             final String name = path.fileName();
 
             if (parentPath == null) {

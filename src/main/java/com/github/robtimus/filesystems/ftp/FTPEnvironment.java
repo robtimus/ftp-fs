@@ -552,6 +552,8 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return this;
     }
 
+    // FTP file system support
+
     /**
      * Stores the number of client connections to use. This value influences the number of concurrent threads that can access an FTP file system.
      *
@@ -564,9 +566,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
-     * Stores the FTP file system exception factory to use.
+     * Stores the file system exception factory to use.
      *
-     * @param factory The FTP file system exception factory to use.
+     * @param factory The file system exception factory to use.
      * @return This object.
      */
     public FTPEnvironment withFileSystemExceptionFactory(FileSystemExceptionFactory factory) {

@@ -105,11 +105,11 @@ var activeTableTab = "activeTableTab";
 <hr>
 <br>
 <pre>public interface <span class="typeNameLabel">FileSystemExceptionFactory</span></pre>
-<div class="block">A factory for creating <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file"><code>FileSystemException</code></a>s based on replies from an FTP server.
+<div class="block">A factory for creating <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file"><code>FileSystemException</code></a>s based on replies from an FTP server.
  <p>
  It's not always possible to distinguish different types of errors. For instance, a 550 error code (file unavailable) could indicate that a file
- does not exist (which should trigger a <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/NoSuchFileException.html?is-external=true" title="class or interface in java.nio.file"><code>NoSuchFileException</code></a>), or that a file is inaccessible (which should trigger a
- <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/AccessDeniedException.html?is-external=true" title="class or interface in java.nio.file"><code>AccessDeniedException</code></a>), or possibly another reason.
+ does not exist (which should trigger a <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/NoSuchFileException.html?is-external=true" title="class or interface in java.nio.file"><code>NoSuchFileException</code></a>), or that a file is inaccessible (which should trigger a
+ <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/AccessDeniedException.html?is-external=true" title="class or interface in java.nio.file"><code>AccessDeniedException</code></a>), or possibly another reason.
  This interface allows users to provide their own mapping, based on both the reply code and the reply string from an FTP reply.
  <p>
  Ideally implementations return exceptions that implement <a href="../../../../../com/github/robtimus/filesystems/ftp/FTPResponse.html" title="interface in com.github.robtimus.filesystems.ftp"><code>FTPResponse</code></a>, such as <a href="../../../../../com/github/robtimus/filesystems/ftp/FTPNoSuchFileException.html" title="class in com.github.robtimus.filesystems.ftp"><code>FTPNoSuchFileException</code></a>,
@@ -137,70 +137,70 @@ var activeTableTab = "activeTableTab";
 <th class="colLast" scope="col">Method and Description</th>
 </tr>
 <tr id="i0" class="altColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createChangeWorkingDirectoryException-java.lang.String-int-java.lang.String-">createChangeWorkingDirectoryException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createChangeWorkingDirectoryException-java.lang.String-int-java.lang.String-">createChangeWorkingDirectoryException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
                                      int&nbsp;replyCode,
-                                     <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                                     <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a directory cannot be used as the current working directory.</div>
 </td>
 </tr>
 <tr id="i1" class="rowColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createCopyException-java.lang.String-java.lang.String-int-java.lang.String-">createCopyException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
-                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createCopyException-java.lang.String-java.lang.String-int-java.lang.String-">createCopyException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
                    int&nbsp;replyCode,
-                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be copied.</div>
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createCreateDirectoryException-java.lang.String-int-java.lang.String-">createCreateDirectoryException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createCreateDirectoryException-java.lang.String-int-java.lang.String-">createCreateDirectoryException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
                               int&nbsp;replyCode,
-                              <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                              <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a directory cannot be created.</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createDeleteException-java.lang.String-int-java.lang.String-boolean-">createDeleteException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createDeleteException-java.lang.String-int-java.lang.String-boolean-">createDeleteException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                      int&nbsp;replyCode,
-                     <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
+                     <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
                      boolean&nbsp;isDirectory)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be deleted.</div>
 </td>
 </tr>
 <tr id="i4" class="altColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createGetFileException-java.lang.String-int-java.lang.String-">createGetFileException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createGetFileException-java.lang.String-int-java.lang.String-">createGetFileException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                       int&nbsp;replyCode,
-                      <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                      <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be retrieved.</div>
 </td>
 </tr>
 <tr id="i5" class="rowColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createMoveException-java.lang.String-java.lang.String-int-java.lang.String-">createMoveException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
-                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createMoveException-java.lang.String-java.lang.String-int-java.lang.String-">createMoveException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
                    int&nbsp;replyCode,
-                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be moved.</div>
 </td>
 </tr>
 <tr id="i6" class="altColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createNewInputStreamException-java.lang.String-int-java.lang.String-">createNewInputStreamException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createNewInputStreamException-java.lang.String-int-java.lang.String-">createNewInputStreamException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                              int&nbsp;replyCode,
-                             <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
+                             <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file cannot be opened for reading.</div>
 </td>
 </tr>
 <tr id="i7" class="rowColor">
-<td class="colFirst"><code><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createNewOutputStreamException-java.lang.String-int-java.lang.String-java.util.Collection-">createNewOutputStreamException</a></span>(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../com/github/robtimus/filesystems/ftp/FileSystemExceptionFactory.html#createNewOutputStreamException-java.lang.String-int-java.lang.String-java.util.Collection-">createNewOutputStreamException</a></span>(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                               int&nbsp;replyCode,
-                              <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
-                              <a href="http://docs.oracle.com/javase/7/docs/api/java/util/Collection.html?is-external=true" title="class or interface in java.util">Collection</a>&lt;? extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/OpenOption.html?is-external=true" title="class or interface in java.nio.file">OpenOption</a>&gt;&nbsp;options)</code>
+                              <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
+                              <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Collection.html?is-external=true" title="class or interface in java.util">Collection</a>&lt;? extends <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/OpenOption.html?is-external=true" title="class or interface in java.nio.file">OpenOption</a>&gt;&nbsp;options)</code>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file cannot be opened for writing.</div>
 </td>
 </tr>
@@ -225,9 +225,9 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createGetFileException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createGetFileException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createGetFileException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                                            int&nbsp;replyCode,
-                                           <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                           <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be retrieved.
  <p>
  Note that the LIST command is used to retrieve a file or directory. This will often return with a 226 code even if a file or directory cannot
@@ -248,9 +248,9 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createChangeWorkingDirectoryException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createChangeWorkingDirectoryException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createChangeWorkingDirectoryException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
                                                           int&nbsp;replyCode,
-                                                          <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                                          <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a directory cannot be used as the current working directory.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -268,9 +268,9 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createCreateDirectoryException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createCreateDirectoryException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createCreateDirectoryException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;directory,
                                                    int&nbsp;replyCode,
-                                                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a directory cannot be created.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -288,9 +288,9 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createDeleteException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createDeleteException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createDeleteException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                                           int&nbsp;replyCode,
-                                          <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
+                                          <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
                                           boolean&nbsp;isDirectory)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be deleted.</div>
 <dl>
@@ -310,9 +310,9 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createNewInputStreamException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createNewInputStreamException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createNewInputStreamException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                                                   int&nbsp;replyCode,
-                                                  <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                                  <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file cannot be opened for reading.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -330,10 +330,10 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createNewOutputStreamException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createNewOutputStreamException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createNewOutputStreamException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
                                                    int&nbsp;replyCode,
-                                                   <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
-                                                   <a href="http://docs.oracle.com/javase/7/docs/api/java/util/Collection.html?is-external=true" title="class or interface in java.util">Collection</a>&lt;? extends <a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/OpenOption.html?is-external=true" title="class or interface in java.nio.file">OpenOption</a>&gt;&nbsp;options)</pre>
+                                                   <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString,
+                                                   <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Collection.html?is-external=true" title="class or interface in java.util">Collection</a>&lt;? extends <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/OpenOption.html?is-external=true" title="class or interface in java.nio.file">OpenOption</a>&gt;&nbsp;options)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file cannot be opened for writing.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -352,10 +352,10 @@ var activeTableTab = "activeTableTab";
 <ul class="blockList">
 <li class="blockList">
 <h4>createCopyException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createCopyException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
-                                        <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createCopyException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+                                        <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
                                         int&nbsp;replyCode,
-                                        <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                        <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be copied.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -374,10 +374,10 @@ var activeTableTab = "activeTableTab";
 <ul class="blockListLast">
 <li class="blockList">
 <h4>createMoveException</h4>
-<pre><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createMoveException(<a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
-                                        <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
+<pre><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemException.html?is-external=true" title="class or interface in java.nio.file">FileSystemException</a>&nbsp;createMoveException(<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;file,
+                                        <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;other,
                                         int&nbsp;replyCode,
-                                        <a href="http://docs.oracle.com/javase/7/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
+                                        <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;replyString)</pre>
 <div class="block">Creates a <code>FileSystemException</code> that indicates a file or directory cannot be moved.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>

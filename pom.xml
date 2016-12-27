@@ -183,6 +183,8 @@
             <version>true</version>
             <notimestamp>true</notimestamp>
             <links>
+              <!-- Use an HTTPS URL to the JSE docs -->
+              <link>https://docs.oracle.com/javase/8/docs/api/</link>
               <link>https://robtimus.github.io/fs-core/apidocs/</link>
               <link>http://commons.apache.org/proper/commons-net/apidocs/</link>
             </links>

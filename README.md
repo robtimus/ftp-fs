@@ -19,7 +19,7 @@ After a file system has been created, [Paths](https://docs.oracle.com/javase/8/d
     // created without credentials
     Path path1 = Paths.get(URI.create("ftp://example.org"));
     // created with credentials
-    Path path2 = Paths.get(URI.create("ftp://username@example.org")); 
+    Path path2 = Paths.get(URI.create("ftp://username@example.org"));
 
 If the username in the URI does not match the username used to create the file system, this will cause a [FileSystemNotFoundException](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemNotFoundException.html) to be thrown.
 
@@ -62,7 +62,7 @@ The `ftp-fs` library provides subclasses for [FileSystemException](https://docs.
 
 ## Thread safety
 
-The FTP protocol is fundamentally not thread safe. To overcome this limitation, FTP file systems maintain multiple connections to FTP servers. The number of connections determines the number of concurrent operations that can be executed. If all connections are busy, a new operation will block until a connection becomes available. Class [FTPEnvironment](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html) has method [withClientConnectionCount](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withClientConnectionCount-int-) that allows you to specify the number of connections to use. If no connection count is explicitly set, the default will be 5. 
+The FTP protocol is fundamentally not thread safe. To overcome this limitation, FTP file systems maintain multiple connections to FTP servers. The number of connections determines the number of concurrent operations that can be executed. If all connections are busy, a new operation will block until a connection becomes available. Class [FTPEnvironment](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html) has method [withClientConnectionCount](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withClientConnectionCount-int-) that allows you to specify the number of connections to use. If no connection count is explicitly set, the default will be 5.
 
 When a stream or channel is opened for reading or writing, the connection will block because it will wait for the download or upload to finish. This will not occur until the stream or channel is closed. It is therefore advised to close streams and channels as soon as possible.
 

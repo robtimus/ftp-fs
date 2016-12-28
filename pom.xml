@@ -21,7 +21,7 @@
 
   <groupId>com.github.robtimus</groupId>
   <artifactId>ftp-fs</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.0.2</version>
   <packaging>jar</packaging>
 
   <name>ftp-fs</name>
@@ -46,7 +46,7 @@
   <scm>
     <connection>scm:git:git@github.com:robtimus/ftp-fs.git</connection>
     <developerConnection>scm:git:git@github.com:robtimus/ftp-fs.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>ftp-fs-1.0.2</tag>
     <url>https://github.com/robtimus/ftp-fs</url>
   </scm>
 

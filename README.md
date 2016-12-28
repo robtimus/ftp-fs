@@ -43,8 +43,7 @@ When calling [getAttribute](https://docs.oracle.com/javase/8/docs/api/java/nio/f
 * `usableSpace`: returns the same value as the [getUsableSpace](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUsableSpace--) method.
 * `unallocatedSpace`: returns the same value as the [getUnallocatedSpace](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getUnallocatedSpace--) method.
 
-Because FTP servers do not (often) return these values, by default these methods will all return `Long.MAX_VALUE`. For `totalSpace`, it's possible to return the actual total space, by calling [withActualTotalSpaceCalculation](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withActualTotalSpaceCalculation-boolean-)
- on an [FTPEnvironment](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html) instance before using it to create the file system. Beware that this call will perform multiple calls to the FTP server. It's therefore not advised to do this.
+Because FTP servers do not return these values, these methods will all return `Long.MAX_VALUE`.
 
 There is no support for [FileStoreAttributeView](https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/FileStoreAttributeView.html). Calling [getFileStoreAttributeView](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileStore.html#getFileStoreAttributeView-java.lang.Class-) on a file store will simply return `null`.
 

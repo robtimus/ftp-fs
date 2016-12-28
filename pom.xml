@@ -21,7 +21,7 @@
 
   <groupId>com.github.robtimus</groupId>
   <artifactId>ftp-fs</artifactId>
-  <version>1.0.1</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>ftp-fs</name>
@@ -46,7 +46,7 @@
   <scm>
     <connection>scm:git:git@github.com:robtimus/ftp-fs.git</connection>
     <developerConnection>scm:git:git@github.com:robtimus/ftp-fs.git</developerConnection>
-    <tag>ftp-fs-1.0.1</tag>
+    <tag>HEAD</tag>
     <url>https://github.com/robtimus/ftp-fs</url>
   </scm>
 
@@ -183,8 +183,10 @@
             <version>true</version>
             <notimestamp>true</notimestamp>
             <links>
+              <!-- Use an HTTPS URL to the JSE docs -->
+              <link>https://docs.oracle.com/javase/8/docs/api/</link>
               <link>https://robtimus.github.io/fs-core/apidocs/</link>
-              <link>http://commons.apache.org/proper/commons-net/apidocs/</link>
+              <link>https://commons.apache.org/proper/commons-net/apidocs/</link>
             </links>
           </configuration>
         </plugin>

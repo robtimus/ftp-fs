@@ -174,7 +174,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     }
 
     @Test
-    public void testGetFileAttributeViewFTP() throws IOException {
+    public void testGetFileAttributeViewPosix() throws IOException {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {

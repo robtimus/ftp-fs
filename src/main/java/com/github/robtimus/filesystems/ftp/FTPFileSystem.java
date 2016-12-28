@@ -98,8 +98,6 @@ class FTPFileSystem extends FileSystem {
     private final URI uri;
     private final String defaultDirectory;
 
-    private final boolean calculateActualTotalSpace;
-
     private final AtomicBoolean open = new AtomicBoolean(true);
 
     FTPFileSystem(FTPFileSystemProvider provider, URI uri, FTPEnvironment env) throws IOException {
@@ -114,8 +112,6 @@ class FTPFileSystem extends FileSystem {
         try (Client client = clientPool.get()) {
             this.defaultDirectory = client.pwd();
         }
-
-        this.calculateActualTotalSpace = env.calculateActualTotalSpace();
     }
 
     @Override
@@ -905,40 +901,18 @@ class FTPFileSystem extends FileSystem {
         return null;
     }
 
-    long getTotalSpace() throws IOException {
-        // FTPClient does not support the total size easily, so only calculate if explicitly requested
-        if (calculateActualTotalSpace) {
-            try (Client client = clientPool.get()) {
-                return getTotalSize(client, "/"); //$NON-NLS-1$
-            }
-        }
+    long getTotalSpace() {
+        // FTPClient does not support retrieving the total space
         return Long.MAX_VALUE;
     }
 
     long getUsableSpace() {
-        // FTPClient does not support the total size
+        // FTPClient does not support retrieving the usable space
         return Long.MAX_VALUE;
     }
 
     long getUnallocatedSpace() {
-        // FTPClient does not support the total size
+        // FTPClient does not support retrieving the unallocated space
         return Long.MAX_VALUE;
-    }
-
-    private long getTotalSize(Client client, String path) throws IOException {
-        long size = 0;
-        FTPFile[] ftpFiles = client.listFiles(path);
-        for (FTPFile ftpFile : ftpFiles) {
-            String fileName = ftpFile.getName();
-            if (!CURRENT_DIR.equals(fileName) && !PARENT_DIR.equals(fileName)) {
-                if (ftpFile.isDirectory()) {
-                    String newPath = "/".equals(path) ? "/" + fileName : path + "/" + fileName; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                    size += getTotalSize(client, newPath);
-                } else {
-                    size += ftpFile.getSize();
-                }
-            }
-        }
-        return size;
     }
 }

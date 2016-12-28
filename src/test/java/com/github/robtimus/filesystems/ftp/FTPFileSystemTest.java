@@ -1927,19 +1927,4 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
             verify(getExceptionFactory()).createGetFileException(eq("/foo/bar"), eq(550), anyString());
         }
     }
-
-    // FTPFileSystem.getTotalSpace
-
-    @Test
-    public void testGetTotalSpace() throws IOException {
-        FileEntry bar = addFile("/foo/bar");
-        bar.setContents(new byte[1024]);
-        addFile("/bar/baz").setContents(new byte[1024]);
-        addSymLink("/baz", new FileEntry("/dummy"));
-        addSymLink("/hello", bar);
-
-        long expected = getTotalSize();
-        long totalSpace = getFileSystem().getTotalSpace();
-        assertEquals(expected, totalSpace);
-    }
 }

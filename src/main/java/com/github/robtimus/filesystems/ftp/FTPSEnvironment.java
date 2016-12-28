@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.file.FileStore;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.security.SecureRandom;
@@ -302,7 +303,12 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * @deprecated {@link FileStore#getTotalSpace()} does not need to traverse the file system, because that would calculate the total <em>used</em>
+     *             space, not the total space.
+     */
     @Override
+    @Deprecated
     public FTPSEnvironment withActualTotalSpaceCalculation(boolean calculateActualTotalSpace) {
         super.withActualTotalSpaceCalculation(calculateActualTotalSpace);
         return this;

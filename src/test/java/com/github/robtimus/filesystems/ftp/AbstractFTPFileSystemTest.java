@@ -97,8 +97,7 @@ public abstract class AbstractFTPFileSystemTest {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withClientConnectionCount(1)
-                .withFileSystemExceptionFactory(exceptionFactory)
-                .withActualTotalSpaceCalculation(true);
+                .withFileSystemExceptionFactory(exceptionFactory);
     }
 
     @Before

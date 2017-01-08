@@ -214,10 +214,11 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * {@link FileTransferMode}. These three option types, with defaults of {@link FileType#binary()}, {@link FileStructure#FILE} and
      * {@link FileTransferMode#STREAM}, persist for all calls that support file transfers:
      * <ul>
-     * <li>{@link #newInputStream(Path, OpenOption...)}
-     * <li>{@link #newOutputStream(Path, OpenOption...)}
-     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}
-     * <li>{@link #copy(Path, Path, CopyOption...)}
+     * <li>{@link #newInputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newOutputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link #copy(Path, Path, CopyOption...)}</li>
+     * <li>{@link #move(Path, Path, CopyOption...)}</li>
      * </ul>
      * <p>
      * Note: while the returned input stream is not closed, the path's file system will have one available connection fewer.
@@ -236,10 +237,11 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * {@link FileTransferMode}. These three option types, with defaults of {@link FileType#binary()}, {@link FileStructure#FILE} and
      * {@link FileTransferMode#STREAM}, persist for all calls that support file transfers:
      * <ul>
-     * <li>{@link #newInputStream(Path, OpenOption...)}
-     * <li>{@link #newOutputStream(Path, OpenOption...)}
-     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}
-     * <li>{@link #copy(Path, Path, CopyOption...)}
+     * <li>{@link #newInputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newOutputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link #copy(Path, Path, CopyOption...)}</li>
+     * <li>{@link #move(Path, Path, CopyOption...)}</li>
      * </ul>
      * <p>
      * Note: while the returned output stream is not closed, the path's file system will have one available connection fewer.
@@ -258,10 +260,11 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * {@link FileTransferMode}. These three option types, with defaults of {@link FileType#binary()}, {@link FileStructure#FILE} and
      * {@link FileTransferMode#STREAM}, persist for all calls that support file transfers:
      * <ul>
-     * <li>{@link #newInputStream(Path, OpenOption...)}
-     * <li>{@link #newOutputStream(Path, OpenOption...)}
-     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}
-     * <li>{@link #copy(Path, Path, CopyOption...)}
+     * <li>{@link #newInputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newOutputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link #copy(Path, Path, CopyOption...)}</li>
+     * <li>{@link #move(Path, Path, CopyOption...)}</li>
      * </ul>
      * <p>
      * This method does not support any file attributes to be set. If any file attributes are given, an {@link UnsupportedOperationException} will be
@@ -307,20 +310,18 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * This method works in exactly the manner specified by the {@link Files#copy(Path, Path, CopyOption...)} method except that both the source and
      * target paths must be associated with this provider.
      * <p>
-     * Because server-to-server is not necessarily supported, this provider will copy files by first downloading them, then uploading them to the new
-     * location. Be warned that this could cause issues with large files. It is advised to only use this method with small files.
-     * <p>
      * In addition to the standard copy options, this method also supports single occurrences of each of {@link FileType}, {@link FileStructure} and
      * {@link FileTransferMode}. These three option types, with defaults of {@link FileType#binary()}, {@link FileStructure#FILE} and
      * {@link FileTransferMode#STREAM}, persist for all calls that support file transfers:
      * <ul>
-     * <li>{@link #newInputStream(Path, OpenOption...)}
-     * <li>{@link #newOutputStream(Path, OpenOption...)}
-     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}
-     * <li>{@link #copy(Path, Path, CopyOption...)}
+     * <li>{@link #newInputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newOutputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link #copy(Path, Path, CopyOption...)}</li>
+     * <li>{@link #move(Path, Path, CopyOption...)}</li>
      * </ul>
      * <p>
-     * {@link StandardCopyOption#COPY_ATTRIBUTES} is not supported though.
+     * {@link StandardCopyOption#COPY_ATTRIBUTES} and {@link StandardCopyOption#ATOMIC_MOVE} are not supported though.
      */
     @Override
     public void copy(Path source, Path target, CopyOption... options) throws IOException {
@@ -332,8 +333,19 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * This method works in exactly the manner specified by the {@link Files#move(Path, Path, CopyOption...)} method except that both the source and
      * target paths must be associated with this provider.
      * <p>
-     * Unlike {@link #copy(Path, Path, CopyOption...)}, this provider does not need to download files before moving them.
-     * It may delete the target path if necessary before moving the source path though.
+     * In addition to the standard copy options, this method also supports single occurrences of each of {@link FileType}, {@link FileStructure} and
+     * {@link FileTransferMode}. These three option types, with defaults of {@link FileType#binary()}, {@link FileStructure#FILE} and
+     * {@link FileTransferMode#STREAM}, persist for all calls that support file transfers:
+     * <ul>
+     * <li>{@link #newInputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newOutputStream(Path, OpenOption...)}</li>
+     * <li>{@link #newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link #copy(Path, Path, CopyOption...)}</li>
+     * <li>{@link #move(Path, Path, CopyOption...)}</li>
+     * </ul>
+     * <p>
+     * {@link StandardCopyOption#COPY_ATTRIBUTES} is not supported though. {@link StandardCopyOption#ATOMIC_MOVE} is only supported if the paths have
+     * the same file system.
      */
     @Override
     public void move(Path source, Path target, CopyOption... options) throws IOException {

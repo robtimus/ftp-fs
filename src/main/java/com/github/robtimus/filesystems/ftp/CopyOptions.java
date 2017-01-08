@@ -84,18 +84,28 @@ final class CopyOptions extends TransferOptions {
         return new CopyOptions(replaceExisting, fileType, fileStructure, fileTransferMode, Arrays.asList(options));
     }
 
-    static CopyOptions forMove(CopyOption... options) {
+    static CopyOptions forMove(boolean sameFileSystem, CopyOption... options) {
+
         boolean replaceExisting = false;
+        FileType fileType = null;
+        FileStructure fileStructure = null;
+        FileTransferMode fileTransferMode = null;
 
         for (CopyOption option : options) {
             if (option == StandardCopyOption.REPLACE_EXISTING) {
                 replaceExisting = true;
-            } else if (!isIgnoredCopyOption(option)) {
+            } else if (option instanceof FileType) {
+                fileType = setOnce((FileType) option, fileType, options);
+            } else if (option instanceof FileStructure) {
+                fileStructure = setOnce((FileStructure) option, fileStructure, options);
+            } else if (option instanceof FileTransferMode) {
+                fileTransferMode = setOnce((FileTransferMode) option, fileTransferMode, options);
+            } else if (!(option == StandardCopyOption.ATOMIC_MOVE && sameFileSystem) && !isIgnoredCopyOption(option)) {
                 throw Messages.fileSystemProvider().unsupportedCopyOption(option);
             }
         }
 
-        return new CopyOptions(replaceExisting, null, null, null, Arrays.asList(options));
+        return new CopyOptions(replaceExisting, fileType, fileStructure, fileTransferMode, Arrays.asList(options));
     }
 
     private static <T> T setOnce(T newValue, T existing, CopyOption... options) {
@@ -106,7 +116,6 @@ final class CopyOptions extends TransferOptions {
     }
 
     private static boolean isIgnoredCopyOption(CopyOption option) {
-        return option == StandardCopyOption.ATOMIC_MOVE
-                || option == LinkOption.NOFOLLOW_LINKS;
+        return option == LinkOption.NOFOLLOW_LINKS;
     }
 }

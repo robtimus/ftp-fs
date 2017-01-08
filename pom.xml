@@ -72,7 +72,7 @@
     <version.java>1.7</version.java>
 
     <version.commons-net>3.5</version.commons-net>
-    <version.fs-core>1.0</version.fs-core>
+    <version.fs-core>1.2</version.fs-core>
     <version.hamcrest>1.3</version.hamcrest>
     <version.junit>4.12</version.junit>
     <version.MockFtpServer>2.7.1</version.MockFtpServer>

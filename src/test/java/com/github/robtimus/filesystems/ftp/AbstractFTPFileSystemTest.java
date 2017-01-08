@@ -57,6 +57,7 @@ public abstract class AbstractFTPFileSystemTest {
     private static FakeFtpServer ftpServer;
     private static ExceptionFactoryWrapper exceptionFactory;
     private static FTPFileSystem ftpFileSystem;
+    private static FTPFileSystem ftpFileSystem2;
 
     private FileSystem fileSystem;
 
@@ -78,11 +79,13 @@ public abstract class AbstractFTPFileSystemTest {
 
         exceptionFactory = new ExceptionFactoryWrapper();
         ftpFileSystem = createFileSystem();
+        ftpFileSystem2 = createFileSystem(3);
     }
 
     @AfterClass
     public static void cleanupClass() throws IOException {
         ftpFileSystem.close();
+        ftpFileSystem2.close();
 
         ftpServer.stop();
         ftpServer = null;
@@ -90,6 +93,11 @@ public abstract class AbstractFTPFileSystemTest {
 
     private static FTPFileSystem createFileSystem() throws IOException {
         Map<String, ?> env = createEnv();
+        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + ftpServer.getServerControlPort()), env);
+    }
+
+    private static FTPFileSystem createFileSystem(int clientConnectionCount) throws IOException {
+        Map<String, ?> env = createEnv().withClientConnectionCount(clientConnectionCount);
         return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + ftpServer.getServerControlPort()), env);
     }
 
@@ -130,8 +138,16 @@ public abstract class AbstractFTPFileSystemTest {
         return new FTPPath(ftpFileSystem, path);
     }
 
+    protected final FTPPath createPath(FTPFileSystem fs, String path) {
+        return new FTPPath(fs, path);
+    }
+
     protected final FTPFileSystem getFileSystem() {
         return ftpFileSystem;
+    }
+
+    protected final FTPFileSystem getFileSystem2() {
+        return ftpFileSystem2;
     }
 
     protected final FileSystemExceptionFactory getExceptionFactory() {

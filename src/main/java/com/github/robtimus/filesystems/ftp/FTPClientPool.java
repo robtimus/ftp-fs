@@ -57,7 +57,7 @@ final class FTPClientPool {
         this.pool = new ArrayBlockingQueue<>(poolSize);
 
         for (int i = 0; i < poolSize; i++) {
-            pool.add(new Client());
+            pool.add(new Client(true));
         }
     }
 
@@ -65,7 +65,7 @@ final class FTPClientPool {
         try {
             Client client = pool.take();
             if (!client.isConnected()) {
-                client = new Client();
+                client = new Client(true);
             }
             client.increaseRefCount();
             return client;
@@ -79,14 +79,15 @@ final class FTPClientPool {
         }
     }
 
-    Client find() throws IOException {
+    Client getOrCreate() throws IOException {
         Client client = pool.poll();
-        if (client != null && !client.isConnected()) {
-            client = new Client();
+        if (client == null) {
+            return new Client(false);
         }
-        if (client != null) {
-            client.increaseRefCount();
+        if (!client.isConnected()) {
+            client = new Client(true);
         }
+        client.increaseRefCount();
         return client;
     }
 
@@ -147,6 +148,7 @@ final class FTPClientPool {
     final class Client implements Closeable {
 
         private final FTPClient client;
+        private final boolean pooled;
 
         private FileType fileType;
         private FileStructure fileStructure;
@@ -154,8 +156,9 @@ final class FTPClientPool {
 
         private int refCount = 0;
 
-        private Client() throws IOException {
+        private Client(boolean pooled) throws IOException {
             this.client = env.createClient(hostname, port);
+            this.pooled = pooled;
 
             this.fileType = env.getDefaultFileType();
             this.fileStructure = env.getDefaultFileStructure();
@@ -188,7 +191,11 @@ final class FTPClientPool {
         @Override
         public void close() throws IOException {
             if (decreaseRefCount() == 0) {
-                returnToPool(this);
+                if (pooled) {
+                    returnToPool(this);
+                } else {
+                    disconnect();
+                }
             }
         }
 
@@ -364,15 +371,11 @@ final class FTPClientPool {
                 throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
             }
             if (decreaseRefCount() == 0) {
-                returnToPool(Client.this);
-            }
-        }
-
-        void retrieveFile(String path, OutputStream local, TransferOptions options) throws IOException {
-            applyTransferOptions(options);
-
-            if (!client.retrieveFile(path, local)) {
-                throw exceptionFactory.createNewInputStreamException(path, client.getReplyCode(), client.getReplyString());
+                if (pooled) {
+                    returnToPool(Client.this);
+                } else {
+                    disconnect();
+                }
             }
         }
 

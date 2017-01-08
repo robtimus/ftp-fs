@@ -17,8 +17,6 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -430,12 +428,18 @@ class FTPFileSystem extends FileSystem {
     }
 
     void copy(FTPPath source, FTPPath target, CopyOption... options) throws IOException {
+        boolean sameFileSystem = source.getFileSystem() == target.getFileSystem();
         CopyOptions copyOptions = CopyOptions.forCopy(options);
 
         try (Client client = clientPool.get()) {
             // get the FTP file to determine whether a directory needs to be created or a file needs to be copied
             // Files.copy specifies that for links, the final target must be copied
             FTPPathAndFilePair sourcePair = toRealPath(client, source, true);
+
+            if (!sameFileSystem) {
+                copyAcrossFileSystems(client, source, sourcePair.ftpFile, target, copyOptions);
+                return;
+            }
 
             try {
                 if (sourcePair.ftpPath.path().equals(toRealPath(client, target, true).ftpPath.path())) {
@@ -448,74 +452,71 @@ class FTPFileSystem extends FileSystem {
 
             FTPFile targetFtpFile = findFTPFile(client, target);
 
-            if (!copyOptions.replaceExisting && targetFtpFile != null) {
-                throw new FileAlreadyExistsException(target.path());
+            if (targetFtpFile != null) {
+                if (copyOptions.replaceExisting) {
+                    client.delete(target.path(), targetFtpFile.isDirectory());
+                } else {
+                    throw new FileAlreadyExistsException(target.path());
+                }
             }
-
-            // replace existing or the target does not exist
 
             if (sourcePair.ftpFile.isDirectory()) {
-                // create an directory, but only if target isn't an empty directory (but not a link to one)
-                if (targetFtpFile == null || !isEmptyDirectory(client, target, targetFtpFile)) {
-                    client.mkdir(target.path());
-                }
+                client.mkdir(target.path());
             } else {
-                try (Client client2 = clientPool.find()) {
-                    if (client2 == null) {
-                        copyFile(client, sourcePair, target, copyOptions);
-                    } else {
-                        OpenOptions inOptions = OpenOptions.forNewInputStream(copyOptions.toOpenOptions(StandardOpenOption.READ));
-                        OpenOptions outOptions = OpenOptions
-                                .forNewOutputStream(copyOptions.toOpenOptions(StandardOpenOption.WRITE, StandardOpenOption.CREATE));
-                        try (InputStream in = client.newInputStream(source.path(), inOptions)) {
-                            client2.storeFile(target.path(), in, outOptions, outOptions.options);
-                        }
-                    }
+                try (Client client2 = clientPool.getOrCreate()) {
+                    copyFile(client, source, client2, target, copyOptions);
                 }
             }
         }
     }
 
-    private boolean isEmptyDirectory(Client client, FTPPath path, FTPFile ftpFile) throws IOException {
-        if (!ftpFile.isDirectory() || getLink(client, ftpFile, path) != null) {
-            // not a directory
-            return false;
-        }
-        FTPFile[] ftpFiles = client.listFiles(path.path());
-        for (FTPFile file : ftpFiles) {
-            String fileName = file.getName();
-            if (!CURRENT_DIR.equals(fileName) && !PARENT_DIR.equals(fileName)) {
-                return false;
+    private void copyAcrossFileSystems(Client sourceClient, FTPPath source, FTPFile sourceFtpFile, FTPPath target, CopyOptions options)
+            throws IOException {
+
+        try (Client targetClient = target.getFileSystem().clientPool.getOrCreate()) {
+
+            FTPFile targetFtpFile = findFTPFile(targetClient, target);
+
+            if (targetFtpFile != null) {
+                if (options.replaceExisting) {
+                    targetClient.delete(target.path(), targetFtpFile.isDirectory());
+                } else {
+                    throw new FileAlreadyExistsException(target.path());
+                }
+            }
+
+            if (sourceFtpFile.isDirectory()) {
+                sourceClient.mkdir(target.path());
+            } else {
+                copyFile(sourceClient, source, targetClient, target, options);
             }
         }
-        return ftpFiles.length > 0;
     }
 
-    @SuppressWarnings("resource")
-    private void copyFile(Client client, FTPPathAndFilePair sourcePair, FTPPath target, CopyOptions options) throws IOException {
-        LocalFile local = new LocalFile(sourcePair.ftpFile.getSize());
-        client.retrieveFile(sourcePair.ftpPath.path(), local, options);
-        client.storeFile(target.path(), local.getInputStream(), options, Collections.<OpenOption>emptySet());
-    }
-
-    // don't use ByteArrayOutputStream directly, because its toByteArray() method creates a copy; instead use it directly
-    private static final class LocalFile extends ByteArrayOutputStream {
-
-        private LocalFile(long size) {
-            super((int) Math.max(0, Math.min(Integer.MAX_VALUE, size)));
-        }
-
-        private InputStream getInputStream() {
-            return new ByteArrayInputStream(buf, 0, count);
+    private void copyFile(Client sourceClient, FTPPath source, Client targetClient, FTPPath target, CopyOptions options) throws IOException {
+        OpenOptions inOptions = OpenOptions.forNewInputStream(options.toOpenOptions(StandardOpenOption.READ));
+        OpenOptions outOptions = OpenOptions
+                .forNewOutputStream(options.toOpenOptions(StandardOpenOption.WRITE, StandardOpenOption.CREATE));
+        try (InputStream in = sourceClient.newInputStream(source.path(), inOptions)) {
+            targetClient.storeFile(target.path(), in, outOptions, outOptions.options);
         }
     }
 
     void move(FTPPath source, FTPPath target, CopyOption... options) throws IOException {
-        CopyOptions copyOptions = CopyOptions.forMove(options);
-
-        // there's no need to apply any transfer options
+        boolean sameFileSystem = source.getFileSystem() == target.getFileSystem();
+        CopyOptions copyOptions = CopyOptions.forMove(sameFileSystem, options);
 
         try (Client client = clientPool.get()) {
+            if (!sameFileSystem) {
+                FTPFile ftpFile = getFTPFile(client, source);
+                if (getLink(client, ftpFile, source) != null) {
+                    throw new IOException(FTPMessages.copyOfSymbolicLinksAcrossFileSystemsNotSupported());
+                }
+                copyAcrossFileSystems(client, source, ftpFile, target, copyOptions);
+                client.delete(source.path(), ftpFile.isDirectory());
+                return;
+            }
+
             try {
                 if (isSameFile(client, source, target)) {
                     // non-op, don't do a thing as specified by Files.move
@@ -543,6 +544,9 @@ class FTPFileSystem extends FileSystem {
     }
 
     boolean isSameFile(FTPPath path, FTPPath path2) throws IOException {
+        if (path.getFileSystem() != path2.getFileSystem()) {
+            return false;
+        }
         if (path.equals(path2)) {
             return true;
         }
@@ -559,6 +563,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     boolean isHidden(FTPPath path) throws IOException {
+        // call getFTPFile to check for existence
         try (Client client = clientPool.get()) {
             getFTPFile(client, path);
         }

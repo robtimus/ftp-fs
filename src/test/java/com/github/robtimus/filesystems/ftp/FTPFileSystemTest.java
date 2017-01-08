@@ -602,7 +602,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         try {
             getFileSystem().delete(createPath("/foo"));
         } finally {
-            verify(getExceptionFactory(), never()).createDeleteException(eq("/foo"), eq(550), anyString(), anyBoolean());
+            verify(getExceptionFactory(), never()).createDeleteException(anyString(), anyInt(), anyString(), anyBoolean());
         }
     }
 
@@ -795,7 +795,8 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-        assertSame(bar, getFileSystemEntry("/foo/bar"));
+        // permissions are dropped during the delete/recreate
+        assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
         assertNotSame(baz, getFileSystemEntry("/foo/bar"));
     }
 
@@ -825,7 +826,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         try {
             getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
         } finally {
-            verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo"), eq(553), anyString(), anyCollectionOf(OpenOption.class));
+            verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
             assertSame(baz, getFileSystemEntry("/baz"));
@@ -855,7 +856,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
 
         assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
-        assertSame(foo, getFileSystemEntry("/foo"));
+        assertNotSame(foo, getFileSystemEntry("/foo"));
         assertNotSame(baz, getFileSystemEntry("/foo"));
     }
 
@@ -884,11 +885,9 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        FTPEnvironment env = createEnv().withClientConnectionCount(3);
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), env)) {
-            fs.copy(createPath("/baz"), createPath("/foo/bar"), options);
-        }
+        @SuppressWarnings("resource")
+        FTPFileSystem fs = getFileSystem2();
+        fs.copy(createPath(fs, "/baz"), createPath(fs, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -927,6 +926,156 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+
+        assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+        assertSame(foo, getFileSystemEntry("/foo"));
+        assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+        assertSame(baz, getFileSystemEntry("/baz"));
+
+        DirectoryEntry bar = getDirectory("/foo/bar");
+        assertEquals(0, getChildCount("/foo/bar"));
+        assertNotEquals(baz.getOwner(), bar.getOwner());
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCopyReplaceFileDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry bar = addFile("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        } finally {
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(bar, getFileSystemEntry("/foo/bar"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test
+    public void testCopyReplaceFileAllowedDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry bar = addFile("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertSame(foo, getFileSystemEntry("/foo"));
+        assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+        // permissions are dropped during the copy/delete
+        assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
+        assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCopyReplaceNonEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry bar = addFile("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        } finally {
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(bar, getFileSystemEntry("/foo/bar"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test(expected = FTPFileSystemException.class)
+    public void testCopyReplaceNonEmptyDirAllowedDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry bar = addFile("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+        try {
+            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        } finally {
+            verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(bar, getFileSystemEntry("/foo/bar"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCopyReplaceEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        } finally {
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test
+    public void testCopyReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry baz = addDirectory("/baz");
+
+        CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+
+        assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
+        assertNotSame(foo, getFileSystemEntry("/foo"));
+        assertNotSame(baz, getFileSystemEntry("/foo"));
+    }
+
+    @Test
+    public void testCopyFileDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry baz = addFile("/baz");
+
+        baz.setOwner("root");
+
+        CopyOption[] options = {};
+        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+        assertSame(foo, getFileSystemEntry("/foo"));
+        assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+        assertSame(baz, getFileSystemEntry("/baz"));
+        assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
+    }
+
+    @Test
+    public void testCopyEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry baz = addDirectory("/baz");
+
+        baz.setOwner("root");
+
+        CopyOption[] options = {};
+        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+        assertSame(foo, getFileSystemEntry("/foo"));
+        assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+        assertSame(baz, getFileSystemEntry("/baz"));
+
+        DirectoryEntry bar = getDirectory("/foo/bar");
+        assertEquals(0, getChildCount("/foo/bar"));
+        assertNotEquals(baz.getOwner(), bar.getOwner());
+    }
+
+    @Test
+    public void testCopyNonEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry baz = addDirectory("/baz");
+        addFile("/baz/qux");
+
+        baz.setOwner("root");
+
+        CopyOption[] options = {};
+        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1140,12 +1289,122 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         }
     }
 
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testMoveReplaceFileDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry bar = addDirectory("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        } finally {
+            verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(bar, getFileSystemEntry("/foo/bar"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test
+    public void testMoveReplaceFileAllowedDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        addFile("/foo/bar");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertSame(foo, getFileSystemEntry("/foo"));
+        // permissions are dropped during the copy/delete
+        assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+        assertNull(getFileSystemEntry("/baz"));
+    }
+
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testMoveReplaceEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        } finally {
+            verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
+    @Test
+    public void testMoveReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+        addDirectory("/foo");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+
+        // permissions are dropped during the copy/delete
+        assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
+        assertNull(getFileSystemEntry("/baz"));
+    }
+
+    @Test
+    public void testMoveFileDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        FileEntry baz = addFile("/baz");
+
+        CopyOption[] options = {};
+        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertSame(foo, getFileSystemEntry("/foo"));
+        // permissions are dropped during the copy/delete
+        assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+        assertNull(getFileSystemEntry("/baz"));
+    }
+
+    @Test
+    public void testMoveEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry baz = addDirectory("/baz");
+
+        CopyOption[] options = {};
+        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+
+        assertSame(foo, getFileSystemEntry("/foo"));
+        // permissions are dropped during the copy/delete
+        assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+        assertNull(getFileSystemEntry("/baz"));
+    }
+
+    @Test(expected = FTPFileSystemException.class)
+    public void testMoveNonEmptyDirDifferentFileSystems() throws IOException {
+        DirectoryEntry foo = addDirectory("/foo");
+        DirectoryEntry baz = addDirectory("/baz");
+        addFile("/baz/qux");
+
+        CopyOption[] options = {};
+        try {
+            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        } finally {
+            verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
+            assertSame(foo, getFileSystemEntry("/foo"));
+            assertSame(baz, getFileSystemEntry("/baz"));
+        }
+    }
+
     private void assertEqualsMinusPath(FileSystemEntry entry1, FileSystemEntry entry2) throws IOException {
+        assertEqualsMinusPath(entry1, entry2, true);
+    }
+
+    private void assertEqualsMinusPath(FileSystemEntry entry1, FileSystemEntry entry2, boolean includePermissions) throws IOException {
         assertEquals(entry1.getClass(), entry2.getClass());
         assertEquals(entry1.getSize(), entry2.getSize());
         assertEquals(entry1.getOwner(), entry2.getOwner());
         assertEquals(entry1.getGroup(), entry2.getGroup());
-        assertEquals(entry1.getPermissions(), entry2.getPermissions());
+        if (includePermissions) {
+            assertEquals(entry1.getPermissions(), entry2.getPermissions());
+        }
 
         if (entry1 instanceof FileEntry && entry2 instanceof FileEntry) {
             FileEntry file1 = (FileEntry) entry1;

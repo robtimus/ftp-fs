@@ -79,6 +79,5 @@ FTP file systems knows the following limitations:
 * There is no support for hard links.
 * Files can be marked as executable if the FTP server indicates it is. That does not mean the file can be executed in the local JVM.
 * [SeekableByteChannel](https://docs.oracle.com/javase/8/docs/api/java/nio/channels/SeekableByteChannel.html) is supported because it's used by [Files.createFile](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Files.html#createFile-java.nio.file.Path-java.nio.file.attribute.FileAttribute...-). However, these channels do not support seeking specific positions or truncating.
-* When copying files, an FTP file system will attempt to claim 2 connections, one for downloading and one for uploading. To prevent deadlocks, if only one connection is available, files are downloaded to memory before being uploaded over the same connection. This means that copying large files may cause memory issues.
 * There is no support for [UserPrincipalLookupService](https://docs.oracle.com/javase/8/docs/api/java/nio/file/attribute/UserPrincipalLookupService.html).
 * There is no support for [WatchService](https://docs.oracle.com/javase/8/docs/api/java/nio/file/WatchService.html).

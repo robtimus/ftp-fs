@@ -17,6 +17,18 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import com.github.robtimus.filesystems.AbstractDirectoryStream;
+import com.github.robtimus.filesystems.FileSystemProviderSupport;
+import com.github.robtimus.filesystems.LinkOptionSupport;
+import com.github.robtimus.filesystems.Messages;
+import com.github.robtimus.filesystems.PathMatcherSupport;
+import com.github.robtimus.filesystems.URISupport;
+import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
+import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
+import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPFileFilter;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -61,17 +73,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPFileFilter;
-import com.github.robtimus.filesystems.AbstractDirectoryStream;
-import com.github.robtimus.filesystems.FileSystemProviderSupport;
-import com.github.robtimus.filesystems.LinkOptionSupport;
-import com.github.robtimus.filesystems.Messages;
-import com.github.robtimus.filesystems.PathMatcherSupport;
-import com.github.robtimus.filesystems.URISupport;
-import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
-import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
-import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
 /**
  * An FTP file system.
@@ -838,7 +839,7 @@ class FTPFileSystem extends FileSystem {
             @Override
             public boolean accept(FTPFile ftpFile) {
                 String fileName = ftpFile.getName();
-                return CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
+                return CURRENT_DIR.equals(fileName) || (name != null && containsFileName(fileName, name));
             }
         });
         client.throwIfEmpty(path.path(), ftpFiles);
@@ -851,6 +852,15 @@ class FTPFileSystem extends FileSystem {
             }
         }
         throw new IllegalStateException();
+    }
+
+    private boolean containsFileName(String ftpFilePath, String fileName) {
+        int pos = ftpFilePath.lastIndexOf(getSeparator());
+        if (pos == -1) {
+            return ftpFilePath.equals(fileName);
+        } else {
+            return pos != (ftpFilePath.length() - 1) && ftpFilePath.substring(pos + 1).equals(fileName);
+        }
     }
 
     private FTPFile findFTPFile(Client client, FTPPath path) throws IOException {

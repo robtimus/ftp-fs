@@ -241,7 +241,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     private boolean isPossibleSymbolicLink(FTPFile ftpFile) {
-        return ftpFile.isSymbolicLink() || (ftpFile.isDirectory() && CURRENT_DIR.equals(ftpFile.getName()));
+        return ftpFile.isSymbolicLink() || (ftpFile.isDirectory() && CURRENT_DIR.equals(getFileName(ftpFile)));
     }
 
     String toString(FTPPath path) {
@@ -344,7 +344,7 @@ class FTPFileSystem extends FileSystem {
         boolean isDirectory = false;
         List<FTPFile> children = new ArrayList<>(ftpFiles.length);
         for (FTPFile ftpFile : ftpFiles) {
-            String fileName = ftpFile.getName();
+            String fileName = getFileName(ftpFile);
             if (CURRENT_DIR.equals(fileName)) {
                 isDirectory = true;
             } else if (!PARENT_DIR.equals(fileName)) {
@@ -377,7 +377,7 @@ class FTPFileSystem extends FileSystem {
 
         @Override
         protected Path getNext() throws IOException {
-            return iterator.hasNext() ? path.resolve(iterator.next().getName()) : null;
+            return iterator.hasNext() ? path.resolve(getFileName(iterator.next())) : null;
         }
     }
 
@@ -837,7 +837,7 @@ class FTPFileSystem extends FileSystem {
         FTPFile[] ftpFiles = client.listFiles(path.path(), new FTPFileFilter() {
             @Override
             public boolean accept(FTPFile ftpFile) {
-                String fileName = ftpFile.getName();
+                String fileName = getFileName(ftpFile);
                 return CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
             }
         });
@@ -846,7 +846,7 @@ class FTPFileSystem extends FileSystem {
             return ftpFiles[0];
         }
         for (FTPFile ftpFile : ftpFiles) {
-            if (CURRENT_DIR.equals(ftpFile.getName())) {
+            if (CURRENT_DIR.equals(getFileName(ftpFile))) {
                 return ftpFile;
             }
         }
@@ -865,7 +865,7 @@ class FTPFileSystem extends FileSystem {
         if (ftpFile.getLink() != null) {
             return ftpFile;
         }
-        if (ftpFile.isDirectory() && CURRENT_DIR.equals(ftpFile.getName())) {
+        if (ftpFile.isDirectory() && CURRENT_DIR.equals(getFileName(ftpFile))) {
             // The file is returned using getFTPFile(), which returns the . (current directory) entry for directories.
             // List the parent (if any) instead.
 
@@ -880,13 +880,22 @@ class FTPFileSystem extends FileSystem {
             FTPFile[] ftpFiles = client.listFiles(parentPath, new FTPFileFilter() {
                 @Override
                 public boolean accept(FTPFile ftpFile) {
-                    return (ftpFile.isDirectory() || ftpFile.isSymbolicLink()) && name.equals(ftpFile.getName());
+                    return (ftpFile.isDirectory() || ftpFile.isSymbolicLink()) && name.equals(getFileName(ftpFile));
                 }
             });
             client.throwIfEmpty(path.path(), ftpFiles);
             return ftpFiles[0].getLink() == null ? null : ftpFiles[0];
         }
         return null;
+    }
+
+    private static String getFileName(FTPFile ftpFile) {
+        String fileName = ftpFile.getName();
+        if (fileName == null) {
+            return null;
+        }
+        int index = fileName.lastIndexOf('/');
+        return index == -1 || index == fileName.length() - 1 ? fileName : fileName.substring(index + 1);
     }
 
     long getTotalSpace() {

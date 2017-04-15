@@ -33,7 +33,6 @@ import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.NotDirectoryException;
 import java.nio.file.NotLinkException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -47,7 +46,6 @@ import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -62,7 +60,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPFileFilter;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.FileSystemProviderSupport;
 import com.github.robtimus.filesystems.LinkOptionSupport;
@@ -80,8 +77,8 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
  */
 class FTPFileSystem extends FileSystem {
 
-    private static final String CURRENT_DIR = "."; //$NON-NLS-1$
-    private static final String PARENT_DIR = ".."; //$NON-NLS-1$
+    static final String CURRENT_DIR = "."; //$NON-NLS-1$
+    static final String PARENT_DIR = ".."; //$NON-NLS-1$
 
     @SuppressWarnings("nls")
     private static final Set<String> SUPPORTED_FILE_ATTRIBUTE_VIEWS = Collections
@@ -96,6 +93,8 @@ class FTPFileSystem extends FileSystem {
     private final URI uri;
     private final String defaultDirectory;
 
+    private final FTPFileStrategy ftpFileStrategy;
+
     private final AtomicBoolean open = new AtomicBoolean(true);
 
     FTPFileSystem(FTPFileSystemProvider provider, URI uri, FTPEnvironment env) throws IOException {
@@ -109,6 +108,8 @@ class FTPFileSystem extends FileSystem {
 
         try (Client client = clientPool.get()) {
             this.defaultDirectory = client.pwd();
+
+            this.ftpFileStrategy = FTPFileStrategy.getInstance(client);
         }
     }
 
@@ -333,27 +334,9 @@ class FTPFileSystem extends FileSystem {
     }
 
     DirectoryStream<Path> newDirectoryStream(final FTPPath path, Filter<? super Path> filter) throws IOException {
-        FTPFile[] ftpFiles;
+        List<FTPFile> children;
         try (Client client = clientPool.get()) {
-            ftpFiles = client.listFiles(path.path());
-        }
-
-        if (ftpFiles.length == 0) {
-            throw new NoSuchFileException(path.path());
-        }
-        boolean isDirectory = false;
-        List<FTPFile> children = new ArrayList<>(ftpFiles.length);
-        for (FTPFile ftpFile : ftpFiles) {
-            String fileName = getFileName(ftpFile);
-            if (CURRENT_DIR.equals(fileName)) {
-                isDirectory = true;
-            } else if (!PARENT_DIR.equals(fileName)) {
-                children.add(ftpFile);
-            }
-        }
-
-        if (!isDirectory) {
-            throw new NotDirectoryException(path.path());
+            children = ftpFileStrategy.getChildren(client, path);
         }
         return new FTPPathDirectoryStream(path, children, filter);
     }
@@ -832,25 +815,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     private FTPFile getFTPFile(Client client, FTPPath path) throws IOException {
-        final String name = path.fileName();
-
-        FTPFile[] ftpFiles = client.listFiles(path.path(), new FTPFileFilter() {
-            @Override
-            public boolean accept(FTPFile ftpFile) {
-                String fileName = getFileName(ftpFile);
-                return CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
-            }
-        });
-        client.throwIfEmpty(path.path(), ftpFiles);
-        if (ftpFiles.length == 1) {
-            return ftpFiles[0];
-        }
-        for (FTPFile ftpFile : ftpFiles) {
-            if (CURRENT_DIR.equals(getFileName(ftpFile))) {
-                return ftpFile;
-            }
-        }
-        throw new IllegalStateException();
+        return ftpFileStrategy.getFTPFile(client, path);
     }
 
     private FTPFile findFTPFile(Client client, FTPPath path) throws IOException {
@@ -862,34 +827,10 @@ class FTPFileSystem extends FileSystem {
     }
 
     private FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException {
-        if (ftpFile.getLink() != null) {
-            return ftpFile;
-        }
-        if (ftpFile.isDirectory() && CURRENT_DIR.equals(getFileName(ftpFile))) {
-            // The file is returned using getFTPFile(), which returns the . (current directory) entry for directories.
-            // List the parent (if any) instead.
-
-            final String parentPath = toAbsolutePath(path).parentPath();
-            final String name = path.fileName();
-
-            if (parentPath == null) {
-                // path is /, there is no link
-                return null;
-            }
-
-            FTPFile[] ftpFiles = client.listFiles(parentPath, new FTPFileFilter() {
-                @Override
-                public boolean accept(FTPFile ftpFile) {
-                    return (ftpFile.isDirectory() || ftpFile.isSymbolicLink()) && name.equals(getFileName(ftpFile));
-                }
-            });
-            client.throwIfEmpty(path.path(), ftpFiles);
-            return ftpFiles[0].getLink() == null ? null : ftpFiles[0];
-        }
-        return null;
+        return ftpFileStrategy.getLink(client, ftpFile, path);
     }
 
-    private static String getFileName(FTPFile ftpFile) {
+    static String getFileName(FTPFile ftpFile) {
         String fileName = ftpFile.getName();
         if (fileName == null) {
             return null;

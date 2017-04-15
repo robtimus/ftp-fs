@@ -29,6 +29,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -36,9 +37,26 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest {
+
+    public FTPFileSystemDirectoryStreamTest(boolean useUnixFtpServer) {
+        super(useUnixFtpServer);
+    }
+
+    @Parameters(name = "Use UNIX FTP server: {0}")
+    public static List<Object[]> getParameters() {
+        Object[][] parameters = {
+            { true, },
+            { false, },
+        };
+        return Arrays.asList(parameters);
+    }
 
     @Test
     public void testIterator() throws IOException {

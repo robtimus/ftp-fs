@@ -34,6 +34,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,22 +59,47 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.net.ftp.FTPFile;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.FileSystemEntry;
+import org.mockito.verification.VerificationMode;
 import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
 import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
+@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    public FTPFileSystemTest(boolean useUnixFtpServer) {
+        super(useUnixFtpServer);
+    }
+
+    @Parameters(name = "Use UNIX FTP server: {0}")
+    public static List<Object[]> getParameters() {
+        Object[][] parameters = {
+            { true, },
+            { false, },
+        };
+        return Arrays.asList(parameters);
+    }
 
     // FTPFileSystem.getPath
 
@@ -886,7 +912,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         @SuppressWarnings("resource")
-        FTPFileSystem fs = getFileSystem2();
+        FTPFileSystem fs = getMultiClientFileSystem();
         fs.copy(createPath(fs, "/baz"), createPath(fs, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -945,7 +971,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -960,7 +986,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -977,7 +1003,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -993,7 +1019,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1009,7 +1035,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(baz, getFileSystemEntry("/baz"));
@@ -1022,7 +1048,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
 
         assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
         assertNotSame(foo, getFileSystemEntry("/foo"));
@@ -1037,7 +1063,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1054,7 +1080,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1075,7 +1101,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1297,7 +1323,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
         } finally {
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1313,7 +1339,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1328,7 +1354,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
         } finally {
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1342,7 +1368,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo"), options);
+        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
 
         // permissions are dropped during the copy/delete
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
@@ -1355,7 +1381,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1369,7 +1395,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1385,7 +1411,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getFileSystem2(), "/foo/bar"), options);
+            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -2147,20 +2173,34 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
             getFileSystem().getFTPFile(createPath("/foo"));
 
         } finally {
-            verify(getExceptionFactory()).createGetFileException(eq("/foo"), eq(226), anyString());
+            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo"), eq(226), anyString());
         }
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test
     public void testGetFTPFileFileAccessDenied() throws IOException {
         addFile("/foo/bar");
         getFile("/foo/bar").setPermissionsFromString("---------");
 
+        if (useUnixFtpServer()) {
+            thrown.expect(NoSuchFileException.class);
+        }
+
         try {
-            getFileSystem().getFTPFile(createPath("/foo/bar"));
+            FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
+            assertNotNull(file);
+            assertEquals("bar", file.getName());
+            assertTrue(file.isFile());
+            for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
+                for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
+                    assertFalse(file.hasPermission(access, permission));
+                }
+            }
 
         } finally {
-            verify(getExceptionFactory()).createGetFileException(eq("/foo/bar"), eq(550), anyString());
+            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
         }
     }
 
@@ -2170,20 +2210,37 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         FTPFile file = getFileSystem().getFTPFile(createPath("/foo"));
         assertNotNull(file);
-        assertEquals(".", file.getName());
+        if (useUnixFtpServer()) {
+            assertEquals(".", file.getName());
+        } else {
+            assertEquals("foo", file.getName());
+        }
         assertTrue(file.isDirectory());
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test
     public void testGetFTPFileDirectoryAccessDenied() throws IOException {
         DirectoryEntry bar = addDirectory("/foo/bar");
         bar.setPermissionsFromString("---------");
 
+        if (useUnixFtpServer()) {
+            thrown.expect(NoSuchFileException.class);
+        }
+
         try {
-            getFileSystem().getFTPFile(createPath("/foo/bar"));
+            FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
+            assertNotNull(file);
+            assertEquals("bar", file.getName());
+            assertTrue(file.isDirectory());
+            for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
+                for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
+                    assertFalse(file.hasPermission(access, permission));
+                }
+            }
 
         } finally {
-            verify(getExceptionFactory()).createGetFileException(eq("/foo/bar"), eq(550), anyString());
+            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
         }
     }
 }

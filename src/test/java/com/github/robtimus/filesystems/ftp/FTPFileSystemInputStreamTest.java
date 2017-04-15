@@ -23,11 +23,29 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockftpserver.fake.filesystem.FileEntry;
 
+@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
+
+    public FTPFileSystemInputStreamTest(boolean useUnixFtpServer) {
+        super(useUnixFtpServer);
+    }
+
+    @Parameters(name = "Use UNIX FTP server: {0}")
+    public static List<Object[]> getParameters() {
+        Object[][] parameters = {
+            { true, },
+            { false, },
+        };
+        return Arrays.asList(parameters);
+    }
 
     @Test
     public void testReadSingle() throws IOException {

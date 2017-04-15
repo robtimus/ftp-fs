@@ -49,6 +49,11 @@ import com.github.robtimus.filesystems.URISupport;
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
+    public FTPFileSystemProviderTest() {
+        // there's no need to test the FTP file system itself, so just use UNIX
+        super(true);
+    }
+
     // support for Paths and Files
 
     @Test

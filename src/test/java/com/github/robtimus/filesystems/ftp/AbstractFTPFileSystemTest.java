@@ -54,51 +54,78 @@ public abstract class AbstractFTPFileSystemTest {
     private static final String PASSWORD = "TEST_PASSWORD";
     private static final String HOME_DIR = "/home/test";
 
-    private static FakeFtpServer ftpServer;
+    private static FakeFtpServer unixFtpServer;
+    private static FakeFtpServer nonUnixFtpServer;
     private static ExceptionFactoryWrapper exceptionFactory;
-    private static FTPFileSystem ftpFileSystem;
-    private static FTPFileSystem ftpFileSystem2;
+    private static FTPFileSystem unixFtpFileSystem;
+    private static FTPFileSystem nonUnixFileSystem;
+    private static FTPFileSystem multiClientUnixFtpFileSystem;
+    private static FTPFileSystem multiClientNonUnixFtpFileSystem;
 
     private FileSystem fileSystem;
 
+    private final boolean useUnixFtpServer;
+
+    public AbstractFTPFileSystemTest(boolean useUnixFtpServer) {
+        this.useUnixFtpServer = useUnixFtpServer;
+    }
+
     @BeforeClass
     public static void setupClass() throws IOException {
-        ftpServer = new FakeFtpServer();
-        ftpServer.setSystemName("UNIX");
+        unixFtpServer = new FakeFtpServer();
+        unixFtpServer.setSystemName("UNIX");
+        unixFtpServer.setServerControlPort(0);
+
+        nonUnixFtpServer = new FakeFtpServer();
+        nonUnixFtpServer.setSystemName("UNIX");
+        nonUnixFtpServer.setServerControlPort(0);
 
         FileSystem initFileSystem = new UnixFakeFileSystem();
         initFileSystem.add(new DirectoryEntry(HOME_DIR));
-        ftpServer.setFileSystem(initFileSystem);
+        unixFtpServer.setFileSystem(initFileSystem);
+        nonUnixFtpServer.setFileSystem(initFileSystem);
 
-        ftpServer.addUserAccount(new UserAccount(USERNAME, PASSWORD, HOME_DIR));
+        UserAccount userAccount = new UserAccount(USERNAME, PASSWORD, HOME_DIR);
+        unixFtpServer.addUserAccount(userAccount);
+        nonUnixFtpServer.addUserAccount(userAccount);
 
-        ftpServer.setCommandHandler("LIST", new ListHiddenFilesCommandHandler());
-        ftpServer.setCommandHandler("MDTM", new MDTMCommandHandler());
+        unixFtpServer.setCommandHandler("LIST", new ListHiddenFilesCommandHandler(true));
+        unixFtpServer.setCommandHandler("MDTM", new MDTMCommandHandler());
+        nonUnixFtpServer.setCommandHandler("LIST", new ListHiddenFilesCommandHandler(false));
+        nonUnixFtpServer.setCommandHandler("MDTM", new MDTMCommandHandler());
 
-        ftpServer.start();
+        unixFtpServer.start();
+        nonUnixFtpServer.start();
 
         exceptionFactory = new ExceptionFactoryWrapper();
-        ftpFileSystem = createFileSystem();
-        ftpFileSystem2 = createFileSystem(3);
+        unixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort());
+        nonUnixFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort());
+        multiClientUnixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), 3);
+        multiClientNonUnixFtpFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3);
     }
 
     @AfterClass
     public static void cleanupClass() throws IOException {
-        ftpFileSystem.close();
-        ftpFileSystem2.close();
+        unixFtpFileSystem.close();
+        nonUnixFileSystem.close();
+        multiClientUnixFtpFileSystem.close();
+        multiClientNonUnixFtpFileSystem.close();
 
-        ftpServer.stop();
-        ftpServer = null;
+        unixFtpServer.stop();
+        unixFtpServer = null;
+
+        nonUnixFtpServer.stop();
+        nonUnixFtpServer = null;
     }
 
-    private static FTPFileSystem createFileSystem() throws IOException {
+    private static FTPFileSystem createFileSystem(int port) throws IOException {
         Map<String, ?> env = createEnv();
-        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + ftpServer.getServerControlPort()), env);
+        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
-    private static FTPFileSystem createFileSystem(int clientConnectionCount) throws IOException {
+    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount) throws IOException {
         Map<String, ?> env = createEnv().withClientConnectionCount(clientConnectionCount);
-        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + ftpServer.getServerControlPort()), env);
+        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
     protected static FTPEnvironment createEnv() {
@@ -113,7 +140,8 @@ public abstract class AbstractFTPFileSystemTest {
         fileSystem = new ExtendedUnixFakeFileSystem();
         fileSystem.add(new DirectoryEntry(HOME_DIR));
 
-        ftpServer.setFileSystem(fileSystem);
+        unixFtpServer.setFileSystem(fileSystem);
+        nonUnixFtpServer.setFileSystem(fileSystem);
 
         exceptionFactory.delegate = spy(DefaultFileSystemExceptionFactory.INSTANCE);
     }
@@ -122,20 +150,27 @@ public abstract class AbstractFTPFileSystemTest {
     public void cleanup() {
         exceptionFactory.delegate = null;
 
-        ftpServer.setFileSystem(null);
+        unixFtpServer.setFileSystem(null);
+        nonUnixFtpServer.setFileSystem(null);
         fileSystem = null;
     }
 
+    protected final boolean useUnixFtpServer() {
+        return useUnixFtpServer;
+    }
+
     protected final String getBaseUrl() {
+        FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         return "ftp://" + USERNAME + "@localhost:" + ftpServer.getServerControlPort();
     }
 
     protected final URI getURI() {
+        FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         return URI.create("ftp://localhost:" + ftpServer.getServerControlPort());
     }
 
     protected final FTPPath createPath(String path) {
-        return new FTPPath(ftpFileSystem, path);
+        return new FTPPath(getFileSystem(), path);
     }
 
     protected final FTPPath createPath(FTPFileSystem fs, String path) {
@@ -143,11 +178,11 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FTPFileSystem getFileSystem() {
-        return ftpFileSystem;
+        return useUnixFtpServer ? unixFtpFileSystem : nonUnixFileSystem;
     }
 
-    protected final FTPFileSystem getFileSystem2() {
-        return ftpFileSystem2;
+    protected final FTPFileSystem getMultiClientFileSystem() {
+        return useUnixFtpServer ? multiClientUnixFtpFileSystem : multiClientNonUnixFtpFileSystem;
     }
 
     protected final FileSystemExceptionFactory getExceptionFactory() {

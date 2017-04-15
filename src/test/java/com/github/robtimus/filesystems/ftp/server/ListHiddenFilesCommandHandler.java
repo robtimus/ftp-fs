@@ -36,6 +36,17 @@ import org.mockftpserver.fake.filesystem.FileSystemEntry;
 @SuppressWarnings("nls")
 public class ListHiddenFilesCommandHandler extends ListCommandHandler {
 
+    private final boolean includeDotEntry;
+
+    /**
+     * Creates a new LIST command handler.
+     *
+     * @param includeDotEntry {@code true} to include a dot entry, or {@code false} otherwise.
+     */
+    public ListHiddenFilesCommandHandler(boolean includeDotEntry) {
+        this.includeDotEntry = includeDotEntry;
+    }
+
     @Override
     protected void handle(Command command, Session session) {
         if (command.getParameter(0).startsWith("-a ")) {
@@ -68,7 +79,7 @@ public class ListHiddenFilesCommandHandler extends ListCommandHandler {
             lines.add(getFileSystem().formatDirectoryListing(entry));
         }
         FileSystemEntry entry = getFileSystem().getEntry(path);
-        if (entry != null && entry.isDirectory()) {
+        if (entry != null && entry.isDirectory() && includeDotEntry) {
             lines.add(0, getFileSystem().formatDirectoryListing(addDot(getFileSystem().getEntry(path))));
         }
         String result = StringUtil.join(lines, endOfLine());

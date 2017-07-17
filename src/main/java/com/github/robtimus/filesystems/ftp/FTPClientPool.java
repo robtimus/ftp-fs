@@ -17,6 +17,10 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPFileFilter;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,9 +33,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPFileFilter;
 
 /**
  * A pool of FTP clients, allowing multiple commands to be executed concurrently.
@@ -181,7 +182,14 @@ final class FTPClientPool {
         }
 
         private boolean isConnected() {
-            return client.isConnected();
+            boolean connected;
+            try {
+                keepAlive();
+                connected = client.isConnected();
+            } catch (Exception e) {
+                connected = false;
+            }
+            return connected;
         }
 
         private void disconnect() throws IOException {

@@ -4,3 +4,4 @@
 .project
 src/site/markdown/index.md
 target
+.idea/

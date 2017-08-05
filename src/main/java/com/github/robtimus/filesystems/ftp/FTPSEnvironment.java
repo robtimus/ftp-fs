@@ -528,47 +528,52 @@ public class FTPSEnvironment extends FTPEnvironment {
     void initializePreConnect(FTPSClient client) throws IOException {
         super.initializePreConnect(client);
 
-        String authCommand = FileSystemProviderSupport.getValue(this, AUTH_COMMAND, String.class, null);
-        if (authCommand != null) {
-            client.setAuthValue(authCommand);
+        if (containsKey(AUTH_COMMAND)) {
+            String auth = FileSystemProviderSupport.getValue(this, AUTH_COMMAND, String.class, null);
+            client.setAuthValue(auth);
         }
-        KeyManager keyManager = FileSystemProviderSupport.getValue(this, KEY_MANAGER, KeyManager.class, null);
-        if (keyManager != null) {
+        if (containsKey(KEY_MANAGER)) {
+            KeyManager keyManager = FileSystemProviderSupport.getValue(this, KEY_MANAGER, KeyManager.class, null);
             client.setKeyManager(keyManager);
         }
-        TrustManager trustManager = FileSystemProviderSupport.getValue(this, TRUST_MANAGER, TrustManager.class, null);
-        if (trustManager != null) {
+        if (containsKey(TRUST_MANAGER)) {
+            TrustManager trustManager = FileSystemProviderSupport.getValue(this, TRUST_MANAGER, TrustManager.class, null);
             client.setTrustManager(trustManager);
         }
-        HostnameVerifier hostnameVerifier = FileSystemProviderSupport.getValue(this, HOSTNAME_VERIFIER, HostnameVerifier.class, null);
-        if (hostnameVerifier != null) {
+        if (containsKey(HOSTNAME_VERIFIER)) {
+            HostnameVerifier hostnameVerifier = FileSystemProviderSupport.getValue(this, HOSTNAME_VERIFIER, HostnameVerifier.class, null);
             client.setHostnameVerifier(hostnameVerifier);
         }
 
-        if (get(ENDPOINT_CHECKING_ENABLED) != null) {
-            client.setEndpointCheckingEnabled(FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION));
+        if (containsKey(ENDPOINT_CHECKING_ENABLED)) {
+            boolean enable = FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION);
+            client.setEndpointCheckingEnabled(enable);
         }
-        if (get(ENABLED_SESSION_CREATION) != null) {
-            client.setEnabledSessionCreation(FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION));
+        if (containsKey(ENABLED_SESSION_CREATION)) {
+            boolean isCreation = FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION);
+            client.setEnabledSessionCreation(isCreation);
         }
-        if (get(NEED_CLIENT_AUTH) != null) {
-            client.setNeedClientAuth(FileSystemProviderSupport.getBooleanValue(this, NEED_CLIENT_AUTH));
+        if (containsKey(NEED_CLIENT_AUTH)) {
+            boolean isNeedClientAuth = FileSystemProviderSupport.getBooleanValue(this, NEED_CLIENT_AUTH);
+            client.setNeedClientAuth(isNeedClientAuth);
         }
-        if (get(WANT_CLIENT_AUTH) != null) {
-            client.setWantClientAuth(FileSystemProviderSupport.getBooleanValue(this, WANT_CLIENT_AUTH));
+        if (containsKey(WANT_CLIENT_AUTH)) {
+            boolean isWantClientAuth = FileSystemProviderSupport.getBooleanValue(this, WANT_CLIENT_AUTH);
+            client.setWantClientAuth(isWantClientAuth);
         }
-        if (get(USE_CLIENT_MODE) != null) {
-            client.setUseClientMode(FileSystemProviderSupport.getBooleanValue(this, USE_CLIENT_MODE));
+        if (containsKey(USE_CLIENT_MODE)) {
+            boolean isClientMode = FileSystemProviderSupport.getBooleanValue(this, USE_CLIENT_MODE);
+            client.setUseClientMode(isClientMode);
         }
 
-        String[] enabledCipherSuits = FileSystemProviderSupport.getValue(this, ENABLED_CIPHER_SUITES, String[].class, null);
-        if (enabledCipherSuits != null) {
-            client.setEnabledCipherSuites(enabledCipherSuits);
+        if (containsKey(ENABLED_CIPHER_SUITES)) {
+            String[] cipherSuites = FileSystemProviderSupport.getValue(this, ENABLED_CIPHER_SUITES, String[].class, null);
+            client.setEnabledCipherSuites(cipherSuites);
         }
 
-        String[] enabledProtocols = FileSystemProviderSupport.getValue(this, ENABLED_PROTOCOLS, String[].class, null);
-        if (enabledProtocols != null) {
-            client.setEnabledProtocols(enabledProtocols);
+        if (containsKey(ENABLED_PROTOCOLS)) {
+            String[] protocolVersions = FileSystemProviderSupport.getValue(this, ENABLED_PROTOCOLS, String[].class, null);
+            client.setEnabledProtocols(protocolVersions);
         }
     }
 

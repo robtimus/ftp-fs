@@ -656,110 +656,125 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     void initializePreConnect(FTPClient client) throws IOException {
         client.setListHiddenFiles(true);
 
-        if (get(SEND_BUFFER_SIZE) != null) {
-            client.setSendBufferSize(FileSystemProviderSupport.getIntValue(this, SEND_BUFFER_SIZE));
+        if (containsKey(SEND_BUFFER_SIZE)) {
+            int size = FileSystemProviderSupport.getIntValue(this, SEND_BUFFER_SIZE);
+            client.setSendBufferSize(size);
         }
-        if (get(RECEIVE_BUFFER_SIZE) != null) {
-            client.setReceiveBufferSize(FileSystemProviderSupport.getIntValue(this, RECEIVE_BUFFER_SIZE));
-        }
-
-        SocketFactory socketFactory = FileSystemProviderSupport.getValue(this, SOCKET_FACTORY, SocketFactory.class, null);
-        if (socketFactory != null) {
-            client.setSocketFactory(socketFactory);
-        }
-        ServerSocketFactory serverSocketFactory = FileSystemProviderSupport.getValue(this, SERVER_SOCKET_FACTORY, ServerSocketFactory.class, null);
-        if (serverSocketFactory != null) {
-            client.setServerSocketFactory(serverSocketFactory);
+        if (containsKey(RECEIVE_BUFFER_SIZE)) {
+            int size = FileSystemProviderSupport.getIntValue(this, RECEIVE_BUFFER_SIZE);
+            client.setReceiveBufferSize(size);
         }
 
-        if (get(CONNECT_TIMEOUT) != null) {
-            client.setConnectTimeout(FileSystemProviderSupport.getIntValue(this, CONNECT_TIMEOUT));
+        if (containsKey(SOCKET_FACTORY)) {
+            SocketFactory factory = FileSystemProviderSupport.getValue(this, SOCKET_FACTORY, SocketFactory.class, null);
+            client.setSocketFactory(factory);
+        }
+        if (containsKey(SERVER_SOCKET_FACTORY)) {
+            ServerSocketFactory factory = FileSystemProviderSupport.getValue(this, SERVER_SOCKET_FACTORY, ServerSocketFactory.class, null);
+            client.setServerSocketFactory(factory);
         }
 
-        Proxy proxy = FileSystemProviderSupport.getValue(this, PROXY, Proxy.class, null);
-        if (proxy != null) {
+        if (containsKey(CONNECT_TIMEOUT)) {
+            int connectTimeout = FileSystemProviderSupport.getIntValue(this, CONNECT_TIMEOUT);
+            client.setConnectTimeout(connectTimeout);
+        }
+
+        if (containsKey(PROXY)) {
+            Proxy proxy = FileSystemProviderSupport.getValue(this, PROXY, Proxy.class, null);
             client.setProxy(proxy);
         }
-        Charset charset = FileSystemProviderSupport.getValue(this, CHARSET, Charset.class, null);
-        if (charset != null) {
+        if (containsKey(CHARSET)) {
+            Charset charset = FileSystemProviderSupport.getValue(this, CHARSET, Charset.class, null);
             client.setCharset(charset);
         }
-        String controlEncoding = FileSystemProviderSupport.getValue(this, CONTROL_ENCODING, String.class, null);
-        if (controlEncoding != null) {
+        if (containsKey(CONTROL_ENCODING)) {
+            String controlEncoding = FileSystemProviderSupport.getValue(this, CONTROL_ENCODING, String.class, null);
             client.setControlEncoding(controlEncoding);
         }
 
-        if (get(STRICT_MULTILINE_PARSING) != null) {
-            client.setStrictMultilineParsing(FileSystemProviderSupport.getBooleanValue(this, STRICT_MULTILINE_PARSING));
+        if (containsKey(STRICT_MULTILINE_PARSING)) {
+            boolean strictMultilineParsing = FileSystemProviderSupport.getBooleanValue(this, STRICT_MULTILINE_PARSING);
+            client.setStrictMultilineParsing(strictMultilineParsing);
         }
-        if (get(DATA_TIMEOUT) != null) {
-            client.setDataTimeout(FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT));
+        if (containsKey(DATA_TIMEOUT)) {
+            int timeout = FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT);
+            client.setDataTimeout(timeout);
         }
 
-        FTPFileEntryParserFactory parserFactory = FileSystemProviderSupport.getValue(this, PARSER_FACTORY, FTPFileEntryParserFactory.class, null);
-        if (parserFactory != null) {
+        if (containsKey(PARSER_FACTORY)) {
+            FTPFileEntryParserFactory parserFactory = FileSystemProviderSupport.getValue(this, PARSER_FACTORY, FTPFileEntryParserFactory.class, null);
             client.setParserFactory(parserFactory);
         }
 
-        if (get(REMOTE_VERIFICATION_ENABLED) != null) {
-            client.setRemoteVerificationEnabled(FileSystemProviderSupport.getBooleanValue(this, REMOTE_VERIFICATION_ENABLED));
+        if (containsKey(REMOTE_VERIFICATION_ENABLED)) {
+            boolean enable = FileSystemProviderSupport.getBooleanValue(this, REMOTE_VERIFICATION_ENABLED);
+            client.setRemoteVerificationEnabled(enable);
         }
 
         FileSystemProviderSupport.getValue(this, CONNECTION_MODE, ConnectionMode.class, ConnectionMode.ACTIVE).apply(client);
 
-        if (get(ACTIVE_PORT_RANGE_MIN) != null && get(ACTIVE_PORT_RANGE_MAX) != null) {
+        if (containsKey(ACTIVE_PORT_RANGE_MIN) && containsKey(ACTIVE_PORT_RANGE_MAX)) {
             int minPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MIN);
             int maxPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MAX);
             client.setActivePortRange(minPort, maxPort);
         }
 
-        String ipAddress = FileSystemProviderSupport.getValue(this, ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
-        if (ipAddress != null) {
+        if (containsKey(ACTIVE_EXTERNAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
             client.setActiveExternalIPAddress(ipAddress);
         }
-        ipAddress = FileSystemProviderSupport.getValue(this, PASSIVE_LOCAL_IP_ADDRESS, String.class, null);
-        if (ipAddress != null) {
+        if (containsKey(PASSIVE_LOCAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, PASSIVE_LOCAL_IP_ADDRESS, String.class, null);
             client.setPassiveLocalIPAddress(ipAddress);
         }
-        ipAddress = FileSystemProviderSupport.getValue(this, REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
-        if (ipAddress != null) {
+        if (containsKey(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
             client.setReportActiveExternalIPAddress(ipAddress);
         }
 
-        if (get(BUFFER_SIZE) != null) {
-            client.setBufferSize(FileSystemProviderSupport.getIntValue(this, BUFFER_SIZE));
+        if (containsKey(BUFFER_SIZE)) {
+            int bufSize = FileSystemProviderSupport.getIntValue(this, BUFFER_SIZE);
+            client.setBufferSize(bufSize);
         }
-        if (get(SEND_DATA_SOCKET_BUFFER_SIZE) != null) {
-            client.setSendDataSocketBufferSize(FileSystemProviderSupport.getIntValue(this, SEND_DATA_SOCKET_BUFFER_SIZE));
+        if (containsKey(SEND_DATA_SOCKET_BUFFER_SIZE)) {
+            int bufSize = FileSystemProviderSupport.getIntValue(this, SEND_DATA_SOCKET_BUFFER_SIZE);
+            client.setSendDataSocketBufferSize(bufSize);
         }
-        if (get(RECEIVE_DATA_SOCKET_BUFFER_SIZE) != null) {
-            client.setReceieveDataSocketBufferSize(FileSystemProviderSupport.getIntValue(this, RECEIVE_DATA_SOCKET_BUFFER_SIZE));
-        }
-
-        FTPClientConfig clientConfig = FileSystemProviderSupport.getValue(this, CLIENT_CONFIG, FTPClientConfig.class, null);
-        if (clientConfig != null) {
-            client.configure(copy(clientConfig));
+        if (containsKey(RECEIVE_DATA_SOCKET_BUFFER_SIZE)) {
+            int bufSize = FileSystemProviderSupport.getIntValue(this, RECEIVE_DATA_SOCKET_BUFFER_SIZE);
+            client.setReceieveDataSocketBufferSize(bufSize);
         }
 
-        // note: the presence of the entry must be checked, not whether or not the value is non-null, because null actually has meaning here
+        if (containsKey(CLIENT_CONFIG)) {
+            FTPClientConfig clientConfig = FileSystemProviderSupport.getValue(this, CLIENT_CONFIG, FTPClientConfig.class, null);
+            if (clientConfig != null) {
+                clientConfig = copy(clientConfig);
+            }
+            client.configure(clientConfig);
+        }
+
         if (containsKey(PASSIVE_NAT_WORKAROUND_STRATEGY)) {
             HostnameResolver resolver = FileSystemProviderSupport.getValue(this, PASSIVE_NAT_WORKAROUND_STRATEGY, HostnameResolver.class, null);
             client.setPassiveNatWorkaroundStrategy(resolver);
         }
 
-        if (get(USE_EPSV_WITH_IPV4) != null) {
-            client.setUseEPSVwithIPv4(FileSystemProviderSupport.getBooleanValue(this, USE_EPSV_WITH_IPV4));
+        if (containsKey(USE_EPSV_WITH_IPV4)) {
+            boolean selected = FileSystemProviderSupport.getBooleanValue(this, USE_EPSV_WITH_IPV4);
+            client.setUseEPSVwithIPv4(selected);
         }
-        if (get(CONTROL_KEEP_ALIVE_TIMEOUT) != null) {
+        if (containsKey(CONTROL_KEEP_ALIVE_TIMEOUT)) {
+            long controlIdle = FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT);
             // the value is stored as ms, but the method expects seconds
-            long timeoutMs = FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT);
-            client.setControlKeepAliveTimeout(TimeUnit.MILLISECONDS.toSeconds(timeoutMs));
+            controlIdle = TimeUnit.MILLISECONDS.toSeconds(controlIdle);
+            client.setControlKeepAliveTimeout(controlIdle);
         }
-        if (get(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT) != null) {
-            client.setControlKeepAliveReplyTimeout(FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT));
+        if (containsKey(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT)) {
+            int timeout = FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT);
+            client.setControlKeepAliveReplyTimeout(timeout);
         }
-        if (get(AUTODETECT_ENCODING) != null) {
-            client.setAutodetectUTF8(FileSystemProviderSupport.getBooleanValue(this, AUTODETECT_ENCODING));
+        if (containsKey(AUTODETECT_ENCODING)) {
+            boolean autodetect = FileSystemProviderSupport.getBooleanValue(this, AUTODETECT_ENCODING);
+            client.setAutodetectUTF8(autodetect);
         }
 
         initializeDeprecatedPreConnect(client);
@@ -767,8 +782,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
 
     @SuppressWarnings("deprecation")
     void initializeDeprecatedPreConnect(FTPClient client) {
-        if (get(PASSIVE_NAT_WORKAROUND) != null) {
-            client.setPassiveNatWorkaround(FileSystemProviderSupport.getBooleanValue(this, PASSIVE_NAT_WORKAROUND));
+        if (containsKey(PASSIVE_NAT_WORKAROUND)) {
+            boolean enabled = FileSystemProviderSupport.getBooleanValue(this, PASSIVE_NAT_WORKAROUND);
+            client.setPassiveNatWorkaround(enabled);
         }
     }
 
@@ -803,16 +819,19 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void initializePostConnect(FTPClient client) throws IOException {
-        if (get(SO_TIMEOUT) != null) {
-            client.setSoTimeout(FileSystemProviderSupport.getIntValue(this, SO_TIMEOUT));
+        if (containsKey(SO_TIMEOUT)) {
+            int timeout = FileSystemProviderSupport.getIntValue(this, SO_TIMEOUT);
+            client.setSoTimeout(timeout);
         }
-        if (get(TCP_NO_DELAY) != null) {
-            client.setTcpNoDelay(FileSystemProviderSupport.getBooleanValue(this, TCP_NO_DELAY));
+        if (containsKey(TCP_NO_DELAY)) {
+            boolean on = FileSystemProviderSupport.getBooleanValue(this, TCP_NO_DELAY);
+            client.setTcpNoDelay(on);
         }
-        if (get(KEEP_ALIVE) != null) {
-            client.setKeepAlive(FileSystemProviderSupport.getBooleanValue(this, KEEP_ALIVE));
+        if (containsKey(KEEP_ALIVE)) {
+            boolean keepAlive = FileSystemProviderSupport.getBooleanValue(this, KEEP_ALIVE);
+            client.setKeepAlive(keepAlive);
         }
-        if (get(SO_LINGER_ON) != null && get(SO_LINGER_VALUE) != null) {
+        if (containsKey(SO_LINGER_ON) && containsKey(SO_LINGER_VALUE)) {
             boolean on = FileSystemProviderSupport.getBooleanValue(this, SO_LINGER_ON);
             int val = FileSystemProviderSupport.getIntValue(this, SO_LINGER_VALUE);
             client.setSoLinger(on, val);

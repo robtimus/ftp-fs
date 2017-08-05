@@ -38,6 +38,8 @@ import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPClient.HostnameResolver;
+import org.apache.commons.net.ftp.FTPClient.NatServerResolverImpl;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFileEntryParser;
 import org.apache.commons.net.ftp.parser.FTPFileEntryParserFactory;
@@ -102,6 +104,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final String CONTROL_KEEP_ALIVE_TIMEOUT = "controlKeepAliveTimeout"; //$NON-NLS-1$
     private static final String CONTROL_KEEP_ALIVE_REPLY_TIMEOUT = "controlKeepAliveReplyTimeout"; //$NON-NLS-1$
     private static final String PASSIVE_NAT_WORKAROUND = "passiveNatWorkaround"; //$NON-NLS-1$
+    private static final String PASSIVE_NAT_WORKAROUND_STRATEGY = "passiveNatWorkaroundStrategy"; //$NON-NLS-1$
     private static final String AUTODETECT_ENCODING = "autodetectEncoding"; //$NON-NLS-1$
 
     // FTP file system support
@@ -532,11 +535,31 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      * If enabled, a site-local PASV mode reply address will be replaced with the remote host address to which the PASV mode request was sent
      * (unless that is also a site local address). This gets around the problem that some NAT boxes may change the reply.
      *
+     * The default is true, i.e. site-local replies are replaced.
+     *
      * @param enabled {@code true} to enable replacing internal IP's in passive mode, or {@code false} otherwise.
      * @return This object.
+     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(HostnameResolver)} instead.
      */
+    @Deprecated
     public FTPEnvironment withPassiveNatWorkaround(boolean enabled) {
         put(PASSIVE_NAT_WORKAROUND, enabled);
+        return this;
+    }
+
+    /**
+     * Stores the workaround strategy to replace the PASV mode reply addresses.
+     * This gets around the problem that some NAT boxes may change the reply.
+     *
+     * The default implementation is {@link NatServerResolverImpl}, i.e. site-local replies are replaced.
+     *
+     * @param resolver The workaround strategy to replace internal IP's in passive mode, or {@code null} to disable the workaround
+     *            (i.e. use PASV mode reply address.)
+     * @return This object.
+     * @since 1.1
+     */
+    public FTPEnvironment withPassiveNatWorkaroundStrategy(HostnameResolver resolver) {
+        put(PASSIVE_NAT_WORKAROUND_STRATEGY, resolver);
         return this;
     }
 
@@ -718,6 +741,12 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
             client.configure(copy(clientConfig));
         }
 
+        // note: the presence of the entry must be checked, not whether or not the value is non-null, because null actually has meaning here
+        if (containsKey(PASSIVE_NAT_WORKAROUND_STRATEGY)) {
+            HostnameResolver resolver = FileSystemProviderSupport.getValue(this, PASSIVE_NAT_WORKAROUND_STRATEGY, HostnameResolver.class, null);
+            client.setPassiveNatWorkaroundStrategy(resolver);
+        }
+
         if (get(USE_EPSV_WITH_IPV4) != null) {
             client.setUseEPSVwithIPv4(FileSystemProviderSupport.getBooleanValue(this, USE_EPSV_WITH_IPV4));
         }
@@ -729,11 +758,17 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         if (get(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT) != null) {
             client.setControlKeepAliveReplyTimeout(FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT));
         }
-        if (get(PASSIVE_NAT_WORKAROUND) != null) {
-            client.setPassiveNatWorkaround(FileSystemProviderSupport.getBooleanValue(this, PASSIVE_NAT_WORKAROUND));
-        }
         if (get(AUTODETECT_ENCODING) != null) {
             client.setAutodetectUTF8(FileSystemProviderSupport.getBooleanValue(this, AUTODETECT_ENCODING));
+        }
+
+        initializeDeprecatedPreConnect(client);
+    }
+
+    @SuppressWarnings("deprecation")
+    void initializeDeprecatedPreConnect(FTPClient client) {
+        if (get(PASSIVE_NAT_WORKAROUND) != null) {
+            client.setPassiveNatWorkaround(FileSystemProviderSupport.getBooleanValue(this, PASSIVE_NAT_WORKAROUND));
         }
     }
 

@@ -748,7 +748,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         if (containsKey(CLIENT_CONFIG)) {
             FTPClientConfig clientConfig = FileSystemProviderSupport.getValue(this, CLIENT_CONFIG, FTPClientConfig.class, null);
             if (clientConfig != null) {
-                clientConfig = copy(clientConfig);
+                clientConfig = new FTPClientConfig(clientConfig);
             }
             client.configure(clientConfig);
         }
@@ -850,19 +850,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         if (client.printWorkingDirectory() == null) {
             throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
         }
-    }
-
-    private FTPClientConfig copy(FTPClientConfig clientConfig) {
-        return new FTPClientConfig(
-                clientConfig.getServerSystemKey(),
-                clientConfig.getDefaultDateFormatStr(),
-                clientConfig.getRecentDateFormatStr(),
-                clientConfig.getServerLanguageCode(),
-                clientConfig.getShortMonthNames(),
-                clientConfig.getServerTimeZoneId(),
-                clientConfig.isLenientFutureDates(),
-                clientConfig.getUnparseableEntries()
-        );
     }
 
     // Map / Object

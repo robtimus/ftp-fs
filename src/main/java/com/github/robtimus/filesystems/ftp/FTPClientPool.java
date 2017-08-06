@@ -56,16 +56,34 @@ final class FTPClientPool {
         final int poolSize = env.getClientConnectionCount();
         this.pool = new ArrayBlockingQueue<>(poolSize);
 
-        for (int i = 0; i < poolSize; i++) {
-            pool.add(new Client(true));
+        try {
+            for (int i = 0; i < poolSize; i++) {
+                pool.add(new Client(true));
+            }
+        } catch (IOException e) {
+            // creating the pool failed, disconnect all clients
+            for (Client client : pool) {
+                try {
+                    client.disconnect();
+                } catch (IOException e2) {
+                    e.addSuppressed(e2);
+                }
+            }
+            throw e;
         }
     }
 
     Client get() throws IOException {
         try {
             Client client = pool.take();
-            if (!client.isConnected()) {
-                client = new Client(true);
+            try {
+                if (!client.isConnected()) {
+                    client = new Client(true);
+                }
+            } catch (final Exception e) {
+                // could not create a new client; re-add the broken client to the pool to prevent pool starvation
+                pool.add(client);
+                throw e;
             }
             client.increaseRefCount();
             return client;
@@ -82,10 +100,17 @@ final class FTPClientPool {
     Client getOrCreate() throws IOException {
         Client client = pool.poll();
         if (client == null) {
+            // nothing was taken from the pool, so no risk of pool starvation if creating the client fails
             return new Client(false);
         }
-        if (!client.isConnected()) {
-            client = new Client(true);
+        try {
+            if (!client.isConnected()) {
+                client = new Client(true);
+            }
+        } catch (final Exception e) {
+            // could not create a new client; re-add the broken client to the pool to prevent pool starvation
+            pool.add(client);
+            throw e;
         }
         client.increaseRefCount();
         return client;
@@ -181,11 +206,28 @@ final class FTPClientPool {
         }
 
         private boolean isConnected() {
-            return client.isConnected();
+            if (client.isConnected()) {
+                try {
+                    keepAlive();
+                    return true;
+                } catch (@SuppressWarnings("unused") IOException e) {
+                    // the keep alive failed - treat as not connected, and actually disconnect quietly
+                    disconnectQuietly();
+                }
+            }
+            return false;
         }
 
         private void disconnect() throws IOException {
             client.disconnect();
+        }
+
+        private void disconnectQuietly() {
+            try {
+                client.disconnect();
+            } catch (@SuppressWarnings("unused") IOException e) {
+                // ignore
+            }
         }
 
         @Override

@@ -140,7 +140,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         return fs.getPath(uri.getPath());
     }
 
-    private FTPFileSystem getExistingFileSystem(URI uri) throws FileSystemNotFoundException {
+    private FTPFileSystem getExistingFileSystem(URI uri) {
         URI normalizedURI = normalizeWithoutPassword(uri);
         synchronized (fileSystems) {
             FTPFileSystem fs = fileSystems.get(normalizedURI);

@@ -485,7 +485,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @see SSLSocket#setEnabledCipherSuites(String[])
      */
     public FTPSEnvironment withEnabledCipherSuites(String... cipherSuites) {
-        put(ENABLED_CIPHER_SUITES, ENABLED_CIPHER_SUITES);
+        put(ENABLED_CIPHER_SUITES, cipherSuites);
         return this;
     }
 

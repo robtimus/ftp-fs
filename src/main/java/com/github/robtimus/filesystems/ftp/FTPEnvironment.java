@@ -167,7 +167,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      * @return This object.
      */
     public FTPEnvironment withCredentials(String username, char[] password) {
-        return withCredentials(username, password, null);
+        put(USERNAME, username);
+        put(PASSWORD, password);
+        return this;
     }
 
     /**

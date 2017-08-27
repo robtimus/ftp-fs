@@ -51,7 +51,7 @@ public class FTPEnvironmentSetterTest {
 
     private Method findMethod(String methodName) {
         for (Method method : FTPEnvironment.class.getMethods()) {
-            if (method.getName().equals(methodName)) {
+            if (method.getName().equals(methodName) && method.getParameterTypes().length == 1) {
                 return method;
             }
         }

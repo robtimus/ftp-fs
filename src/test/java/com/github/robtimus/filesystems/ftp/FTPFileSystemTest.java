@@ -88,15 +88,17 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    public FTPFileSystemTest(boolean useUnixFtpServer) {
-        super(useUnixFtpServer);
+    public FTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+        super(useUnixFtpServer, supportAbsoluteFilePaths);
     }
 
-    @Parameters(name = "Use UNIX FTP server: {0}")
+    @Parameters(name = "Use UNIX FTP server: {0}; support absolute file paths: {1}")
     public static List<Object[]> getParameters() {
         Object[][] parameters = {
-            { true, },
-            { false, },
+            { true, true, },
+            { true, false, },
+            { false, true, },
+            { false, false, },
         };
         return Arrays.asList(parameters);
     }
@@ -2173,7 +2175,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
             getFileSystem().getFTPFile(createPath("/foo"));
 
         } finally {
-            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
             verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo"), eq(226), anyString());
         }
     }
@@ -2183,7 +2185,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/foo/bar");
         getFile("/foo/bar").setPermissionsFromString("---------");
 
-        if (useUnixFtpServer()) {
+        if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
             thrown.expect(NoSuchFileException.class);
         }
 
@@ -2199,7 +2201,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
             }
 
         } finally {
-            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
             verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
         }
     }
@@ -2210,7 +2212,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         FTPFile file = getFileSystem().getFTPFile(createPath("/foo"));
         assertNotNull(file);
-        if (useUnixFtpServer()) {
+        if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
             assertEquals(".", file.getName());
         } else {
             assertEquals("foo", file.getName());
@@ -2223,7 +2225,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry bar = addDirectory("/foo/bar");
         bar.setPermissionsFromString("---------");
 
-        if (useUnixFtpServer()) {
+        if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
             thrown.expect(NoSuchFileException.class);
         }
 
@@ -2239,7 +2241,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
             }
 
         } finally {
-            VerificationMode verificationMode = useUnixFtpServer() ? times(1) : never();
+            VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
             verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
         }
     }

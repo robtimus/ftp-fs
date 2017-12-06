@@ -319,6 +319,12 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    @Override
+    public FTPSEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
+        super.withAbsoluteFilePathSupport(supportAbsoluteFilePaths);
+        return this;
+    }
+
     /**
      * @deprecated {@link FileStore#getTotalSpace()} does not need to traverse the file system, because that would calculate the total <em>used</em>
      *             space, not the total space.

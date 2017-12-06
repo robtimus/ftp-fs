@@ -59,15 +59,21 @@ public abstract class AbstractFTPFileSystemTest {
     private static ExceptionFactoryWrapper exceptionFactory;
     private static FTPFileSystem unixFtpFileSystem;
     private static FTPFileSystem nonUnixFileSystem;
+    private static FTPFileSystem unixFtpFileSystemWithNoAbsolutePathSupport;
+    private static FTPFileSystem nonUnixFtpFileSystemWithNoAbsolutePathSupport;
     private static FTPFileSystem multiClientUnixFtpFileSystem;
     private static FTPFileSystem multiClientNonUnixFtpFileSystem;
+    private static FTPFileSystem multiClientUnixFtpFileSystemWithNoAbsolutePathSupport;
+    private static FTPFileSystem multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport;
 
     private FileSystem fileSystem;
 
     private final boolean useUnixFtpServer;
+    private final boolean supportAbsoluteFilePaths;
 
-    public AbstractFTPFileSystemTest(boolean useUnixFtpServer) {
+    public AbstractFTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
         this.useUnixFtpServer = useUnixFtpServer;
+        this.supportAbsoluteFilePaths = supportAbsoluteFilePaths;
     }
 
     @BeforeClass
@@ -98,18 +104,26 @@ public abstract class AbstractFTPFileSystemTest {
         nonUnixFtpServer.start();
 
         exceptionFactory = new ExceptionFactoryWrapper();
-        unixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort());
-        nonUnixFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort());
-        multiClientUnixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), 3);
-        multiClientNonUnixFtpFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3);
+        unixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), true);
+        nonUnixFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), true);
+        unixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(unixFtpServer.getServerControlPort(), false);
+        nonUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(nonUnixFtpServer.getServerControlPort(), false);
+        multiClientUnixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), 3, true);
+        multiClientNonUnixFtpFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3, true);
+        multiClientUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(unixFtpServer.getServerControlPort(), 3, false);
+        multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3, false);
     }
 
     @AfterClass
     public static void cleanupClass() throws IOException {
         unixFtpFileSystem.close();
         nonUnixFileSystem.close();
+        unixFtpFileSystemWithNoAbsolutePathSupport.close();
+        nonUnixFtpFileSystemWithNoAbsolutePathSupport.close();
         multiClientUnixFtpFileSystem.close();
         multiClientNonUnixFtpFileSystem.close();
+        multiClientUnixFtpFileSystemWithNoAbsolutePathSupport.close();
+        multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport.close();
 
         unixFtpServer.stop();
         unixFtpServer = null;
@@ -118,20 +132,21 @@ public abstract class AbstractFTPFileSystemTest {
         nonUnixFtpServer = null;
     }
 
-    private static FTPFileSystem createFileSystem(int port) throws IOException {
-        Map<String, ?> env = createEnv();
+    private static FTPFileSystem createFileSystem(int port, boolean supportAbsoluteFilePaths) throws IOException {
+        Map<String, ?> env = createEnv(supportAbsoluteFilePaths);
         return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
-    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount) throws IOException {
-        Map<String, ?> env = createEnv().withClientConnectionCount(clientConnectionCount);
+    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount, boolean supportAbsoluteFilePaths) throws IOException {
+        Map<String, ?> env = createEnv(supportAbsoluteFilePaths).withClientConnectionCount(clientConnectionCount);
         return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
-    protected static FTPEnvironment createEnv() {
+    protected static FTPEnvironment createEnv(boolean supportAbsoluteFilePaths) {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withClientConnectionCount(1)
+                .withAbsoluteFilePathSupport(supportAbsoluteFilePaths)
                 .withFileSystemExceptionFactory(exceptionFactory);
     }
 
@@ -159,6 +174,10 @@ public abstract class AbstractFTPFileSystemTest {
         return useUnixFtpServer;
     }
 
+    protected final boolean supportAbsoluteFilePaths() {
+        return supportAbsoluteFilePaths;
+    }
+
     protected final String getBaseUrl() {
         FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         return "ftp://" + USERNAME + "@localhost:" + ftpServer.getServerControlPort();
@@ -178,7 +197,8 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FTPFileSystem getFileSystem() {
-        return useUnixFtpServer ? unixFtpFileSystem : nonUnixFileSystem;
+        return useUnixFtpServer ? (supportAbsoluteFilePaths ? unixFtpFileSystem : unixFtpFileSystemWithNoAbsolutePathSupport)
+                : (supportAbsoluteFilePaths ? nonUnixFileSystem : nonUnixFtpFileSystemWithNoAbsolutePathSupport);
     }
 
     protected final FTPFileSystem getMultiClientFileSystem() {

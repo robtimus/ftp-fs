@@ -112,6 +112,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final int DEFAULT_CLIENT_CONNECTION_COUNT = 5;
     private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
+    private static final String SUPPORT_ABSOLOTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
     private static final String CALCULATE_ACTUAL_TOTAL_SPACE = "calculateActualTotalSpace"; //$NON-NLS-1$
 
     private Map<String, Object> map;
@@ -602,6 +603,21 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
+     * Stores whether or not FTP servers support absolute paths to list files. If set to {@code false}, getting information about a file will list its
+     * parent directory. If set to {@code true}, the server settings will determine how files are listed.
+     * <p>
+     * This setting should be set to {@code true} for servers that do not support {@code LIST} commands of absolute files.
+     *
+     * @param supportAbsoluteFilePaths {@code false} if FTP servers do not support absolute paths to list files,
+     *            or {@code true} to use the server settings.
+     * @return This object.
+     */
+    public FTPEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
+        put(SUPPORT_ABSOLOTE_FILE_PATHS, supportAbsoluteFilePaths);
+        return this;
+    }
+
+    /**
      * Stores whether or not {@link FileStore#getTotalSpace()} should calculate the actual total space by traversing the file system.
      * If not explicitly set to {@code true}, the method will return {@link Long#MAX_VALUE} instead.
      *
@@ -644,6 +660,10 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     FileSystemExceptionFactory getExceptionFactory() {
         return FileSystemProviderSupport.getValue(this, FILE_SYSTEM_EXCEPTION_FACTORY, FileSystemExceptionFactory.class,
                 DefaultFileSystemExceptionFactory.INSTANCE);
+    }
+
+    boolean supportAbsoluteFilePaths() {
+        return FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLOTE_FILE_PATHS, true);
     }
 
     FTPClient createClient(String hostname, int port) throws IOException {

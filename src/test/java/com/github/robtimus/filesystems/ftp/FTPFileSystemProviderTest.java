@@ -50,8 +50,8 @@ import com.github.robtimus.filesystems.URISupport;
 public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
     public FTPFileSystemProviderTest() {
-        // there's no need to test the FTP file system itself, so just use UNIX
-        super(true);
+        // there's no need to test the FTP file system itself, so just use UNIX and support absolute file paths
+        super(true, true);
     }
 
     // support for Paths and Files
@@ -59,7 +59,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     @Test
     public void testPathsAndFilesSupport() throws IOException {
 
-        try (FTPFileSystem fs = (FTPFileSystem) FileSystems.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) FileSystems.newFileSystem(getURI(), createEnv(true))) {
             Path path = Paths.get(URI.create(getBaseUrl() + "/foo"));
             assertThat(path, instanceOf(FTPPath.class));
             // as required by Paths.get
@@ -106,7 +106,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         URI uri;
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             uri = path.toUri();
@@ -128,7 +128,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         inputs.put("/foo/bar", "/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
             for (Map.Entry<String, String> entry : inputs.entrySet()) {
                 URI uri = fs.getPath(entry.getKey()).toUri();
                 Path path = provider.getPath(uri);
@@ -169,7 +169,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     public void testGetFileAttributeViewBasic() throws IOException {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
@@ -182,7 +182,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     public void testGetFileAttributeViewPosix() throws IOException {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             PosixFileAttributeView view = fs.provider().getFileAttributeView(path, PosixFileAttributeView.class);
@@ -196,7 +196,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv())) {
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);

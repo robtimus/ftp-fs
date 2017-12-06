@@ -45,15 +45,17 @@ import org.junit.runners.Parameterized.Parameters;
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest {
 
-    public FTPFileSystemDirectoryStreamTest(boolean useUnixFtpServer) {
-        super(useUnixFtpServer);
+    public FTPFileSystemDirectoryStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+        super(useUnixFtpServer, supportAbsoluteFilePaths);
     }
 
-    @Parameters(name = "Use UNIX FTP server: {0}")
+    @Parameters(name = "Use UNIX FTP server: {0}; support absolute file paths: {1}")
     public static List<Object[]> getParameters() {
         Object[][] parameters = {
-            { true, },
-            { false, },
+            { true, true, },
+            { true, false, },
+            { false, true, },
+            { false, false, },
         };
         return Arrays.asList(parameters);
     }

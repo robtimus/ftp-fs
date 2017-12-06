@@ -37,8 +37,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-@SuppressWarnings({ "nls", "javadoc" })
 @RunWith(Parameterized.class)
+@SuppressWarnings({ "nls", "javadoc" })
 public class FTPMessagesTest {
 
     private static final Map<Class<?>, Object> INSTANCES;

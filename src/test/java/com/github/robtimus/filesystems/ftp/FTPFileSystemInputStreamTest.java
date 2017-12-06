@@ -34,15 +34,17 @@ import org.mockftpserver.fake.filesystem.FileEntry;
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
 
-    public FTPFileSystemInputStreamTest(boolean useUnixFtpServer) {
-        super(useUnixFtpServer);
+    public FTPFileSystemInputStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+        super(useUnixFtpServer, supportAbsoluteFilePaths);
     }
 
-    @Parameters(name = "Use UNIX FTP server: {0}")
+    @Parameters(name = "Use UNIX FTP server: {0}; support absolute file paths: {1}")
     public static List<Object[]> getParameters() {
         Object[][] parameters = {
-            { true, },
-            { false, },
+            { true, true, },
+            { true, false, },
+            { false, true, },
+            { false, false, },
         };
         return Arrays.asList(parameters);
     }

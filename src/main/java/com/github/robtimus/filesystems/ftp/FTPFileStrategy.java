@@ -40,7 +40,12 @@ abstract class FTPFileStrategy {
 
     abstract FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException;
 
-    static FTPFileStrategy getInstance(Client client) throws IOException {
+    static FTPFileStrategy getInstance(Client client, boolean supportAbsoluteFilePaths) throws IOException {
+        if (!supportAbsoluteFilePaths) {
+            // NonUnix uses the parent directory to list files
+            return NonUnix.INSTANCE;
+        }
+
         FTPFile[] ftpFiles = client.listFiles("/", new FTPFileFilter() { //$NON-NLS-1$
             @Override
             public boolean accept(FTPFile ftpFile) {

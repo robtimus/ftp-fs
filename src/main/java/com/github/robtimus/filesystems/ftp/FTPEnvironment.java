@@ -606,7 +606,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      * Stores whether or not FTP servers support absolute paths to list files. If set to {@code false}, getting information about a file will list its
      * parent directory. If set to {@code true}, the server settings will determine how files are listed.
      * <p>
-     * This setting should be set to {@code true} for servers that do not support {@code LIST} commands of absolute files.
+     * This setting should be set to {@code false} for servers that do not support {@code LIST} commands of absolute files.
      *
      * @param supportAbsoluteFilePaths {@code false} if FTP servers do not support absolute paths to list files,
      *            or {@code true} to use the server settings.

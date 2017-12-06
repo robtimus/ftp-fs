@@ -655,6 +655,30 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return client;
     }
 
+    // this method is called twice, pre-connect and post-connect, to make sure these settings get set and don't get reset by FTPClient
+    private void applyConnectionSettings(FTPClient client) throws IOException {
+        FileSystemProviderSupport.getValue(this, CONNECTION_MODE, ConnectionMode.class, ConnectionMode.ACTIVE).apply(client);
+
+        if (containsKey(ACTIVE_PORT_RANGE_MIN) && containsKey(ACTIVE_PORT_RANGE_MAX)) {
+            int minPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MIN);
+            int maxPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MAX);
+            client.setActivePortRange(minPort, maxPort);
+        }
+
+        if (containsKey(ACTIVE_EXTERNAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
+            client.setActiveExternalIPAddress(ipAddress);
+        }
+        if (containsKey(PASSIVE_LOCAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, PASSIVE_LOCAL_IP_ADDRESS, String.class, null);
+            client.setPassiveLocalIPAddress(ipAddress);
+        }
+        if (containsKey(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS)) {
+            String ipAddress = FileSystemProviderSupport.getValue(this, REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
+            client.setReportActiveExternalIPAddress(ipAddress);
+        }
+    }
+
     void initializePreConnect(FTPClient client) throws IOException {
         client.setListHiddenFiles(true);
 
@@ -713,26 +737,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
             client.setRemoteVerificationEnabled(enable);
         }
 
-        FileSystemProviderSupport.getValue(this, CONNECTION_MODE, ConnectionMode.class, ConnectionMode.ACTIVE).apply(client);
-
-        if (containsKey(ACTIVE_PORT_RANGE_MIN) && containsKey(ACTIVE_PORT_RANGE_MAX)) {
-            int minPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MIN);
-            int maxPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MAX);
-            client.setActivePortRange(minPort, maxPort);
-        }
-
-        if (containsKey(ACTIVE_EXTERNAL_IP_ADDRESS)) {
-            String ipAddress = FileSystemProviderSupport.getValue(this, ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
-            client.setActiveExternalIPAddress(ipAddress);
-        }
-        if (containsKey(PASSIVE_LOCAL_IP_ADDRESS)) {
-            String ipAddress = FileSystemProviderSupport.getValue(this, PASSIVE_LOCAL_IP_ADDRESS, String.class, null);
-            client.setPassiveLocalIPAddress(ipAddress);
-        }
-        if (containsKey(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS)) {
-            String ipAddress = FileSystemProviderSupport.getValue(this, REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
-            client.setReportActiveExternalIPAddress(ipAddress);
-        }
+        applyConnectionSettings(client);
 
         if (containsKey(BUFFER_SIZE)) {
             int bufSize = FileSystemProviderSupport.getIntValue(this, BUFFER_SIZE);
@@ -821,6 +826,8 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void initializePostConnect(FTPClient client) throws IOException {
+        applyConnectionSettings(client);
+
         if (containsKey(SO_TIMEOUT)) {
             int timeout = FileSystemProviderSupport.getIntValue(this, SO_TIMEOUT);
             client.setSoTimeout(timeout);

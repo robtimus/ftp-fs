@@ -542,7 +542,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      *
      * @param enabled {@code true} to enable replacing internal IP's in passive mode, or {@code false} otherwise.
      * @return This object.
-     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(HostnameResolver)} instead.
+     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(FTPClient.HostnameResolver)} instead.
      */
     @Deprecated
     public FTPEnvironment withPassiveNatWorkaround(boolean enabled) {

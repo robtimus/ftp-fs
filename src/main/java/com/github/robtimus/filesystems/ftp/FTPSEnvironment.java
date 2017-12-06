@@ -35,6 +35,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
+import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClient.HostnameResolver;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPSClient;
@@ -282,7 +283,7 @@ public class FTPSEnvironment extends FTPEnvironment {
 
     /**
      * {@inheritDoc}
-     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(HostnameResolver)} instead.
+     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(FTPClient.HostnameResolver)} instead.
      */
     @Override
     @Deprecated

@@ -33,6 +33,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.ProviderMismatchException;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFileAttributeView;
@@ -205,5 +206,23 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             BasicFileAttributes attributes = view.readAttributes();
             assertTrue(attributes.isDirectory());
         }
+    }
+
+    @Test
+    public void testKeepAliveWithFTPFileSystem() throws IOException {
+        FTPFileSystemProvider provider = new FTPFileSystemProvider();
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+            FTPFileSystemProvider.keepAlive(fs);
+        }
+    }
+
+    @Test(expected = ProviderMismatchException.class)
+    public void testKeepAliveWithNonFTPFileSystem() throws IOException {
+        FTPFileSystemProvider.keepAlive(FileSystems.getDefault());
+    }
+
+    @Test(expected = ProviderMismatchException.class)
+    public void testKeepAliveWithNullFTPFileSystem() throws IOException {
+        FTPFileSystemProvider.keepAlive(null);
     }
 }

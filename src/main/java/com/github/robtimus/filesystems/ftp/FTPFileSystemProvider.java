@@ -499,6 +499,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     public static void keepAlive(FileSystem fs) throws IOException {
         if (fs instanceof FTPFileSystem) {
             ((FTPFileSystem) fs).keepAlive();
+            return;
         }
         throw new ProviderMismatchException();
     }

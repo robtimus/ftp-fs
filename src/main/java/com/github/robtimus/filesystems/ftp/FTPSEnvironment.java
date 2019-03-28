@@ -321,6 +321,12 @@ public class FTPSEnvironment extends FTPEnvironment {
     }
 
     @Override
+    public FTPSEnvironment withFileSystemStrategyFactory(FileSystemStrategyFactory factory) {
+        super.withFileSystemStrategyFactory(factory);
+        return this;
+    }
+
+    @Override
     public FTPSEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
         super.withAbsoluteFilePathSupport(supportAbsoluteFilePaths);
         return this;

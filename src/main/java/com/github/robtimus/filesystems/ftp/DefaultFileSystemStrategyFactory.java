@@ -1,5 +1,5 @@
 /*
- * FTPFileStrategy.java
+ * DefaultFileSystemStrategyFactory.java
  * Copyright 2017 Rob Spoor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,9 +22,9 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPFileFilter;
-import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
 /**
  * A strategy for handling FTP files in an FTP server specific way. This will help support FTP servers that return the current directory (.) when
@@ -32,15 +32,12 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
  *
  * @author Rob Spoor
  */
-abstract class FTPFileStrategy {
+public class DefaultFileSystemStrategyFactory implements FileSystemStrategyFactory {
 
-    abstract List<FTPFile> getChildren(Client client, FTPPath path) throws IOException;
+    public final static DefaultFileSystemStrategyFactory INSTANCE = new DefaultFileSystemStrategyFactory();
 
-    abstract FTPFile getFTPFile(Client client, FTPPath path) throws IOException;
-
-    abstract FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException;
-
-    static FTPFileStrategy getInstance(Client client, boolean supportAbsoluteFilePaths) throws IOException {
+    @Override
+    public FileSystemStrategy createFilesystemStrategy(FTPFileSystemClient client, boolean supportAbsoluteFilePaths) throws IOException {
         if (!supportAbsoluteFilePaths) {
             // NonUnix uses the parent directory to list files
             return NonUnix.INSTANCE;
@@ -56,12 +53,12 @@ abstract class FTPFileStrategy {
         return ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
     }
 
-    private static final class Unix extends FTPFileStrategy {
+    private static final class Unix implements FileSystemStrategy {
 
-        private static final FTPFileStrategy INSTANCE = new Unix();
+        private static final FileSystemStrategy INSTANCE = new Unix();
 
         @Override
-        List<FTPFile> getChildren(Client client, FTPPath path) throws IOException {
+        public List<FTPFile> getChildren(FTPFileSystemClient client, FTPPath path) throws IOException {
 
             FTPFile[] ftpFiles = client.listFiles(path.path());
 
@@ -87,7 +84,7 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getFTPFile(Client client, FTPPath path) throws IOException {
+        public FTPFile getFTPFile(FTPFileSystemClient client, FTPPath path) throws IOException {
             final String name = path.fileName();
 
             FTPFile[] ftpFiles = client.listFiles(path.path(), new FTPFileFilter() {
@@ -110,7 +107,7 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException {
+        public FTPFile getLink(FTPFileSystemClient client, FTPFile ftpFile, FTPPath path) throws IOException {
             if (ftpFile.getLink() != null) {
                 return ftpFile;
             }
@@ -139,12 +136,12 @@ abstract class FTPFileStrategy {
         }
     }
 
-    private static final class NonUnix extends FTPFileStrategy {
+    private static final class NonUnix implements FileSystemStrategy {
 
-        private static final FTPFileStrategy INSTANCE = new NonUnix();
+        private static final FileSystemStrategy INSTANCE = new NonUnix();
 
         @Override
-        List<FTPFile> getChildren(Client client, FTPPath path) throws IOException {
+        public List<FTPFile> getChildren(FTPFileSystemClient client, FTPPath path) throws IOException {
 
             FTPFile[] ftpFiles = client.listFiles(path.path());
 
@@ -176,7 +173,7 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getFTPFile(Client client, FTPPath path) throws IOException {
+        public FTPFile getFTPFile(FTPFileSystemClient client, FTPPath path) throws IOException {
             final String parentPath = path.toAbsolutePath().parentPath();
             final String name = path.fileName();
 
@@ -204,7 +201,7 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException {
+        public FTPFile getLink(FTPFileSystemClient client, FTPFile ftpFile, FTPPath path) throws IOException {
             // getFTPFile always returns the entry in the parent, so there's no need to list the parent here.
             return ftpFile.getLink() == null ? null : ftpFile;
         }

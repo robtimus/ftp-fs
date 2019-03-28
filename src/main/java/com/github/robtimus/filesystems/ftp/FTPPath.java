@@ -47,7 +47,7 @@ import com.github.robtimus.filesystems.SimpleAbstractPath;
  *
  * @author Rob Spoor
  */
-class FTPPath extends SimpleAbstractPath {
+public class FTPPath extends SimpleAbstractPath {
 
     private final FTPFileSystem fs;
 

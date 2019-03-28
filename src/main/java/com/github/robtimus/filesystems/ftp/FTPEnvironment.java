@@ -112,6 +112,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final int DEFAULT_CLIENT_CONNECTION_COUNT = 5;
     private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
+    private static final String FILE_SYSTEM_STRATEGY_FACTORY = "filesystemStrategyFactory"; //$NON-NLS-1$
     private static final String SUPPORT_ABSOLOTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
     private static final String CALCULATE_ACTUAL_TOTAL_SPACE = "calculateActualTotalSpace"; //$NON-NLS-1$
 
@@ -603,6 +604,17 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
+     * Stores the file system strategy to use.
+     *
+     * @param factory The file system strategy to use.
+     * @return This object.
+     */
+    public FTPEnvironment withFileSystemStrategyFactory(FileSystemStrategyFactory factory) {
+        put(FILE_SYSTEM_STRATEGY_FACTORY, factory);
+        return this;
+    }
+
+    /**
      * Stores whether or not FTP servers support absolute paths to list files. If set to {@code false}, getting information about a file will list its
      * parent directory. If set to {@code true}, the server settings will determine how files are listed.
      * <p>
@@ -661,6 +673,13 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return FileSystemProviderSupport.getValue(this, FILE_SYSTEM_EXCEPTION_FACTORY, FileSystemExceptionFactory.class,
                 DefaultFileSystemExceptionFactory.INSTANCE);
     }
+
+    FileSystemStrategyFactory getFileSystemStrategyFactory() {
+        return FileSystemProviderSupport.getValue(this, FILE_SYSTEM_STRATEGY_FACTORY, FileSystemStrategyFactory.class,
+                DefaultFileSystemStrategyFactory.INSTANCE);
+    }
+
+
 
     boolean supportAbsoluteFilePaths() {
         return FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLOTE_FILE_PATHS, true);

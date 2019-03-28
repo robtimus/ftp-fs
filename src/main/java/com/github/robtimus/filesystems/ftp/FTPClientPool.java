@@ -170,7 +170,7 @@ final class FTPClientPool {
         pool.add(client);
     }
 
-    final class Client implements Closeable {
+    final class Client implements FTPFileSystemClient, Closeable {
 
         private final FTPClient client;
         private final boolean pooled;
@@ -199,10 +199,6 @@ final class FTPClientPool {
                 refCount--;
             }
             return refCount;
-        }
-
-        private void keepAlive() throws IOException {
-            client.sendNoOp();
         }
 
         private boolean isConnected() {
@@ -241,7 +237,11 @@ final class FTPClientPool {
             }
         }
 
-        String pwd() throws IOException {
+        public void keepAlive() throws IOException {
+            client.sendNoOp();
+        }
+
+        public String pwd() throws IOException {
             String pwd = client.printWorkingDirectory();
             if (pwd == null) {
                 throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
@@ -265,7 +265,7 @@ final class FTPClientPool {
         }
 
         @SuppressWarnings("resource")
-        InputStream newInputStream(String path, OpenOptions options) throws IOException {
+        public InputStream newInputStream(String path, OpenOptions options) throws IOException {
             assert options.read;
 
             applyTransferOptions(options);
@@ -346,7 +346,7 @@ final class FTPClientPool {
         }
 
         @SuppressWarnings("resource")
-        OutputStream newOutputStream(String path, OpenOptions options) throws IOException {
+        public OutputStream newOutputStream(String path, OpenOptions options) throws IOException {
             assert options.write;
 
             applyTransferOptions(options);
@@ -421,7 +421,7 @@ final class FTPClientPool {
             }
         }
 
-        void storeFile(String path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
+        public void storeFile(String path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
             applyTransferOptions(options);
 
             if (!client.storeFile(path, local)) {
@@ -429,40 +429,40 @@ final class FTPClientPool {
             }
         }
 
-        FTPFile[] listFiles(String path) throws IOException {
+        public FTPFile[] listFiles(String path) throws IOException {
             return client.listFiles(path);
         }
 
-        FTPFile[] listFiles(String path, FTPFileFilter filter) throws IOException {
+        public FTPFile[] listFiles(String path, FTPFileFilter filter) throws IOException {
             return client.listFiles(path, filter);
         }
 
-        void throwIfEmpty(String path, FTPFile[] ftpFiles) throws IOException {
+        public void throwIfEmpty(String path, FTPFile[] ftpFiles) throws IOException {
             if (ftpFiles.length == 0) {
                 throw exceptionFactory.createGetFileException(path, client.getReplyCode(), client.getReplyString());
             }
         }
 
-        void mkdir(String path) throws IOException {
+        public void mkdir(String path) throws IOException {
             if (!client.makeDirectory(path)) {
                 throw exceptionFactory.createCreateDirectoryException(path, client.getReplyCode(), client.getReplyString());
             }
         }
 
-        void delete(String path, boolean isDirectory) throws IOException {
+        public void delete(String path, boolean isDirectory) throws IOException {
             boolean success = isDirectory ? client.removeDirectory(path) : client.deleteFile(path);
             if (!success) {
                 throw exceptionFactory.createDeleteException(path, client.getReplyCode(), client.getReplyString(), isDirectory);
             }
         }
 
-        void rename(String source, String target) throws IOException {
+        public void rename(String source, String target) throws IOException {
             if (!client.rename(source, target)) {
                 throw exceptionFactory.createMoveException(source, target, client.getReplyCode(), client.getReplyString());
             }
         }
 
-        Calendar mdtm(String path) throws IOException {
+        public Calendar mdtm(String path) throws IOException {
             FTPFile file = client.mdtmFile(path);
             return file == null ? null : file.getTimestamp();
         }

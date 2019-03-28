@@ -93,7 +93,7 @@ class FTPFileSystem extends FileSystem {
     private final URI uri;
     private final String defaultDirectory;
 
-    private final FTPFileStrategy ftpFileStrategy;
+    private final FileSystemStrategy ftpFileStrategy;
 
     private final AtomicBoolean open = new AtomicBoolean(true);
 
@@ -110,7 +110,9 @@ class FTPFileSystem extends FileSystem {
             this.defaultDirectory = client.pwd();
 
             boolean supportAbsoluteFilePaths = env.supportAbsoluteFilePaths();
-            this.ftpFileStrategy = FTPFileStrategy.getInstance(client, supportAbsoluteFilePaths);
+            FileSystemStrategyFactory fileSystemStrategyFactory = env.getFileSystemStrategyFactory();
+            FileSystemStrategy filesystemStrategy = fileSystemStrategyFactory.createFilesystemStrategy(client, supportAbsoluteFilePaths);
+            this.ftpFileStrategy = filesystemStrategy;
         }
     }
 

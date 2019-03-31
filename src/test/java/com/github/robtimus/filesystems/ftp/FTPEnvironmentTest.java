@@ -30,9 +30,13 @@ import org.junit.Test;
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPEnvironmentTest {
 
+    FTPEnvironment createFTPEnvironment() {
+        return new FTPEnvironment();
+    }
+
     @Test
     public void testWithLocalAddress() throws UnknownHostException {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 
@@ -49,7 +53,7 @@ public class FTPEnvironmentTest {
 
     @Test
     public void testWithCredentialsWithoutAccount() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 
@@ -66,7 +70,7 @@ public class FTPEnvironmentTest {
 
     @Test
     public void testWithCredentialsWithAccount() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 
@@ -85,7 +89,7 @@ public class FTPEnvironmentTest {
 
     @Test
     public void testWithSoLinger() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 
@@ -102,7 +106,7 @@ public class FTPEnvironmentTest {
 
     @Test
     public void testWithActivePortRange() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 
@@ -120,7 +124,7 @@ public class FTPEnvironmentTest {
     @Test
     @SuppressWarnings("deprecation")
     public void testGetFTPFileStrategy() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         env.clear();
         assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());

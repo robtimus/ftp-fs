@@ -93,6 +93,8 @@ public class FTPEnvironmentSetterTest {
                 { "withAutodetectEncoding", "autodetectEncoding", true, },
                 { "withClientConnectionCount", "clientConnectionCount", 5, },
                 { "withFileSystemExceptionFactory", "fileSystemExceptionFactory", DefaultFileSystemExceptionFactory.INSTANCE, },
+                { "withFTPFileStrategyFactory", "ftpFileStrategyFactory", FTPFileStrategyFactory.UNIX, },
+                { "withAbsoluteFilePathSupport", "supportAbsoluteFilePaths", true, },
                 { "withActualTotalSpaceCalculation", "calculateActualTotalSpace", true, },
         };
         return Arrays.asList(parameters);

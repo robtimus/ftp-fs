@@ -321,6 +321,17 @@ public class FTPSEnvironment extends FTPEnvironment {
     }
 
     @Override
+    public FTPSEnvironment withFTPFileStrategyFactory(FTPFileStrategyFactory factory) {
+        super.withFTPFileStrategyFactory(factory);
+        return this;
+    }
+
+    /**
+     * @deprecated Use {@link #withFTPFileStrategyFactory(FTPFileStrategyFactory)} instead. A value of {@code true} should be replaced with
+     *             {@link FTPFileStrategyFactory#AUTO_DETECT}, a value of {@code false} with {@link FTPFileStrategyFactory#NON_UNIX}.
+     */
+    @Override
+    @Deprecated
     public FTPSEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
         super.withAbsoluteFilePathSupport(supportAbsoluteFilePaths);
         return this;

@@ -112,6 +112,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final int DEFAULT_CLIENT_CONNECTION_COUNT = 5;
     private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
+    private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
     private static final String SUPPORT_ABSOLOTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
     private static final String CALCULATE_ACTUAL_TOTAL_SPACE = "calculateActualTotalSpace"; //$NON-NLS-1$
 
@@ -603,6 +604,17 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
+     * Stores the FTP file strategy factory to use.
+     *
+     * @param factory The FTP file strategy factory to use.
+     * @return This object.
+     */
+    public FTPEnvironment withFTPFileStrategyFactory(FTPFileStrategyFactory factory) {
+        put(FTP_FILE_STRATEGY_FACTORY, factory);
+        return this;
+    }
+
+    /**
      * Stores whether or not FTP servers support absolute paths to list files. If set to {@code false}, getting information about a file will list its
      * parent directory. If set to {@code true}, the server settings will determine how files are listed.
      * <p>
@@ -611,7 +623,10 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      * @param supportAbsoluteFilePaths {@code false} if FTP servers do not support absolute paths to list files,
      *            or {@code true} to use the server settings.
      * @return This object.
+     * @deprecated Use {@link #withFTPFileStrategyFactory(FTPFileStrategyFactory)} instead. A value of {@code true} should be replaced with
+     *             {@link FTPFileStrategyFactory#AUTO_DETECT}, a value of {@code false} with {@link FTPFileStrategyFactory#NON_UNIX}.
      */
+    @Deprecated
     public FTPEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
         put(SUPPORT_ABSOLOTE_FILE_PATHS, supportAbsoluteFilePaths);
         return this;
@@ -662,8 +677,14 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
                 DefaultFileSystemExceptionFactory.INSTANCE);
     }
 
-    boolean supportAbsoluteFilePaths() {
-        return FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLOTE_FILE_PATHS, true);
+    FTPFileStrategy getFTPFileStrategy() {
+        FTPFileStrategyFactory factory = FileSystemProviderSupport.getValue(this, FTP_FILE_STRATEGY_FACTORY, FTPFileStrategyFactory.class, null);
+        if (factory == null) {
+            boolean supportAbsolutePaths = FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLOTE_FILE_PATHS, true);
+            // nonUnix uses the parent directory to list files
+            factory = supportAbsolutePaths ? FTPFileStrategyFactory.AUTO_DETECT : FTPFileStrategyFactory.NON_UNIX;
+        }
+        return factory.createFTPFileStrategy();
     }
 
     FTPClient createClient(String hostname, int port) throws IOException {

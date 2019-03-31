@@ -18,6 +18,7 @@
 package com.github.robtimus.filesystems.ftp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -114,5 +115,31 @@ public class FTPEnvironmentTest {
         expected.put("activePortRange.min", minPort);
         expected.put("activePortRange.max", maxPort);
         assertEquals(expected, env);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testGetFTPFileStrategy() {
+        FTPEnvironment env = new FTPEnvironment();
+
+        env.clear();
+        assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
+
+        env.clear();
+        env.withAbsoluteFilePathSupport(false);
+        assertSame(FTPFileStrategy.nonUnix(), env.getFTPFileStrategy());
+
+        env.clear();
+        env.withAbsoluteFilePathSupport(true);
+        assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
+
+        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.UNIX);
+        assertSame(FTPFileStrategy.unix(), env.getFTPFileStrategy());
+
+        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.NON_UNIX);
+        assertSame(FTPFileStrategy.nonUnix(), env.getFTPFileStrategy());
+
+        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.AUTO_DETECT);
+        assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
     }
 }

@@ -31,7 +31,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPFileFilter;
 
 /**
  * A pool of FTP clients, allowing multiple commands to be executed concurrently.
@@ -241,6 +240,14 @@ final class FTPClientPool {
             }
         }
 
+        FTPClient ftpClient() {
+            return client;
+        }
+
+        FileSystemExceptionFactory exceptionFactory() {
+            return exceptionFactory;
+        }
+
         String pwd() throws IOException {
             String pwd = client.printWorkingDirectory();
             if (pwd == null) {
@@ -426,20 +433,6 @@ final class FTPClientPool {
 
             if (!client.storeFile(path, local)) {
                 throw exceptionFactory.createNewOutputStreamException(path, client.getReplyCode(), client.getReplyString(), openOptions);
-            }
-        }
-
-        FTPFile[] listFiles(String path) throws IOException {
-            return client.listFiles(path);
-        }
-
-        FTPFile[] listFiles(String path, FTPFileFilter filter) throws IOException {
-            return client.listFiles(path, filter);
-        }
-
-        void throwIfEmpty(String path, FTPFile[] ftpFiles) throws IOException {
-            if (ftpFiles.length == 0) {
-                throw exceptionFactory.createGetFileException(path, client.getReplyCode(), client.getReplyString());
             }
         }
 

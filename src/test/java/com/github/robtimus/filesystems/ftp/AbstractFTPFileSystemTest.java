@@ -146,7 +146,7 @@ public abstract class AbstractFTPFileSystemTest {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withClientConnectionCount(1)
-                .withAbsoluteFilePathSupport(supportAbsoluteFilePaths)
+                .withFTPFileStrategyFactory(supportAbsoluteFilePaths ? FTPFileStrategyFactory.AUTO_DETECT : FTPFileStrategyFactory.NON_UNIX)
                 .withFileSystemExceptionFactory(exceptionFactory);
     }
 

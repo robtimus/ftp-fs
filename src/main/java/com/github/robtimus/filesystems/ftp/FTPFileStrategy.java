@@ -18,42 +18,169 @@
 package com.github.robtimus.filesystems.ftp;
 
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPFileFilter;
 import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
 /**
- * A strategy for handling FTP files in an FTP server specific way. This will help support FTP servers that return the current directory (.) when
- * listing directories, and FTP servers that don't.
+ * A strategy for handling FTP files in an FTP server specific way.
+ * This will help support FTP servers that return the current directory (.) when listing directories, and FTP servers that don't.
  *
  * @author Rob Spoor
  */
-abstract class FTPFileStrategy {
+public abstract class FTPFileStrategy {
 
-    abstract List<FTPFile> getChildren(Client client, FTPPath path) throws IOException;
+    final List<FTPFile> getChildren(Client client, Path path) throws IOException {
+        return getChildren(client.ftpClient(), path, client.exceptionFactory());
+    }
 
-    abstract FTPFile getFTPFile(Client client, FTPPath path) throws IOException;
+    final FTPFile getFTPFile(Client client, Path path) throws IOException {
+        return getFTPFile(client.ftpClient(), path, client.exceptionFactory());
+    }
 
-    abstract FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException;
+    final FTPFile getLink(Client client, FTPFile ftpFile, Path path) throws IOException {
+        return getLink(client.ftpClient(), ftpFile, path, client.exceptionFactory());
+    }
 
-    static FTPFileStrategy getInstance(Client client, boolean supportAbsoluteFilePaths) throws IOException {
-        if (!supportAbsoluteFilePaths) {
-            // NonUnix uses the parent directory to list files
-            return NonUnix.INSTANCE;
+    /**
+     * Initializes the FTP file strategy. This method should be called only once, before calling any other method.
+     * This default implementation does nothing.
+     *
+     * @param client The FTP client to use for initialization.
+     * @throws IOException If an I/O error occurs.
+     */
+    protected void initialize(FTPClient client) throws IOException {
+        // does nothing
+    }
+
+    /**
+     * Returns the direct children for a path.
+     *
+     * @param client The FTP client to use.
+     * @param path The path to return the direct children for.
+     * @param exceptionFactory The file system exception factory to use.
+     * @return The direct children for the given path.
+     * @throws NoSuchFileException If the given path does not exist.
+     * @throws NotDirectoryException If the given path does not represent a directory.
+     * @throws IOException If an I/O error occurs.
+     */
+    protected abstract List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException;
+
+    /**
+     * Returns a single FTP file.
+     *
+     * @param client The FTP client to use.
+     * @param path The path to return the matching FTP file for.
+     * @param exceptionFactory The file system exception factory to use.
+     * @return The FTP file matching the given path.
+     * @throws NoSuchFileException If the give path does not exist.
+     * @throws IOException If an I/O error occurs.
+     */
+    protected abstract FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException;
+
+    /**
+     * Returns an FTP file representing a link.
+     * This can be as simple as returning the object if {@link FTPFile#getLink()} is not {@code null}, or it can be more complex.
+     *
+     * @param client The FTP client to use.
+     * @param ftpFile The FTP file that represents the possible link.
+     * @param path The path to the FTP file.
+     * @param exceptionFactory The file system exception factory to use.
+     * @return An FTP file representing a link if the given FTP file and path represent a link, or {@code null} if they represent a non-link.
+     * @throws IOException If an I/O error occurs.
+     */
+    protected abstract FTPFile getLink(FTPClient client, FTPFile ftpFile, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException;
+
+    /**
+     * Returns a path's file name.
+     * This method should only be called by sub classes to retrieve the file name of paths passed to their methods.
+     *
+     * @param path The path to return the file name of.
+     * @return The file name of the given path.
+     */
+    protected final String fileName(Path path) {
+        return ((FTPPath) path).fileName();
+    }
+
+    /**
+     * Returns a path's full path.
+     * This method should only be called by sub classes to retrieve the full path of paths passed to their methods.
+     *
+     * @param path The path to return the full path of.
+     * @return The full path of the given path.
+     */
+    protected final String path(Path path) {
+        return ((FTPPath) path).path();
+    }
+
+    /**
+     * Returns a path's parent path.
+     * This method should only be called by sub classes to retrieve the parent path of paths passed to their methods.
+     *
+     * @param path The path to return the parent path of.
+     * @return The parent path of the given path, or {@code null} if the path has no parent.
+     */
+    protected final String parentPath(Path path) {
+        return ((FTPPath) path).toAbsolutePath().parentPath();
+    }
+
+    /**
+     * Throws a {@link FileSystemException} if the given array of FTP files is empty.
+     * This method will delegate to {@link FileSystemExceptionFactory#createGetFileException(String, int, String)} if needed.
+     *
+     * @param ftpFiles The array of FTP files to check.
+     * @param path The path that was used to retrieve the FTP files.
+     * @param client The FTP client that was used to retrieve the FTP files.
+     * @param exceptionFactory The file system exception factory to use.
+     * @throws FileSystemException If the given array of FTP files is empty.
+     */
+    protected final void throwIfEmpty(FTPFile[] ftpFiles, Path path, FTPClient client, FileSystemExceptionFactory exceptionFactory)
+            throws FileSystemException {
+
+        if (ftpFiles.length == 0) {
+            throw exceptionFactory.createGetFileException(path(path), client.getReplyCode(), client.getReplyString());
         }
+    }
 
-        FTPFile[] ftpFiles = client.listFiles("/", new FTPFileFilter() { //$NON-NLS-1$
-            @Override
-            public boolean accept(FTPFile ftpFile) {
-                String fileName = FTPFileSystem.getFileName(ftpFile);
-                return FTPFileSystem.CURRENT_DIR.equals(fileName);
-            }
-        });
-        return ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
+    /**
+     * Returns a strategy for Unix-like FTP file systems.
+     * It is assumed that these return an entry for the current directory (.) when listing directories.
+     * It is also assumed that these support absolute paths to list files.
+     *
+     * @return A strategy for Unix-like FTP file systems.
+     */
+    public static FTPFileStrategy unix() {
+        return Unix.INSTANCE;
+    }
+
+    /**
+     * Returns a strategy for non-Unix-like FTP file systems.
+     * It is assumed that these do not return an entry for the current directory (.) when listing directories.
+     * As a result, this strategy will list a file's parent to get information about a file.
+     * <p>
+     * This strategy should be used for FTP file systems that do not support absolute paths to list files.
+     *
+     * @return A strategy for non-Unix-like FTP file systems.
+     */
+    public static FTPFileStrategy nonUnix() {
+        return NonUnix.INSTANCE;
+    }
+
+    /**
+     * Returns a strategy that will detect whether or not an FTP file system is Unix-like or not.
+     * It will do so by listing the root and checking for the presence of an entry for the current directory (.).
+     *
+     * @return A strategy that will detect whether or not an FTP file system is Unix-like or not.
+     */
+    public static FTPFileStrategy autoDetect() {
+        return new AutoDetect();
     }
 
     private static final class Unix extends FTPFileStrategy {
@@ -61,12 +188,11 @@ abstract class FTPFileStrategy {
         private static final FTPFileStrategy INSTANCE = new Unix();
 
         @Override
-        List<FTPFile> getChildren(Client client, FTPPath path) throws IOException {
-
-            FTPFile[] ftpFiles = client.listFiles(path.path());
+        protected List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            FTPFile[] ftpFiles = client.listFiles(path(path));
 
             if (ftpFiles.length == 0) {
-                throw new NoSuchFileException(path.path());
+                throw new NoSuchFileException(path(path));
             }
             boolean isDirectory = false;
             List<FTPFile> children = new ArrayList<>(ftpFiles.length);
@@ -80,24 +206,24 @@ abstract class FTPFileStrategy {
             }
 
             if (!isDirectory) {
-                throw new NotDirectoryException(path.path());
+                throw new NotDirectoryException(path(path));
             }
 
             return children;
         }
 
         @Override
-        FTPFile getFTPFile(Client client, FTPPath path) throws IOException {
-            final String name = path.fileName();
+        protected FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            final String name = fileName(path);
 
-            FTPFile[] ftpFiles = client.listFiles(path.path(), new FTPFileFilter() {
+            FTPFile[] ftpFiles = client.listFiles(path(path), new FTPFileFilter() {
                 @Override
                 public boolean accept(FTPFile ftpFile) {
                     String fileName = FTPFileSystem.getFileName(ftpFile);
                     return FTPFileSystem.CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
                 }
             });
-            client.throwIfEmpty(path.path(), ftpFiles);
+            throwIfEmpty(ftpFiles, path, client, exceptionFactory);
             if (ftpFiles.length == 1) {
                 return ftpFiles[0];
             }
@@ -110,7 +236,7 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException {
+        protected FTPFile getLink(FTPClient client, FTPFile ftpFile, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
             if (ftpFile.getLink() != null) {
                 return ftpFile;
             }
@@ -118,8 +244,8 @@ abstract class FTPFileStrategy {
                 // The file is returned using getFTPFile, which returns the . (current directory) entry for directories.
                 // List the parent (if any) instead.
 
-                final String parentPath = path.toAbsolutePath().parentPath();
-                final String name = path.fileName();
+                final String parentPath = parentPath(path);
+                final String name = fileName(path);
 
                 if (parentPath == null) {
                     // path is /, there is no link
@@ -132,7 +258,7 @@ abstract class FTPFileStrategy {
                         return (ftpFile.isDirectory() || ftpFile.isSymbolicLink()) && name.equals(FTPFileSystem.getFileName(ftpFile));
                     }
                 });
-                client.throwIfEmpty(path.path(), ftpFiles);
+                throwIfEmpty(ftpFiles, path, client, exceptionFactory);
                 return ftpFiles[0].getLink() == null ? null : ftpFiles[0];
             }
             return null;
@@ -144,9 +270,8 @@ abstract class FTPFileStrategy {
         private static final FTPFileStrategy INSTANCE = new NonUnix();
 
         @Override
-        List<FTPFile> getChildren(Client client, FTPPath path) throws IOException {
-
-            FTPFile[] ftpFiles = client.listFiles(path.path());
+        protected List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            FTPFile[] ftpFiles = client.listFiles(path(path));
 
             boolean isDirectory = false;
             List<FTPFile> children = new ArrayList<>(ftpFiles.length);
@@ -161,14 +286,14 @@ abstract class FTPFileStrategy {
 
             if (!isDirectory && children.size() <= 1) {
                 // either zero or one, check the parent to see if the path exists and is a directory
-                FTPPath currentPath = path;
-                FTPFile currentFtpFile = getFTPFile(client, currentPath);
+                Path currentPath = path;
+                FTPFile currentFtpFile = getFTPFile(client, currentPath, exceptionFactory);
                 while (currentFtpFile.isSymbolicLink()) {
                     currentPath = path.resolve(currentFtpFile.getLink());
-                    currentFtpFile = getFTPFile(client, currentPath);
+                    currentFtpFile = getFTPFile(client, currentPath, exceptionFactory);
                 }
                 if (!currentFtpFile.isDirectory()) {
-                    throw new NotDirectoryException(path.path());
+                    throw new NotDirectoryException(path(path));
                 }
             }
 
@@ -176,9 +301,9 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getFTPFile(Client client, FTPPath path) throws IOException {
-            final String parentPath = path.toAbsolutePath().parentPath();
-            final String name = path.fileName();
+        protected FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            final String parentPath = parentPath(path);
+            final String name = fileName(path);
 
             if (parentPath == null) {
                 // path is /, but that cannot be listed
@@ -195,7 +320,7 @@ abstract class FTPFileStrategy {
                 }
             });
             if (ftpFiles.length == 0) {
-                throw new NoSuchFileException(path.path());
+                throw new NoSuchFileException(path(path));
             }
             if (ftpFiles.length == 1) {
                 return ftpFiles[0];
@@ -204,9 +329,54 @@ abstract class FTPFileStrategy {
         }
 
         @Override
-        FTPFile getLink(Client client, FTPFile ftpFile, FTPPath path) throws IOException {
+        protected FTPFile getLink(FTPClient client, FTPFile ftpFile, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
             // getFTPFile always returns the entry in the parent, so there's no need to list the parent here.
             return ftpFile.getLink() == null ? null : ftpFile;
+        }
+    }
+
+    private static final class AutoDetect extends FTPFileStrategy {
+
+        private FTPFileStrategy delegate;
+
+        @Override
+        protected void initialize(FTPClient client) throws IOException {
+            if (delegate != null) {
+                throw new IllegalStateException(FTPMessages.autoDetectFileStrategyAlreadyInitialized());
+            }
+
+            FTPFile[] ftpFiles = client.listFiles("/", new FTPFileFilter() { //$NON-NLS-1$
+                @Override
+                public boolean accept(FTPFile ftpFile) {
+                    String fileName = FTPFileSystem.getFileName(ftpFile);
+                    return FTPFileSystem.CURRENT_DIR.equals(fileName);
+                }
+            });
+            delegate = ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
+        }
+
+        private void checkInitialized() {
+            if (delegate == null) {
+                throw new IllegalStateException(FTPMessages.autoDetectFileStrategyNotInitialized());
+            }
+        }
+
+        @Override
+        protected List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            checkInitialized();
+            return delegate.getChildren(client, path, exceptionFactory);
+        }
+
+        @Override
+        protected FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            checkInitialized();
+            return delegate.getFTPFile(client, path, exceptionFactory);
+        }
+
+        @Override
+        protected FTPFile getLink(FTPClient client, FTPFile ftpFile, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
+            checkInitialized();
+            return delegate.getLink(client, ftpFile, path, exceptionFactory);
         }
     }
 }

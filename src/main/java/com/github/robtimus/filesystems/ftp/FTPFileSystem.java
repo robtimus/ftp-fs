@@ -109,8 +109,8 @@ class FTPFileSystem extends FileSystem {
         try (Client client = clientPool.get()) {
             this.defaultDirectory = client.pwd();
 
-            boolean supportAbsoluteFilePaths = env.supportAbsoluteFilePaths();
-            this.ftpFileStrategy = FTPFileStrategy.getInstance(client, supportAbsoluteFilePaths);
+            this.ftpFileStrategy = env.getFTPFileStrategy();
+            this.ftpFileStrategy.initialize(client.ftpClient());
         }
     }
 

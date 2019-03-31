@@ -41,4 +41,12 @@ final class FTPMessages {
     public static String copyOfSymbolicLinksAcrossFileSystemsNotSupported() {
         return getMessage("copyOfSymbolicLinksAcrossFileSystemsNotSupported"); //$NON-NLS-1$
     }
+
+    public static String autoDetectFileStrategyAlreadyInitialized() {
+        return getMessage("autoDetectFileStrategyAlreadyInitialized"); //$NON-NLS-1$
+    }
+
+    public static String autoDetectFileStrategyNotInitialized() {
+        return getMessage("autoDetectFileStrategyNotInitialized"); //$NON-NLS-1$
+    }
 }

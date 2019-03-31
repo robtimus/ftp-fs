@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp;
 import static org.junit.Assert.assertEquals;
 import java.lang.reflect.Method;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -74,7 +75,10 @@ public class FTPSEnvironmentSetterTest {
                 { "withEnabledCipherSuites", "enabledCipherSuites", new String[] { "suite1", "suite2", }, },
                 { "withEnabledProtocols", "enabledProtocols", new String[] { "protocol1", "protocol2", }, },
         };
-        return Arrays.asList(parameters);
+        List<Object[]> parameterList = new ArrayList<>();
+        parameterList.addAll(FTPEnvironmentSetterTest.getParameters());
+        parameterList.addAll(Arrays.asList(parameters));
+        return parameterList;
     }
 
     @Test

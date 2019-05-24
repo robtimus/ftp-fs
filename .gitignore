@@ -2,5 +2,6 @@
 .checkstyle
 .classpath
 .project
+.idea
 src/site/markdown/index.md
 target

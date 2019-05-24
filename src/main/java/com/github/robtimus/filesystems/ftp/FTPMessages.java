@@ -49,4 +49,8 @@ final class FTPMessages {
     public static String autoDetectFileStrategyNotInitialized() {
         return getMessage("autoDetectFileStrategyNotInitialized"); //$NON-NLS-1$
     }
+
+    public static String clientConnectionWaitTimeoutExpired() {
+        return getMessage("clientConnectionWaitTimeoutExpired"); //$NON-NLS-1$
+    }
 }

@@ -110,7 +110,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     // FTP file system support
 
     private static final int DEFAULT_CLIENT_CONNECTION_COUNT = 5;
+    private static final long DEFAULT_CLIENT_CONNECTION_WAIT_TIMEOUT = 0;
     private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
+    private static final String CLIENT_CONNECTION_WAIT_TIMEOUT = "clientConnectionWaitTimeout"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
     private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
     private static final String SUPPORT_ABSOLOTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
@@ -593,6 +595,34 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
+     * Stores the wait timeout when retrieving client instance from the connection pool.
+     * <p>
+     * If the timeout is set to {@code 0}, the FTPFileSystem waits as long as necessary until a client becomes available.
+     *
+     * @param timeout The timeout in milliseconds.
+     * @return This object.
+     * @since 1.4
+     */
+    public FTPEnvironment withClientConnectionWaitTimeout(long timeout) {
+        put(CLIENT_CONNECTION_WAIT_TIMEOUT, timeout);
+        return this;
+    }
+
+    /**
+     * Stores the wait timeout when retrieving client instance from the connection pool.
+     * <p>
+     * If the timeout is set to {@code 0}, the FTPFileSystem waits as long as necessary until a client becomes available.
+     *
+     * @param duration The timeout duration.
+     * @param unit Time timeout unit.
+     * @return This object.
+     * @since 1.4
+     */
+    public FTPEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {
+        return withClientConnectionWaitTimeout(TimeUnit.MILLISECONDS.convert(duration, unit));
+    }
+
+    /**
      * Stores the file system exception factory to use.
      *
      * @param factory The file system exception factory to use.
@@ -670,6 +700,11 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     int getClientConnectionCount() {
         int count = FileSystemProviderSupport.getIntValue(this, CLIENT_CONNECTION_COUNT, DEFAULT_CLIENT_CONNECTION_COUNT);
         return Math.max(1, count);
+    }
+
+    long getClientConnectionWaitTimeout() {
+        long timeout = FileSystemProviderSupport.getLongValue(this, CLIENT_CONNECTION_WAIT_TIMEOUT, DEFAULT_CLIENT_CONNECTION_WAIT_TIMEOUT);
+        return Math.max(0, timeout);
     }
 
     FileSystemExceptionFactory getExceptionFactory() {

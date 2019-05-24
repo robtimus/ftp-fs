@@ -29,6 +29,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
@@ -46,6 +48,7 @@ final class FTPClientPool {
     private final FileSystemExceptionFactory exceptionFactory;
 
     private final BlockingQueue<Client> pool;
+    private final long poolWaitTimeout;
 
     FTPClientPool(String hostname, int port, FTPEnvironment env) throws IOException {
         this.hostname = hostname;
@@ -54,6 +57,7 @@ final class FTPClientPool {
         this.exceptionFactory = env.getExceptionFactory();
         final int poolSize = env.getClientConnectionCount();
         this.pool = new ArrayBlockingQueue<>(poolSize);
+        this.poolWaitTimeout = env.getClientConnectionWaitTimeout();
 
         try {
             for (int i = 0; i < poolSize; i++) {
@@ -74,7 +78,7 @@ final class FTPClientPool {
 
     Client get() throws IOException {
         try {
-            Client client = pool.take();
+            Client client = getWithinTimeout();
             try {
                 if (!client.isConnected()) {
                     client = new Client(true);
@@ -94,6 +98,19 @@ final class FTPClientPool {
             iioe.initCause(e);
             throw iioe;
         }
+    }
+
+    private Client getWithinTimeout() throws InterruptedException, IOException {
+        Client client;
+        if (poolWaitTimeout == 0) {
+            client = pool.take();
+        } else {
+            client = pool.poll(poolWaitTimeout, TimeUnit.MILLISECONDS);
+            if (client == null) {
+                throw new IOException(FTPMessages.clientConnectionWaitTimeoutExpired());
+            }
+        }
+        return client;
     }
 
     Client getOrCreate() throws IOException {

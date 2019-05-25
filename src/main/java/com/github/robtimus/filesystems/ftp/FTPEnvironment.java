@@ -113,7 +113,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
     private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
-    private static final String SUPPORT_ABSOLOTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
+    private static final String SUPPORT_ABSOLUTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
     private static final String CALCULATE_ACTUAL_TOTAL_SPACE = "calculateActualTotalSpace"; //$NON-NLS-1$
 
     private Map<String, Object> map;
@@ -628,7 +628,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      */
     @Deprecated
     public FTPEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
-        put(SUPPORT_ABSOLOTE_FILE_PATHS, supportAbsoluteFilePaths);
+        put(SUPPORT_ABSOLUTE_FILE_PATHS, supportAbsoluteFilePaths);
         return this;
     }
 
@@ -680,7 +680,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     FTPFileStrategy getFTPFileStrategy() {
         FTPFileStrategyFactory factory = FileSystemProviderSupport.getValue(this, FTP_FILE_STRATEGY_FACTORY, FTPFileStrategyFactory.class, null);
         if (factory == null) {
-            boolean supportAbsolutePaths = FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLOTE_FILE_PATHS, true);
+            boolean supportAbsolutePaths = FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLUTE_FILE_PATHS, true);
             // nonUnix uses the parent directory to list files
             factory = supportAbsolutePaths ? FTPFileStrategyFactory.AUTO_DETECT : FTPFileStrategyFactory.NON_UNIX;
         }

@@ -601,6 +601,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      *
      * @param timeout The timeout in milliseconds.
      * @return This object.
+     * @see #withClientConnectionWaitTimeout(long, TimeUnit)
      * @since 1.4
      */
     public FTPEnvironment withClientConnectionWaitTimeout(long timeout) {
@@ -617,6 +618,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      * @param unit The timeout unit.
      * @return This object.
      * @throws NullPointerException If the timeout unit is {@code null}.
+     * @see #withClientConnectionWaitTimeout(long)
      * @since 1.4
      */
     public FTPEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {

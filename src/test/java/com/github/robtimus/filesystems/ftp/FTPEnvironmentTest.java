@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 @SuppressWarnings({ "nls", "javadoc" })
@@ -145,5 +147,18 @@ public class FTPEnvironmentTest {
 
         env.withFTPFileStrategyFactory(FTPFileStrategyFactory.AUTO_DETECT);
         assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
+    }
+
+    @Test
+    public void testWithClientConnectionWaitTimeoutWithUnit() {
+        FTPEnvironment env = new FTPEnvironment();
+
+        assertEquals(Collections.emptyMap(), env);
+
+        env.withClientConnectionWaitTimeout(1, TimeUnit.MINUTES);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("clientConnectionWaitTimeout", 60_000L);
+        assertEquals(expected, env);
     }
 }

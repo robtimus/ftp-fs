@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.security.SecureRandom;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -311,6 +312,18 @@ public class FTPSEnvironment extends FTPEnvironment {
     @Override
     public FTPSEnvironment withClientConnectionCount(int count) {
         super.withClientConnectionCount(count);
+        return this;
+    }
+
+    @Override
+    public FTPSEnvironment withClientConnectionWaitTimeout(long timeout) {
+        super.withClientConnectionWaitTimeout(timeout);
+        return this;
+    }
+
+    @Override
+    public FTPSEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {
+        super.withClientConnectionWaitTimeout(duration, unit);
         return this;
     }
 

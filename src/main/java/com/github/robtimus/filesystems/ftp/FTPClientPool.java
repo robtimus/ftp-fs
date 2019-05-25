@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 
@@ -101,14 +100,12 @@ final class FTPClientPool {
     }
 
     private Client getWithinTimeout() throws InterruptedException, IOException {
-        Client client;
         if (poolWaitTimeout == 0) {
-            client = pool.take();
-        } else {
-            client = pool.poll(poolWaitTimeout, TimeUnit.MILLISECONDS);
-            if (client == null) {
-                throw new IOException(FTPMessages.clientConnectionWaitTimeoutExpired());
-            }
+            return pool.take();
+        }
+        Client client = pool.poll(poolWaitTimeout, TimeUnit.MILLISECONDS);
+        if (client == null) {
+            throw new IOException(FTPMessages.clientConnectionWaitTimeoutExpired());
         }
         return client;
     }

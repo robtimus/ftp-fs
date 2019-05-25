@@ -595,9 +595,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
-     * Stores the wait timeout when retrieving client instance from the connection pool.
+     * Stores the wait timeout to use for retrieving client connection from the connection pool.
      * <p>
-     * If the timeout is set to {@code 0}, the FTPFileSystem waits as long as necessary until a client becomes available.
+     * If the timeout is not larger than {@code 0}, the FTP file system waits indefinitely until a client connection becomes available.
      *
      * @param timeout The timeout in milliseconds.
      * @return This object.
@@ -609,13 +609,14 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
-     * Stores the wait timeout when retrieving client instance from the connection pool.
+     * Stores the wait timeout to use for retrieving client connections from the connection pool.
      * <p>
-     * If the timeout is set to {@code 0}, the FTPFileSystem waits as long as necessary until a client becomes available.
+     * If the timeout is not larger than {@code 0}, the FTP file system waits indefinitely until a client connection becomes available.
      *
      * @param duration The timeout duration.
-     * @param unit Time timeout unit.
+     * @param unit The timeout unit.
      * @return This object.
+     * @throws NullPointerException If the timeout unit is {@code null}.
      * @since 1.4
      */
     public FTPEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {

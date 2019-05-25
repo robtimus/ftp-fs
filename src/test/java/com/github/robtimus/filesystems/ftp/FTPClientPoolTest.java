@@ -17,19 +17,18 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import java.io.IOException;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
+import org.junit.Test;
 
 /**
  * @author Pei-Tang Huang
  */
+@SuppressWarnings({ "nls", "javadoc" })
 public class FTPClientPoolTest extends AbstractFTPFileSystemTest {
 
     public FTPClientPoolTest() {
@@ -46,23 +45,25 @@ public class FTPClientPoolTest extends AbstractFTPFileSystemTest {
                 .withClientConnectionWaitTimeout(500, TimeUnit.MILLISECONDS);
 
         FTPClientPool pool = new FTPClientPool(uri.getHost(), uri.getPort(), env);
-
-        // exhaust all available clients
-        for (int i = 0; i < clientCount; i++) {
-            pool.get();
-        }
-
-        long startTime = System.currentTimeMillis();
         try {
-            pool.get();
-            fail("Should never get here.");
+            // exhaust all available clients
+            for (int i = 0; i < clientCount; i++) {
+                pool.get();
+            }
 
-        } catch (IOException e) {
-            String expected = FTPMessages.clientConnectionWaitTimeoutExpired();
+            long startTime = System.currentTimeMillis();
+            try {
+                pool.get();
+                fail("Should never get here.");
 
-            assertEquals("timeout expired exception thrown", expected, e.getMessage());
-            assertTrue("timeout after specified duration",
-                    System.currentTimeMillis() - startTime >= 500);
+            } catch (IOException e) {
+                String expected = FTPMessages.clientConnectionWaitTimeoutExpired();
+
+                assertEquals("timeout expired exception thrown", expected, e.getMessage());
+                assertTrue("timeout after specified duration", System.currentTimeMillis() - startTime >= 500);
+            }
+        } finally {
+            pool.close();
         }
     }
 }

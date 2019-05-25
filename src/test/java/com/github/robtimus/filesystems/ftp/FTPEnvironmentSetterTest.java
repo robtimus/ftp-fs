@@ -92,7 +92,7 @@ public class FTPEnvironmentSetterTest {
                 { "withPassiveNatWorkaroundStrategy", "passiveNatWorkaroundStrategy", new FTPClient.NatServerResolverImpl(new FTPClient()), },
                 { "withAutodetectEncoding", "autodetectEncoding", true, },
                 { "withClientConnectionCount", "clientConnectionCount", 5, },
-                { "withClientConnectionWaitTimeout", "clientConnectionWaitTimeout", 0L, },
+                { "withClientConnectionWaitTimeout", "clientConnectionWaitTimeout", 1000L, },
                 { "withFileSystemExceptionFactory", "fileSystemExceptionFactory", DefaultFileSystemExceptionFactory.INSTANCE, },
                 { "withFTPFileStrategyFactory", "ftpFileStrategyFactory", FTPFileStrategyFactory.UNIX, },
                 { "withAbsoluteFilePathSupport", "supportAbsoluteFilePaths", true, },

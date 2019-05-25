@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
 
 @SuppressWarnings({ "nls", "javadoc" })
@@ -151,7 +150,7 @@ public class FTPEnvironmentTest {
 
     @Test
     public void testWithClientConnectionWaitTimeoutWithUnit() {
-        FTPEnvironment env = new FTPEnvironment();
+        FTPEnvironment env = createFTPEnvironment();
 
         assertEquals(Collections.emptyMap(), env);
 

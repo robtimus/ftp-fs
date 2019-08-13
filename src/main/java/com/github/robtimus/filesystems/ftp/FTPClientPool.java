@@ -30,8 +30,12 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A pool of FTP clients, allowing multiple commands to be executed concurrently.
@@ -39,6 +43,8 @@ import org.apache.commons.net.ftp.FTPFile;
  * @author Rob Spoor
  */
 final class FTPClientPool {
+
+    private final Logger log = LoggerFactory.getLogger(FTPClientPool.class);
 
     private final String hostname;
     private final int port;
@@ -57,11 +63,14 @@ final class FTPClientPool {
         final int poolSize = env.getClientConnectionCount();
         this.pool = new ArrayBlockingQueue<>(poolSize);
         this.poolWaitTimeout = env.getClientConnectionWaitTimeout();
+        log.debug("Creating FTPClientPool to {}:{} with clientConnectionCount: {} and clientConnectionWaitTimeout: {}",
+                this.hostname, this.port, poolSize, this.poolWaitTimeout);
 
         try {
             for (int i = 0; i < poolSize; i++) {
                 pool.add(new Client(true));
             }
+            log.debug("FTPClientPool created with {} clients in pool.", poolSize);
         } catch (IOException e) {
             // creating the pool failed, disconnect all clients
             for (Client client : pool) {
@@ -80,11 +89,14 @@ final class FTPClientPool {
             Client client = getWithinTimeout();
             try {
                 if (!client.isConnected()) {
-                    client = new Client(true);
+                    Client newClient = new Client(true);
+                    log.debug("Created new client {} since client {} isn't connected.", newClient, client);
+                    client = newClient;
                 }
             } catch (final Exception e) {
                 // could not create a new client; re-add the broken client to the pool to prevent pool starvation
                 pool.add(client);
+                log.debug("Broken client {} has been re-add to the pool to prevent pool starvation, current pool size: {}.", client, pool.size());
                 throw e;
             }
             client.increaseRefCount();
@@ -100,13 +112,16 @@ final class FTPClientPool {
     }
 
     private Client getWithinTimeout() throws InterruptedException, IOException {
+        Client client;
         if (poolWaitTimeout == 0) {
-            return pool.take();
+            client = pool.take();
+        } else {
+            client = pool.poll(poolWaitTimeout, TimeUnit.MILLISECONDS);
+            if (client == null) {
+                throw new IOException(FTPMessages.clientConnectionWaitTimeoutExpired());
+            }
         }
-        Client client = pool.poll(poolWaitTimeout, TimeUnit.MILLISECONDS);
-        if (client == null) {
-            throw new IOException(FTPMessages.clientConnectionWaitTimeoutExpired());
-        }
+        log.debug("Client {} has been taken from pool, current pool size: {}", client, pool.size());
         return client;
     }
 
@@ -181,18 +196,30 @@ final class FTPClientPool {
         assert client.refCount == 0;
 
         pool.add(client);
+        log.debug("Client {} has been returned to pool, current pool size: {}.", client, pool.size());
     }
+
+    private static final AtomicInteger clientCounter = new AtomicInteger(0);
 
     final class Client implements Closeable {
 
+        private final Logger log = LoggerFactory.getLogger(Client.class);
+
         private final FTPClient client;
         private final boolean pooled;
+
+        private final String clientId = "client-" + FTPClientPool.clientCounter.incrementAndGet();
 
         private FileType fileType;
         private FileStructure fileStructure;
         private FileTransferMode fileTransferMode;
 
         private int refCount = 0;
+
+        @Override
+        public String toString() {
+            return clientId + (pooled ? " (pooled)" : " (non-pooled");
+        }
 
         private Client(boolean pooled) throws IOException {
             this.client = env.createClient(hostname, port);
@@ -201,16 +228,20 @@ final class FTPClientPool {
             this.fileType = env.getDefaultFileType();
             this.fileStructure = env.getDefaultFileStructure();
             this.fileTransferMode = env.getDefaultFileTransferMode();
+
+            log.debug("Client {} has been created.", this);
         }
 
         private void increaseRefCount() {
             refCount++;
+            log.debug("Referenced count of {} has been increased to {}.", this, refCount);
         }
 
         private int decreaseRefCount() {
             if (refCount > 0) {
                 refCount--;
             }
+            log.debug("Referenced count of {} has been decreased to {}.", this, refCount);
             return refCount;
         }
 
@@ -295,7 +326,7 @@ final class FTPClientPool {
             if (in == null) {
                 throw exceptionFactory.createNewInputStreamException(path, client.getReplyCode(), client.getReplyString());
             }
-            refCount++;
+            increaseRefCount();
             return new FTPInputStream(path, in, options.deleteOnClose);
         }
 
@@ -311,6 +342,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
+                log.debug("FTPInputStream to \"{}\" of {} has been created.", path, Client.this);
             }
 
             @Override
@@ -348,6 +380,7 @@ final class FTPClientPool {
                         delete(path, false);
                     }
                 }
+                log.debug("FTPInputStream to \"{}\" of {} has been closed.", path, Client.this);
             }
 
             @Override
@@ -376,7 +409,7 @@ final class FTPClientPool {
             if (out == null) {
                 throw exceptionFactory.createNewOutputStreamException(path, client.getReplyCode(), client.getReplyString(), options.options);
             }
-            refCount++;
+            increaseRefCount();
             return new FTPOutputStream(path, out, options.deleteOnClose);
         }
 
@@ -392,6 +425,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
+                log.debug("FTPOutputStream to \"{}\" of {} has been created.", path, Client.this);
             }
 
             @Override
@@ -424,6 +458,7 @@ final class FTPClientPool {
                         delete(path, false);
                     }
                 }
+                log.debug("FTPOutputStream to \"{}\" of {} has been closed.", path, Client.this);
             }
         }
 

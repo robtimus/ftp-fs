@@ -119,6 +119,13 @@
       <version>${version.commons-net}</version>
     </dependency>
 
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${version.slf4j}</version>
+    </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -144,13 +151,6 @@
       <groupId>org.mockftpserver</groupId>
       <artifactId>MockFtpServer</artifactId>
       <version>${version.MockFtpServer}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${version.slf4j}</version>
       <scope>test</scope>
     </dependency>
 

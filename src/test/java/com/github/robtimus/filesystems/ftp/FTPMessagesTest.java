@@ -103,7 +103,7 @@ public class FTPMessagesTest {
     @Parameters(name = "{0}")
     public static Iterable<Object[]> getParameters() {
         List<Object[]> parameters = new ArrayList<>();
-        collectParameters(parameters, FTPMessages.class, null, "Messages");
+        collectParameters(parameters, FTPMessages.class, null, "FTPMessages");
         return parameters;
     }
 

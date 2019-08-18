@@ -17,6 +17,25 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.FTPLogger.addCommandListener;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.clientNotConnected;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.closedInputStream;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.closedOutputStream;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.createLogger;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.createdClient;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.createdInputStream;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.createdOutputStream;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.createdPool;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.creatingPool;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.decreasedRefCount;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.disconnectedClient;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.drainedPoolForClose;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.drainedPoolForKeepAlive;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.failedToCreatePool;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.increasedRefCount;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.returnedBrokenClient;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.returnedClient;
+import static com.github.robtimus.filesystems.ftp.FTPLogger.tookClient;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,8 +49,10 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.slf4j.Logger;
 
 /**
  * A pool of FTP clients, allowing multiple commands to be executed concurrently.
@@ -39,6 +60,10 @@ import org.apache.commons.net.ftp.FTPFile;
  * @author Rob Spoor
  */
 final class FTPClientPool {
+
+    private static final Logger LOGGER = createLogger(FTPClientPool.class);
+
+    private static final AtomicLong CLIENT_COUNTER = new AtomicLong();
 
     private final String hostname;
     private final int port;
@@ -58,12 +83,15 @@ final class FTPClientPool {
         this.pool = new ArrayBlockingQueue<>(poolSize);
         this.poolWaitTimeout = env.getClientConnectionWaitTimeout();
 
+        creatingPool(LOGGER, hostname, port, poolSize, poolWaitTimeout);
         try {
             for (int i = 0; i < poolSize; i++) {
                 pool.add(new Client(true));
             }
+            createdPool(LOGGER, hostname, port, poolSize);
         } catch (IOException e) {
             // creating the pool failed, disconnect all clients
+            failedToCreatePool(LOGGER, e);
             for (Client client : pool) {
                 try {
                     client.disconnect();
@@ -79,12 +107,15 @@ final class FTPClientPool {
         try {
             Client client = getWithinTimeout();
             try {
+                tookClient(LOGGER, client.clientId, pool.size());
                 if (!client.isConnected()) {
+                    clientNotConnected(LOGGER, client.clientId);
                     client = new Client(true);
                 }
             } catch (final Exception e) {
                 // could not create a new client; re-add the broken client to the pool to prevent pool starvation
                 pool.add(client);
+                returnedBrokenClient(LOGGER, client.clientId, pool.size());
                 throw e;
             }
             client.increaseRefCount();
@@ -117,12 +148,15 @@ final class FTPClientPool {
             return new Client(false);
         }
         try {
+            tookClient(LOGGER, client.clientId, pool.size());
             if (!client.isConnected()) {
+                clientNotConnected(LOGGER, client.clientId);
                 client = new Client(true);
             }
         } catch (final Exception e) {
             // could not create a new client; re-add the broken client to the pool to prevent pool starvation
             pool.add(client);
+            returnedBrokenClient(LOGGER, client.clientId, pool.size());
             throw e;
         }
         client.increaseRefCount();
@@ -132,6 +166,7 @@ final class FTPClientPool {
     void keepAlive() throws IOException {
         List<Client> clients = new ArrayList<>();
         pool.drainTo(clients);
+        drainedPoolForKeepAlive(LOGGER);
 
         IOException exception = null;
         for (Client client : clients) {
@@ -155,6 +190,7 @@ final class FTPClientPool {
     void close() throws IOException {
         List<Client> clients = new ArrayList<>();
         pool.drainTo(clients);
+        drainedPoolForClose(LOGGER);
 
         IOException exception = null;
         for (Client client : clients) {
@@ -181,9 +217,12 @@ final class FTPClientPool {
         assert client.refCount == 0;
 
         pool.add(client);
+        returnedClient(LOGGER, client.clientId, pool.size());
     }
 
     final class Client implements Closeable {
+
+        private final String clientId;
 
         private final FTPClient client;
         private final boolean pooled;
@@ -195,21 +234,28 @@ final class FTPClientPool {
         private int refCount = 0;
 
         private Client(boolean pooled) throws IOException {
+            this.clientId = "client-" + CLIENT_COUNTER.incrementAndGet(); //$NON-NLS-1$
+
             this.client = env.createClient(hostname, port);
             this.pooled = pooled;
 
             this.fileType = env.getDefaultFileType();
             this.fileStructure = env.getDefaultFileStructure();
             this.fileTransferMode = env.getDefaultFileTransferMode();
+
+            createdClient(LOGGER, clientId, pooled);
+            addCommandListener(LOGGER, client);
         }
 
         private void increaseRefCount() {
             refCount++;
+            increasedRefCount(LOGGER, clientId, refCount);
         }
 
         private int decreaseRefCount() {
             if (refCount > 0) {
                 refCount--;
+                decreasedRefCount(LOGGER, clientId, refCount);
             }
             return refCount;
         }
@@ -233,11 +279,12 @@ final class FTPClientPool {
 
         private void disconnect() throws IOException {
             client.disconnect();
+            disconnectedClient(LOGGER, clientId);
         }
 
         private void disconnectQuietly() {
             try {
-                client.disconnect();
+                disconnect();
             } catch (@SuppressWarnings("unused") IOException e) {
                 // ignore
             }
@@ -295,7 +342,7 @@ final class FTPClientPool {
             if (in == null) {
                 throw exceptionFactory.createNewInputStreamException(path, client.getReplyCode(), client.getReplyString());
             }
-            refCount++;
+            increaseRefCount();
             return new FTPInputStream(path, in, options.deleteOnClose);
         }
 
@@ -311,6 +358,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
+                createdInputStream(LOGGER, clientId, path);
             }
 
             @Override
@@ -347,6 +395,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
+                    closedInputStream(LOGGER, clientId, path);
                 }
             }
 
@@ -376,7 +425,7 @@ final class FTPClientPool {
             if (out == null) {
                 throw exceptionFactory.createNewOutputStreamException(path, client.getReplyCode(), client.getReplyString(), options.options);
             }
-            refCount++;
+            increaseRefCount();
             return new FTPOutputStream(path, out, options.deleteOnClose);
         }
 
@@ -392,6 +441,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
+                createdOutputStream(LOGGER, clientId, path);
             }
 
             @Override
@@ -423,6 +473,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
+                    closedOutputStream(LOGGER, clientId, path);
                 }
             }
         }
@@ -430,15 +481,12 @@ final class FTPClientPool {
         private void finalizeStream() throws IOException {
             assert refCount > 0;
 
-            if (!client.completePendingCommand()) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
-            }
-            if (decreaseRefCount() == 0) {
-                if (pooled) {
-                    returnToPool(Client.this);
-                } else {
-                    disconnect();
+            try {
+                if (!client.completePendingCommand()) {
+                    throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
                 }
+            } finally {
+                close();
             }
         }
 

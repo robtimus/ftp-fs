@@ -607,6 +607,18 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         assertThat(entry, instanceOf(DirectoryEntry.class));
     }
 
+    @Test(expected = FileAlreadyExistsException.class)
+    public void testCreateDirectoryAlreadyExists() throws IOException {
+        addDirectory("/foo/bar");
+
+        try {
+            getFileSystem().createDirectory(createPath("/foo/bar"));
+        } finally {
+            verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), anyInt(), anyString());
+            assertNotNull(getFileSystemEntry("/foo/bar"));
+        }
+    }
+
     @Test(expected = FTPFileSystemException.class)
     public void testCreateDirectoryFTPFailure() throws IOException {
         DirectoryEntry root = getDirectory("/");

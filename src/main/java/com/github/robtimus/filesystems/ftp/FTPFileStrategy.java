@@ -80,7 +80,7 @@ public abstract class FTPFileStrategy {
      * @param path The path to return the matching FTP file for.
      * @param exceptionFactory The file system exception factory to use.
      * @return The FTP file matching the given path.
-     * @throws NoSuchFileException If the give path does not exist.
+     * @throws NoSuchFileException If the given path does not exist.
      * @throws IOException If an I/O error occurs.
      */
     protected abstract FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException;

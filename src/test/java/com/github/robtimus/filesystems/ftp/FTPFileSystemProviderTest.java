@@ -208,6 +208,8 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         }
     }
 
+    // FTPFileSystemProvider.keepAlive
+
     @Test
     public void testKeepAliveWithFTPFileSystem() throws IOException {
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
@@ -224,5 +226,20 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     @Test(expected = ProviderMismatchException.class)
     public void testKeepAliveWithNullFTPFileSystem() throws IOException {
         FTPFileSystemProvider.keepAlive(null);
+    }
+
+    // FTPFileSystemProvider.createDirectory through Files.createDirectories
+
+    @Test
+    public void testCreateDirectories() throws IOException {
+        addDirectory("/foo/bar");
+
+        FTPFileSystemProvider provider = new FTPFileSystemProvider();
+        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+            FTPPath path = new FTPPath(fs, "/foo/bar");
+            Files.createDirectories(path);
+        }
+
+        assertNotNull(getFileSystemEntry("/foo/bar"));
     }
 }

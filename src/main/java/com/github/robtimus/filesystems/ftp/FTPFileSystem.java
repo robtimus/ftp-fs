@@ -261,7 +261,7 @@ class FTPFileSystem extends FileSystem {
     private InputStream newInputStream(Client client, FTPPath path, OpenOptions options) throws IOException {
         assert options.read;
 
-        return client.newInputStream(path.path(), options);
+        return client.newInputStream(path, options);
     }
 
     OutputStream newOutputStream(FTPPath path, OpenOption... options) throws IOException {
@@ -294,7 +294,7 @@ class FTPFileSystem extends FileSystem {
             ftpFile = findFTPFile(client, path);
         }
 
-        OutputStream out = client.newOutputStream(path.path(), options);
+        OutputStream out = client.newOutputStream(path, options);
         return new FTPFileAndOutputStreamPair(ftpFile, out);
     }
 
@@ -371,7 +371,7 @@ class FTPFileSystem extends FileSystem {
         }
 
         try (Client client = clientPool.get()) {
-            client.mkdir(path.path());
+            client.mkdir(path, ftpFileStrategy);
         }
     }
 
@@ -379,7 +379,7 @@ class FTPFileSystem extends FileSystem {
         try (Client client = clientPool.get()) {
             FTPFile ftpFile = getFTPFile(client, path);
             boolean isDirectory = ftpFile.isDirectory();
-            client.delete(path.path(), isDirectory);
+            client.delete(path, isDirectory);
         }
     }
 
@@ -421,14 +421,14 @@ class FTPFileSystem extends FileSystem {
 
             if (targetFtpFile != null) {
                 if (copyOptions.replaceExisting) {
-                    client.delete(target.path(), targetFtpFile.isDirectory());
+                    client.delete(target, targetFtpFile.isDirectory());
                 } else {
                     throw new FileAlreadyExistsException(target.path());
                 }
             }
 
             if (sourcePair.ftpFile.isDirectory()) {
-                client.mkdir(target.path());
+                client.mkdir(target, ftpFileStrategy);
             } else {
                 try (Client client2 = clientPool.getOrCreate()) {
                     copyFile(client, source, client2, target, copyOptions);
@@ -446,14 +446,14 @@ class FTPFileSystem extends FileSystem {
 
             if (targetFtpFile != null) {
                 if (options.replaceExisting) {
-                    targetClient.delete(target.path(), targetFtpFile.isDirectory());
+                    targetClient.delete(target, targetFtpFile.isDirectory());
                 } else {
                     throw new FileAlreadyExistsException(target.path());
                 }
             }
 
             if (sourceFtpFile.isDirectory()) {
-                sourceClient.mkdir(target.path());
+                sourceClient.mkdir(target, ftpFileStrategy);
             } else {
                 copyFile(sourceClient, source, targetClient, target, options);
             }
@@ -464,8 +464,8 @@ class FTPFileSystem extends FileSystem {
         OpenOptions inOptions = OpenOptions.forNewInputStream(options.toOpenOptions(StandardOpenOption.READ));
         OpenOptions outOptions = OpenOptions
                 .forNewOutputStream(options.toOpenOptions(StandardOpenOption.WRITE, StandardOpenOption.CREATE));
-        try (InputStream in = sourceClient.newInputStream(source.path(), inOptions)) {
-            targetClient.storeFile(target.path(), in, outOptions, outOptions.options);
+        try (InputStream in = sourceClient.newInputStream(source, inOptions)) {
+            targetClient.storeFile(target, in, outOptions, outOptions.options);
         }
     }
 
@@ -480,7 +480,7 @@ class FTPFileSystem extends FileSystem {
                     throw new IOException(FTPMessages.copyOfSymbolicLinksAcrossFileSystemsNotSupported());
                 }
                 copyAcrossFileSystems(client, source, ftpFile, target, copyOptions);
-                client.delete(source.path(), ftpFile.isDirectory());
+                client.delete(source, ftpFile.isDirectory());
                 return;
             }
 
@@ -503,10 +503,10 @@ class FTPFileSystem extends FileSystem {
 
             FTPFile targetFTPFile = findFTPFile(client, target);
             if (copyOptions.replaceExisting && targetFTPFile != null) {
-                client.delete(target.path(), targetFTPFile.isDirectory());
+                client.delete(target, targetFTPFile.isDirectory());
             }
 
-            client.rename(source.path(), target.path());
+            client.rename(source, target);
         }
     }
 
@@ -576,7 +576,7 @@ class FTPFileSystem extends FileSystem {
             FTPPathAndFilePair pair = toRealPath(client, path, followLinks);
 
             // pair.ftpFile.getTimestamp() is most likely based on a too broad precision (day), so use mdtm to retrieve the timestamp (if available)
-            Calendar lastModified = client.mdtm(pair.ftpPath.path());
+            Calendar lastModified = client.mdtm(pair.ftpPath);
 
             // we need to call getLink unless followLinks is true, because for folders otherwise the data will not be accurate
             FTPFile link = followLinks ? null : getLink(client, pair.ftpFile, path);

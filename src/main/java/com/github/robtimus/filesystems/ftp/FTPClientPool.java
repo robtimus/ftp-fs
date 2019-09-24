@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -333,14 +334,14 @@ final class FTPClientPool {
         }
 
         @SuppressWarnings("resource")
-        InputStream newInputStream(String path, OpenOptions options) throws IOException {
+        InputStream newInputStream(FTPPath path, OpenOptions options) throws IOException {
             assert options.read;
 
             applyTransferOptions(options);
 
-            InputStream in = client.retrieveFileStream(path);
+            InputStream in = client.retrieveFileStream(path.path());
             if (in == null) {
-                throw exceptionFactory.createNewInputStreamException(path, client.getReplyCode(), client.getReplyString());
+                throw exceptionFactory.createNewInputStreamException(path.path(), client.getReplyCode(), client.getReplyString());
             }
             increaseRefCount();
             return new FTPInputStream(path, in, options.deleteOnClose);
@@ -348,17 +349,17 @@ final class FTPClientPool {
 
         private final class FTPInputStream extends InputStream {
 
-            private final String path;
+            private final FTPPath path;
             private final InputStream in;
             private final boolean deleteOnClose;
 
             private boolean open = true;
 
-            private FTPInputStream(String path, InputStream in, boolean deleteOnClose) {
+            private FTPInputStream(FTPPath path, InputStream in, boolean deleteOnClose) {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
-                createdInputStream(LOGGER, clientId, path);
+                createdInputStream(LOGGER, clientId, path.path());
             }
 
             @Override
@@ -395,7 +396,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
-                    closedInputStream(LOGGER, clientId, path);
+                    closedInputStream(LOGGER, clientId, path.path());
                 }
             }
 
@@ -416,14 +417,14 @@ final class FTPClientPool {
         }
 
         @SuppressWarnings("resource")
-        OutputStream newOutputStream(String path, OpenOptions options) throws IOException {
+        OutputStream newOutputStream(FTPPath path, OpenOptions options) throws IOException {
             assert options.write;
 
             applyTransferOptions(options);
 
-            OutputStream out = options.append ? client.appendFileStream(path) : client.storeFileStream(path);
+            OutputStream out = options.append ? client.appendFileStream(path.path()) : client.storeFileStream(path.path());
             if (out == null) {
-                throw exceptionFactory.createNewOutputStreamException(path, client.getReplyCode(), client.getReplyString(), options.options);
+                throw exceptionFactory.createNewOutputStreamException(path.path(), client.getReplyCode(), client.getReplyString(), options.options);
             }
             increaseRefCount();
             return new FTPOutputStream(path, out, options.deleteOnClose);
@@ -431,17 +432,17 @@ final class FTPClientPool {
 
         private final class FTPOutputStream extends OutputStream {
 
-            private final String path;
+            private final FTPPath path;
             private final OutputStream out;
             private final boolean deleteOnClose;
 
             private boolean open = true;
 
-            private FTPOutputStream(String path, OutputStream out, boolean deleteOnClose) {
+            private FTPOutputStream(FTPPath path, OutputStream out, boolean deleteOnClose) {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
-                createdOutputStream(LOGGER, clientId, path);
+                createdOutputStream(LOGGER, clientId, path.path());
             }
 
             @Override
@@ -473,7 +474,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
-                    closedOutputStream(LOGGER, clientId, path);
+                    closedOutputStream(LOGGER, clientId, path.path());
                 }
             }
         }
@@ -490,35 +491,50 @@ final class FTPClientPool {
             }
         }
 
-        void storeFile(String path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
+        void storeFile(FTPPath path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
             applyTransferOptions(options);
 
-            if (!client.storeFile(path, local)) {
-                throw exceptionFactory.createNewOutputStreamException(path, client.getReplyCode(), client.getReplyString(), openOptions);
+            if (!client.storeFile(path.path(), local)) {
+                throw exceptionFactory.createNewOutputStreamException(path.path(), client.getReplyCode(), client.getReplyString(), openOptions);
             }
         }
 
-        void mkdir(String path) throws IOException {
-            if (!client.makeDirectory(path)) {
-                throw exceptionFactory.createCreateDirectoryException(path, client.getReplyCode(), client.getReplyString());
+        void mkdir(FTPPath path, FTPFileStrategy ftpFileStrategy) throws IOException {
+            if (!client.makeDirectory(path.path())) {
+                int replyCode = client.getReplyCode();
+                String replyString = client.getReplyString();
+                if (fileExists(path, ftpFileStrategy)) {
+                    throw new FileAlreadyExistsException(path.path());
+                }
+                throw exceptionFactory.createCreateDirectoryException(path.path(), replyCode, replyString);
             }
         }
 
-        void delete(String path, boolean isDirectory) throws IOException {
-            boolean success = isDirectory ? client.removeDirectory(path) : client.deleteFile(path);
+        private boolean fileExists(FTPPath path, FTPFileStrategy ftpFileStrategy) {
+            try {
+                ftpFileStrategy.getFTPFile(this, path);
+                return true;
+            } catch (@SuppressWarnings("unused") IOException e) {
+                // the file actually may exist, but throw the original exception instead
+                return false;
+            }
+        }
+
+        void delete(FTPPath path, boolean isDirectory) throws IOException {
+            boolean success = isDirectory ? client.removeDirectory(path.path()) : client.deleteFile(path.path());
             if (!success) {
-                throw exceptionFactory.createDeleteException(path, client.getReplyCode(), client.getReplyString(), isDirectory);
+                throw exceptionFactory.createDeleteException(path.path(), client.getReplyCode(), client.getReplyString(), isDirectory);
             }
         }
 
-        void rename(String source, String target) throws IOException {
-            if (!client.rename(source, target)) {
-                throw exceptionFactory.createMoveException(source, target, client.getReplyCode(), client.getReplyString());
+        void rename(FTPPath source, FTPPath target) throws IOException {
+            if (!client.rename(source.path(), target.path())) {
+                throw exceptionFactory.createMoveException(source.path(), target.path(), client.getReplyCode(), client.getReplyString());
             }
         }
 
-        Calendar mdtm(String path) throws IOException {
-            FTPFile file = client.mdtmFile(path);
+        Calendar mdtm(FTPPath path) throws IOException {
+            FTPFile file = client.mdtmFile(path.path());
             return file == null ? null : file.getTimestamp();
         }
     }

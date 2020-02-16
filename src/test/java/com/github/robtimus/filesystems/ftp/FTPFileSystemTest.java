@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -26,7 +27,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyCollectionOf;
@@ -67,9 +68,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.net.ftp.FTPFile;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -84,9 +84,6 @@ import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 @RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
 
     public FTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
         super(useUnixFtpServer, supportAbsoluteFilePaths);
@@ -2198,9 +2195,18 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         getFile("/foo/bar").setPermissionsFromString("---------");
 
         if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
-            thrown.expect(NoSuchFileException.class);
+            assertThrows(NoSuchFileException.class, new ThrowingRunnable() {
+                @Override
+                public void run() throws Throwable {
+                    testGetFTPFileFileAccessDenied0();
+                }
+            });
+        } else {
+            testGetFTPFileFileAccessDenied0();
         }
+    }
 
+    private void testGetFTPFileFileAccessDenied0() throws IOException {
         try {
             FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
             assertNotNull(file);
@@ -2238,9 +2244,18 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         bar.setPermissionsFromString("---------");
 
         if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
-            thrown.expect(NoSuchFileException.class);
+            assertThrows(NoSuchFileException.class, new ThrowingRunnable() {
+                @Override
+                public void run() throws Throwable {
+                    testGetFTPFileDirectoryAccessDenied0();
+                }
+            });
+        } else {
+            testGetFTPFileDirectoryAccessDenied0();
         }
+    }
 
+    private void testGetFTPFileDirectoryAccessDenied0() throws IOException {
         try {
             FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
             assertNotNull(file);

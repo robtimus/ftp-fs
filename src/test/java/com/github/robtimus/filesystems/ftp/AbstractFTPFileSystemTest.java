@@ -17,8 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.spy;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

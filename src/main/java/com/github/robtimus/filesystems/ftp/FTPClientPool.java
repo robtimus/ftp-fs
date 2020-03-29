@@ -85,6 +85,11 @@ final class FTPClientPool {
         this.poolWaitTimeout = env.getClientConnectionWaitTimeout();
 
         creatingPool(LOGGER, hostname, port, poolSize, poolWaitTimeout);
+        fillPool(hostname, port, poolSize);
+    }
+
+    @SuppressWarnings("resource")
+    private void fillPool(String hostname, int port, final int poolSize) throws IOException {
         try {
             for (int i = 0; i < poolSize; i++) {
                 pool.add(new Client(true));

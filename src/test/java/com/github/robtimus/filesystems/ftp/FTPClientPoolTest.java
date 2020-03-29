@@ -22,8 +22,12 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
+import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
 /**
  * @author Pei-Tang Huang
@@ -45,15 +49,14 @@ public class FTPClientPoolTest extends AbstractFTPFileSystemTest {
                 .withClientConnectionWaitTimeout(500, TimeUnit.MILLISECONDS);
 
         FTPClientPool pool = new FTPClientPool(uri.getHost(), uri.getPort(), env);
+        List<Client> clients = Collections.emptyList();
         try {
             // exhaust all available clients
-            for (int i = 0; i < clientCount; i++) {
-                pool.get();
-            }
+            clients = claimClients(pool, clientCount);
 
             long startTime = System.currentTimeMillis();
             try {
-                pool.get();
+                claimClient(pool);
                 fail("Should never get here.");
 
             } catch (IOException e) {
@@ -64,6 +67,23 @@ public class FTPClientPoolTest extends AbstractFTPFileSystemTest {
             }
         } finally {
             pool.close();
+            for (Client client : clients) {
+                client.close();
+            }
         }
+    }
+
+    @SuppressWarnings("resource")
+    private List<Client> claimClients(FTPClientPool pool, int clientCount) throws IOException {
+        List<Client> clients = new ArrayList<>();
+        for (int i = 0; i < clientCount; i++) {
+            clients.add(pool.get());
+        }
+        return clients;
+    }
+
+    @SuppressWarnings("resource")
+    private void claimClient(FTPClientPool pool) throws IOException {
+        pool.get();
     }
 }

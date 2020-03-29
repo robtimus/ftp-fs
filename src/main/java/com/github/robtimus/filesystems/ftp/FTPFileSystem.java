@@ -395,7 +395,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     void copy(FTPPath source, FTPPath target, CopyOption... options) throws IOException {
-        boolean sameFileSystem = source.getFileSystem() == target.getFileSystem();
+        boolean sameFileSystem = haveSameFileSystem(source, target);
         CopyOptions copyOptions = CopyOptions.forCopy(options);
 
         try (Client client = clientPool.get()) {
@@ -440,7 +440,9 @@ class FTPFileSystem extends FileSystem {
     private void copyAcrossFileSystems(Client sourceClient, FTPPath source, FTPFile sourceFtpFile, FTPPath target, CopyOptions options)
             throws IOException {
 
-        try (Client targetClient = target.getFileSystem().clientPool.getOrCreate()) {
+        @SuppressWarnings("resource")
+        FTPFileSystem targetFileSystem = target.getFileSystem();
+        try (Client targetClient = targetFileSystem.clientPool.getOrCreate()) {
 
             FTPFile targetFtpFile = findFTPFile(targetClient, target);
 
@@ -470,7 +472,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     void move(FTPPath source, FTPPath target, CopyOption... options) throws IOException {
-        boolean sameFileSystem = source.getFileSystem() == target.getFileSystem();
+        boolean sameFileSystem = haveSameFileSystem(source, target);
         CopyOptions copyOptions = CopyOptions.forMove(sameFileSystem, options);
 
         try (Client client = clientPool.get()) {
@@ -511,7 +513,7 @@ class FTPFileSystem extends FileSystem {
     }
 
     boolean isSameFile(FTPPath path, FTPPath path2) throws IOException {
-        if (path.getFileSystem() != path2.getFileSystem()) {
+        if (!haveSameFileSystem(path, path2)) {
             return false;
         }
         if (path.equals(path2)) {
@@ -520,6 +522,11 @@ class FTPFileSystem extends FileSystem {
         try (Client client = clientPool.get()) {
             return isSameFile(client, path, path2);
         }
+    }
+
+    @SuppressWarnings("resource")
+    private boolean haveSameFileSystem(FTPPath path, FTPPath path2) {
+        return path.getFileSystem() == path2.getFileSystem();
     }
 
     private boolean isSameFile(Client client, FTPPath path, FTPPath path2) throws IOException {

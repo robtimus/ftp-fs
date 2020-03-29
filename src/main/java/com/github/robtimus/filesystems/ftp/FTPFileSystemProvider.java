@@ -84,6 +84,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * as the closed file system.
      */
     @Override
+    @SuppressWarnings("resource")
     public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
         // user info must come from the environment map
         checkURI(uri, false, false);
@@ -175,6 +176,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         }
     }
 
+    @SuppressWarnings("resource")
     void removeFileSystem(URI uri) {
         URI normalizedURI = normalizeWithoutPassword(uri);
         synchronized (fileSystems) {

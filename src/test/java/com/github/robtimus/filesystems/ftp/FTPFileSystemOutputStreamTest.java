@@ -50,7 +50,7 @@ public class FTPFileSystemOutputStreamTest extends AbstractFTPFileSystemTest {
     @Test
     public void testWriteSingle() throws IOException {
 
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo"))) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
             output.write('H');
             output.write('e');
             output.write('l');
@@ -64,7 +64,7 @@ public class FTPFileSystemOutputStreamTest extends AbstractFTPFileSystemTest {
     @Test
     public void testWriteBulk() throws IOException {
 
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo"))) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
             output.write("Hello".getBytes());
         }
         FileEntry file = getFile("/foo");

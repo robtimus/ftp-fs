@@ -71,7 +71,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
         }
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 names.add(iterator.next().getFileName().toString());
             }
@@ -93,7 +93,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
 
         List<String> names = new ArrayList<>();
         Filter<Path> filter = new PatternFilter("file\\d*[13579]");
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), filter)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), filter)) {
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 names.add(iterator.next().getFileName().toString());
             }
@@ -127,7 +127,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
         int expectedCount = count / 2;
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
 
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -143,7 +143,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
 
     @Test(expected = IllegalStateException.class)
     public void testIteratorAfterClose() throws IOException {
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
             stream.close();
             stream.iterator();
         }
@@ -152,7 +152,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
     @Test(expected = IllegalStateException.class)
     public void testIteratorAfterIterator() throws IOException {
         boolean iteratorCalled = false;
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
             stream.iterator();
             iteratorCalled = true;
             stream.iterator();
@@ -173,7 +173,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
         }
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
 
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -198,7 +198,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
         }
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
 
             int index = 0;
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -227,7 +227,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
         }
 
         List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
 
             delete("/foo");
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -241,7 +241,7 @@ public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest 
     public void testThrowWhileIterating() throws IOException {
         addFile("/foo");
 
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
             for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                 iterator.next();
             }

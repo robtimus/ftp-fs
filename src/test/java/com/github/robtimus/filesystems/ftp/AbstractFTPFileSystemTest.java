@@ -66,14 +66,22 @@ public abstract class AbstractFTPFileSystemTest {
     private static FTPFileSystem multiClientUnixFtpFileSystemWithNoAbsolutePathSupport;
     private static FTPFileSystem multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport;
 
-    private FileSystem fileSystem;
+    private FileSystem fs;
 
     private final boolean useUnixFtpServer;
     private final boolean supportAbsoluteFilePaths;
 
+    protected final FTPFileSystem fileSystem;
+    protected final FTPFileSystem multiClientFileSystem;
+
     public AbstractFTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
         this.useUnixFtpServer = useUnixFtpServer;
         this.supportAbsoluteFilePaths = supportAbsoluteFilePaths;
+
+        fileSystem = useUnixFtpServer
+                ? (supportAbsoluteFilePaths ? unixFtpFileSystem : unixFtpFileSystemWithNoAbsolutePathSupport)
+                : (supportAbsoluteFilePaths ? nonUnixFileSystem : nonUnixFtpFileSystemWithNoAbsolutePathSupport);
+        multiClientFileSystem = useUnixFtpServer ? multiClientUnixFtpFileSystem : multiClientNonUnixFtpFileSystem;
     }
 
     @BeforeClass
@@ -152,11 +160,11 @@ public abstract class AbstractFTPFileSystemTest {
 
     @Before
     public void setup() {
-        fileSystem = new ExtendedUnixFakeFileSystem();
-        fileSystem.add(new DirectoryEntry(HOME_DIR));
+        fs = new ExtendedUnixFakeFileSystem();
+        fs.add(new DirectoryEntry(HOME_DIR));
 
-        unixFtpServer.setFileSystem(fileSystem);
-        nonUnixFtpServer.setFileSystem(fileSystem);
+        unixFtpServer.setFileSystem(fs);
+        nonUnixFtpServer.setFileSystem(fs);
 
         exceptionFactory.delegate = spy(DefaultFileSystemExceptionFactory.INSTANCE);
     }
@@ -167,7 +175,7 @@ public abstract class AbstractFTPFileSystemTest {
 
         unixFtpServer.setFileSystem(null);
         nonUnixFtpServer.setFileSystem(null);
-        fileSystem = null;
+        fs = null;
     }
 
     protected final boolean useUnixFtpServer() {
@@ -189,20 +197,11 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FTPPath createPath(String path) {
-        return new FTPPath(getFileSystem(), path);
+        return new FTPPath(fileSystem, path);
     }
 
     protected final FTPPath createPath(FTPFileSystem fs, String path) {
         return new FTPPath(fs, path);
-    }
-
-    protected final FTPFileSystem getFileSystem() {
-        return useUnixFtpServer ? (supportAbsoluteFilePaths ? unixFtpFileSystem : unixFtpFileSystemWithNoAbsolutePathSupport)
-                : (supportAbsoluteFilePaths ? nonUnixFileSystem : nonUnixFtpFileSystemWithNoAbsolutePathSupport);
-    }
-
-    protected final FTPFileSystem getMultiClientFileSystem() {
-        return useUnixFtpServer ? multiClientUnixFtpFileSystem : multiClientNonUnixFtpFileSystem;
     }
 
     protected final FileSystemExceptionFactory getExceptionFactory() {
@@ -210,7 +209,7 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FileSystemEntry getFileSystemEntry(String path) {
-        return fileSystem.getEntry(path);
+        return fs.getEntry(path);
     }
 
     protected final FileEntry getFile(String path) {
@@ -233,28 +232,28 @@ public abstract class AbstractFTPFileSystemTest {
 
     protected final FileEntry addFile(String path) {
         FileEntry file = new FileEntry(path);
-        fileSystem.add(file);
+        fs.add(file);
         return file;
     }
 
     protected final DirectoryEntry addDirectory(String path) {
         DirectoryEntry directory = new DirectoryEntry(path);
-        fileSystem.add(directory);
+        fs.add(directory);
         return directory;
     }
 
     protected final SymbolicLinkEntry addSymLink(String path, FileSystemEntry target) {
         SymbolicLinkEntry symLink = new SymbolicLinkEntry(path, target);
-        fileSystem.add(symLink);
+        fs.add(symLink);
         return symLink;
     }
 
     protected final boolean delete(String path) {
-        return fileSystem.delete(path);
+        return fs.delete(path);
     }
 
     protected final int getChildCount(String path) {
-        return fileSystem.listFiles(path).size();
+        return fs.listFiles(path).size();
     }
 
     protected final byte[] getContents(FileEntry file) throws IOException {
@@ -282,13 +281,13 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     protected final long getTotalSize() {
-        return getTotalSize(fileSystem.getEntry("/"));
+        return getTotalSize(fs.getEntry("/"));
     }
 
     private long getTotalSize(FileSystemEntry entry) {
         long size = entry.getSize();
         if (entry instanceof DirectoryEntry) {
-            for (Object o : fileSystem.listFiles(entry.getPath())) {
+            for (Object o : fs.listFiles(entry.getPath())) {
                 size += getTotalSize((FileSystemEntry) o);
             }
         }

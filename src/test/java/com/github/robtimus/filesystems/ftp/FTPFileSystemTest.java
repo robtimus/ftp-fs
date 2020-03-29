@@ -29,6 +29,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyCollectionOf;
 import static org.mockito.Matchers.anyInt;
@@ -111,7 +112,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testGetPath(String path, String first, String... more) {
         FTPPath expected = createPath(path);
-        Path actual = getFileSystem().getPath(first, more);
+        Path actual = fileSystem.getPath(first, more);
         assertEquals(expected, actual);
     }
 
@@ -119,7 +120,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     @Test
     public void testKeepAlive() throws IOException {
-        getFileSystem().keepAlive();
+        fileSystem.keepAlive();
     }
 
     // FTPFileSystem.toUri
@@ -139,7 +140,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testToUri(String path, String expected) {
         URI expectedUri = URI.create(expected);
-        URI actual = getFileSystem().toUri(createPath(path));
+        URI actual = fileSystem.toUri(createPath(path));
         assertEquals(expectedUri, actual);
     }
 
@@ -159,7 +160,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testToAbsolutePath(String path, String expected) {
         FTPPath expectedPath = createPath(expected);
-        Path actual = getFileSystem().toAbsolutePath(createPath(path));
+        Path actual = fileSystem.toAbsolutePath(createPath(path));
         assertEquals(expectedPath, actual);
     }
 
@@ -196,7 +197,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testToRealPathNoFollowLinks(String path, String expected) throws IOException {
         FTPPath expectedPath = createPath(expected);
-        Path actual = getFileSystem().toRealPath(createPath(path), LinkOption.NOFOLLOW_LINKS);
+        Path actual = fileSystem.toRealPath(createPath(path), LinkOption.NOFOLLOW_LINKS);
         assertEquals(expectedPath, actual);
     }
 
@@ -231,7 +232,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testToRealPathFollowLinks(String path, String expected) throws IOException {
         FTPPath expectedPath = createPath(expected);
-        Path actual = getFileSystem().toRealPath(createPath(path));
+        Path actual = fileSystem.toRealPath(createPath(path));
         assertEquals(expectedPath, actual);
     }
 
@@ -253,11 +254,11 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testNewInputStream() throws IOException {
         addFile("/foo/bar");
 
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo/bar"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"))) {
             // don't do anything with the stream, there's a separate test for that
         }
         // verify that the file system can be used after closing the stream
-        getFileSystem().checkAccess(createPath("/foo/bar"));
+        fileSystem.checkAccess(createPath("/foo/bar"));
     }
 
     @Test
@@ -265,7 +266,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo/bar"), options)) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         }
         assertNull(getFileSystemEntry("/foo/bar"));
@@ -277,7 +278,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         // failure: file not found
 
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo/bar"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"))) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
@@ -292,11 +293,11 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.WRITE };
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         }
         // verify that the file system can be used after closing the stream
-        getFileSystem().checkAccess(createPath("/foo/bar"));
+        fileSystem.checkAccess(createPath("/foo/bar"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -308,12 +309,12 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
             assertSame(bar, getFileSystemEntry("/foo/bar"));
         }
         // verify that the file system can be used after closing the stream
-        getFileSystem().checkAccess(createPath("/foo"));
+        fileSystem.checkAccess(createPath("/foo"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertNull(getFileSystemEntry("/foo/bar"));
@@ -326,11 +327,11 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.CREATE };
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         }
         // verify that the file system can be used after closing the stream
-        getFileSystem().checkAccess(createPath("/foo/bar"));
+        fileSystem.checkAccess(createPath("/foo/bar"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -342,12 +343,12 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
             assertSame(bar, getFileSystemEntry("/foo/bar"));
         }
         // verify that the file system can be used after closing the stream
-        getFileSystem().checkAccess(createPath("/foo"));
+        fileSystem.checkAccess(createPath("/foo"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertNull(getFileSystemEntry("/foo/bar"));
@@ -359,11 +360,11 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/foo/bar");
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-        try (OutputStream output = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             // verify that the file system can be used after closing the stream
-            getFileSystem().checkAccess(createPath("/foo/bar"));
+            fileSystem.checkAccess(createPath("/foo/bar"));
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
         }
@@ -378,7 +379,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         // failure: no permission to write
 
         OpenOption[] options = { StandardOpenOption.WRITE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollectionOf(OpenOption.class));
@@ -396,7 +397,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         // failure: no permission to write
 
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollectionOf(OpenOption.class));
@@ -410,7 +411,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.WRITE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -423,7 +424,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.CREATE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -436,7 +437,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
             // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
         } finally {
@@ -451,7 +452,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -464,7 +465,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo/bar"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
             // don't do anything with the stream, there's a separate test for that
             // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
         } finally {
@@ -478,7 +479,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.WRITE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(),
@@ -493,7 +494,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-        try (OutputStream input = getFileSystem().newOutputStream(createPath("/foo"), options)) {
+        try (OutputStream input = fileSystem.newOutputStream(createPath("/foo"), options)) {
             // don't do anything with the stream, there's a separate test for that
         } finally {
             verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(),
@@ -512,7 +513,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         bar.setContents(new byte[1024]);
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        try (SeekableByteChannel channel = getFileSystem().newByteChannel(createPath("/foo/bar"), options)) {
+        try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
             // don't do anything with the channel, there's a separate test for that
             assertEquals(bar.getSize(), channel.size());
         }
@@ -526,7 +527,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         // failure: file does not exist
 
         Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-        try (SeekableByteChannel channel = getFileSystem().newByteChannel(createPath("/foo/bar"), options)) {
+        try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
             // don't do anything with the channel, there's a separate test for that
         } finally {
             verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
@@ -540,7 +541,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/foo/bar");
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-        try (SeekableByteChannel channel = getFileSystem().newByteChannel(createPath("/foo/bar"), options)) {
+        try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
             // don't do anything with the channel, there's a separate test for that
             assertEquals(0, channel.size());
         }
@@ -552,7 +553,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         bar.setContents(new byte[1024]);
 
         Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-        try (SeekableByteChannel channel = getFileSystem().newByteChannel(createPath("/foo/bar"), options)) {
+        try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
             // don't do anything with the channel, there's a separate test for that
             assertEquals(bar.getSize(), channel.size());
         }
@@ -563,7 +564,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     @Test
     public void testNewDirectoryStream() throws IOException {
 
-        try (DirectoryStream<Path> stream = getFileSystem().newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
             assertNotNull(stream);
             // don't do anything with the stream, there's a separate test for that
         }
@@ -571,15 +572,18 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     @Test(expected = NoSuchFileException.class)
     public void testNewDirectoryStreamNotExisting() throws IOException {
-
-        getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     @Test(expected = NotDirectoryException.class)
     public void testGetDirectoryStreamNotDirectory() throws IOException {
         addFile("/foo");
 
-        getFileSystem().newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE);
+        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+            fail("newDirectoryStream should fail");
+        }
     }
 
     private static final class AcceptAllFilter implements Filter<Path> {
@@ -598,7 +602,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testCreateDirectory() throws IOException {
         assertNull(getFileSystemEntry("/foo"));
 
-        getFileSystem().createDirectory(createPath("/foo"));
+        fileSystem.createDirectory(createPath("/foo"));
 
         FileSystemEntry entry = getFileSystemEntry("/foo");
         assertThat(entry, instanceOf(DirectoryEntry.class));
@@ -609,7 +613,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
 
         try {
-            getFileSystem().createDirectory(createPath("/foo/bar"));
+            fileSystem.createDirectory(createPath("/foo/bar"));
         } finally {
             verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), anyInt(), anyString());
             assertNotNull(getFileSystemEntry("/foo/bar"));
@@ -624,7 +628,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         // failure: read-only parent
 
         try {
-            getFileSystem().createDirectory(createPath("/foo"));
+            fileSystem.createDirectory(createPath("/foo"));
         } finally {
             assertNull(getFileSystemEntry("/foo"));
             verify(getExceptionFactory()).createCreateDirectoryException(eq("/foo"), eq(550), anyString());
@@ -637,7 +641,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testDeleteNonExisting() throws IOException {
 
         try {
-            getFileSystem().delete(createPath("/foo"));
+            fileSystem.delete(createPath("/foo"));
         } finally {
             verify(getExceptionFactory(), never()).createDeleteException(anyString(), anyInt(), anyString(), anyBoolean());
         }
@@ -647,7 +651,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testDeleteRoot() throws IOException {
 
         try {
-            getFileSystem().delete(createPath("/"));
+            fileSystem.delete(createPath("/"));
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/"), eq(550), anyString(), eq(true));
         }
@@ -658,7 +662,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/foo/bar");
         FileSystemEntry foo = getFileSystemEntry("/foo");
 
-        getFileSystem().delete(createPath("/foo/bar"));
+        fileSystem.delete(createPath("/foo/bar"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertNull(getFileSystemEntry("/foo/bar"));
@@ -669,7 +673,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
         FileSystemEntry foo = getFileSystemEntry("/foo");
 
-        getFileSystem().delete(createPath("/foo/bar"));
+        fileSystem.delete(createPath("/foo/bar"));
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertNull(getFileSystemEntry("/foo/bar"));
@@ -684,7 +688,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         // failure: non-empty directory
 
         try {
-            getFileSystem().delete(createPath("/foo/bar"));
+            fileSystem.delete(createPath("/foo/bar"));
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -699,7 +703,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry foo = addFile("/foo");
         addSymLink("/bar", foo);
 
-        FTPPath link = getFileSystem().readSymbolicLink(createPath("/bar"));
+        FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
         assertEquals(createPath("/foo"), link);
     }
 
@@ -708,7 +712,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         addSymLink("/bar", foo);
 
-        FTPPath link = getFileSystem().readSymbolicLink(createPath("/bar"));
+        FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
         assertEquals(createPath("/foo"), link);
     }
 
@@ -716,28 +720,28 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadSymbolicLinkToNonExistingTarget() throws IOException {
         addSymLink("/bar", new FileEntry("/foo"));
 
-        FTPPath link = getFileSystem().readSymbolicLink(createPath("/bar"));
+        FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
         assertEquals(createPath("/foo"), link);
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testReadSymbolicLinkNotExisting() throws IOException {
 
-        getFileSystem().readSymbolicLink(createPath("/foo"));
+        fileSystem.readSymbolicLink(createPath("/foo"));
     }
 
     @Test(expected = NotLinkException.class)
     public void testReadSymbolicLinkNoLinkButFile() throws IOException {
         addFile("/foo");
 
-        getFileSystem().readSymbolicLink(createPath("/foo"));
+        fileSystem.readSymbolicLink(createPath("/foo"));
     }
 
     @Test(expected = NotLinkException.class)
     public void testReadSymbolicLinkNoLinkButDirectory() throws IOException {
         addDirectory("/foo");
 
-        getFileSystem().readSymbolicLink(createPath("/foo"));
+        fileSystem.readSymbolicLink(createPath("/foo"));
     }
 
     // FTPFileSystem.copy
@@ -748,9 +752,9 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry bar = addDirectory("/home/test/foo/bar");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/home/test"), createPath(""), options);
-        getFileSystem().copy(createPath("/home/test/foo"), createPath("foo"), options);
-        getFileSystem().copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+        fileSystem.copy(createPath("/home/test"), createPath(""), options);
+        fileSystem.copy(createPath("/home/test/foo"), createPath("foo"), options);
+        fileSystem.copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/home/test/foo"));
         assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
@@ -763,7 +767,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/foo/bar"), createPath("/foo/baz"), options);
+            fileSystem.copy(createPath("/foo/bar"), createPath("/foo/baz"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEquals(0, getChildCount("/foo"));
@@ -779,7 +783,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/foo/bar"), createPath("/baz/bar"), options);
+            fileSystem.copy(createPath("/foo/bar"), createPath("/baz/bar"), options);
         } finally {
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/baz/bar"), eq(553), anyString(), anyCollectionOf(OpenOption.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -795,7 +799,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
 
@@ -813,7 +817,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+            fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -828,7 +832,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -845,7 +849,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath("/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -861,7 +865,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
         try {
-            getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath("/foo"), options);
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -877,7 +881,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath("/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(baz, getFileSystemEntry("/baz"));
@@ -890,7 +894,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath("/foo"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo"), options);
 
         assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
         assertNotSame(foo, getFileSystemEntry("/foo"));
@@ -905,7 +909,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -922,9 +926,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        @SuppressWarnings("resource")
-        FTPFileSystem fs = getMultiClientFileSystem();
-        fs.copy(createPath(fs, "/baz"), createPath(fs, "/foo/bar"), options);
+        multiClientFileSystem.copy(createPath(multiClientFileSystem, "/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -941,7 +943,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -962,7 +964,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -982,7 +984,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -997,7 +999,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -1014,7 +1016,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -1030,7 +1032,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1046,7 +1048,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(baz, getFileSystemEntry("/baz"));
@@ -1059,7 +1061,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+        fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
 
         assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
         assertNotSame(foo, getFileSystemEntry("/foo"));
@@ -1074,7 +1076,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1091,7 +1093,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1112,7 +1114,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         baz.setOwner("root");
 
         CopyOption[] options = {};
-        getFileSystem().copy(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
         assertSame(foo, getFileSystemEntry("/foo"));
@@ -1131,7 +1133,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/baz/qux");
 
         CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES };
-        getFileSystem().copy(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
     }
 
     // FTPFileSystem.move
@@ -1143,12 +1145,12 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         SymbolicLinkEntry baz = addSymLink("/baz", foo);
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/"), createPath("/"), options);
-        getFileSystem().move(createPath("/home/test"), createPath(""), options);
-        getFileSystem().move(createPath("/home/test/foo"), createPath("foo"), options);
-        getFileSystem().move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
-        getFileSystem().move(createPath("/home/test/foo"), createPath("/baz"), options);
-        getFileSystem().move(createPath("/baz"), createPath("/home/test/foo"), options);
+        fileSystem.move(createPath("/"), createPath("/"), options);
+        fileSystem.move(createPath("/home/test"), createPath(""), options);
+        fileSystem.move(createPath("/home/test/foo"), createPath("foo"), options);
+        fileSystem.move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+        fileSystem.move(createPath("/home/test/foo"), createPath("/baz"), options);
+        fileSystem.move(createPath("/baz"), createPath("/home/test/foo"), options);
 
         assertSame(foo, getFileSystemEntry("/home/test/foo"));
         assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
@@ -1162,7 +1164,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/foo/bar"), createPath("/foo/baz"), options);
+            fileSystem.move(createPath("/foo/bar"), createPath("/foo/baz"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEquals(0, getChildCount("/foo"));
@@ -1178,7 +1180,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/foo/bar"), createPath("/baz/bar"), options);
+            fileSystem.move(createPath("/foo/bar"), createPath("/baz/bar"), options);
         } finally {
             verify(getExceptionFactory()).createMoveException(eq("/foo/bar"), eq("/baz/bar"), eq(553), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1192,7 +1194,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/"), createPath("/baz"), options);
+            fileSystem.move(createPath("/"), createPath("/baz"), options);
         } finally {
             assertNull(getFileSystemEntry("/baz"));
         }
@@ -1204,7 +1206,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/"), createPath("/baz"), options);
+            fileSystem.move(createPath("/"), createPath("/baz"), options);
         } finally {
             assertSame(foo, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/baz"));
@@ -1219,7 +1221,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath("/foo/bar"), options);
+            fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
         } finally {
             verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo/bar"), eq(553), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1235,7 +1237,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1249,7 +1251,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath("/foo"), options);
+            fileSystem.move(createPath("/baz"), createPath("/foo"), options);
         } finally {
             verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo"), eq(553), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1263,7 +1265,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath("/foo"), options);
+        fileSystem.move(createPath("/baz"), createPath("/foo"), options);
 
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo"));
         assertNull(getFileSystemEntry("/baz"));
@@ -1275,7 +1277,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1288,7 +1290,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1302,7 +1304,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry qux = addFile("/baz/qux");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath("/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1318,7 +1320,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/foo"), createPath("/baz"), options);
+            fileSystem.move(createPath("/foo"), createPath("/baz"), options);
         } finally {
             assertNull(getFileSystemEntry("/foo"));
             assertEqualsMinusPath(foo, getFileSystemEntry("/baz"));
@@ -1334,7 +1336,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
         } finally {
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1350,7 +1352,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1365,7 +1367,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
         } finally {
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1379,7 +1381,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo"), options);
+        fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
 
         // permissions are dropped during the copy/delete
         assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
@@ -1392,7 +1394,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry baz = addFile("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1406,7 +1408,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry baz = addDirectory("/baz");
 
         CopyOption[] options = {};
-        getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+        fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
         assertSame(foo, getFileSystemEntry("/foo"));
         // permissions are dropped during the copy/delete
@@ -1422,7 +1424,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
         CopyOption[] options = {};
         try {
-            getFileSystem().move(createPath("/baz"), createPath(getMultiClientFileSystem(), "/foo/bar"), options);
+            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
         } finally {
             verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1455,16 +1457,16 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     @Test
     public void testIsSameFileEquals() throws IOException {
 
-        assertTrue(getFileSystem().isSameFile(createPath("/"), createPath("/")));
-        assertTrue(getFileSystem().isSameFile(createPath("/foo"), createPath("/foo")));
-        assertTrue(getFileSystem().isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
+        assertTrue(fileSystem.isSameFile(createPath("/"), createPath("/")));
+        assertTrue(fileSystem.isSameFile(createPath("/foo"), createPath("/foo")));
+        assertTrue(fileSystem.isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
 
-        assertTrue(getFileSystem().isSameFile(createPath(""), createPath("")));
-        assertTrue(getFileSystem().isSameFile(createPath("foo"), createPath("foo")));
-        assertTrue(getFileSystem().isSameFile(createPath("foo/bar"), createPath("foo/bar")));
+        assertTrue(fileSystem.isSameFile(createPath(""), createPath("")));
+        assertTrue(fileSystem.isSameFile(createPath("foo"), createPath("foo")));
+        assertTrue(fileSystem.isSameFile(createPath("foo/bar"), createPath("foo/bar")));
 
-        assertTrue(getFileSystem().isSameFile(createPath(""), createPath("/home/test")));
-        assertTrue(getFileSystem().isSameFile(createPath("/home/test"), createPath("")));
+        assertTrue(fileSystem.isSameFile(createPath(""), createPath("/home/test")));
+        assertTrue(fileSystem.isSameFile(createPath("/home/test"), createPath("")));
     }
 
     @Test
@@ -1472,29 +1474,29 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry bar = addFile("/home/test/foo/bar");
         addSymLink("/bar", bar);
 
-        assertTrue(getFileSystem().isSameFile(createPath("/home/test"), createPath("")));
-        assertTrue(getFileSystem().isSameFile(createPath("/home/test/foo"), createPath("foo")));
-        assertTrue(getFileSystem().isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
+        assertTrue(fileSystem.isSameFile(createPath("/home/test"), createPath("")));
+        assertTrue(fileSystem.isSameFile(createPath("/home/test/foo"), createPath("foo")));
+        assertTrue(fileSystem.isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
 
-        assertTrue(getFileSystem().isSameFile(createPath(""), createPath("/home/test")));
-        assertTrue(getFileSystem().isSameFile(createPath("foo"), createPath("/home/test/foo")));
-        assertTrue(getFileSystem().isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
+        assertTrue(fileSystem.isSameFile(createPath(""), createPath("/home/test")));
+        assertTrue(fileSystem.isSameFile(createPath("foo"), createPath("/home/test/foo")));
+        assertTrue(fileSystem.isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
 
-        assertFalse(getFileSystem().isSameFile(createPath("foo"), createPath("foo/bar")));
+        assertFalse(fileSystem.isSameFile(createPath("foo"), createPath("foo/bar")));
 
-        assertTrue(getFileSystem().isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
+        assertTrue(fileSystem.isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testIsSameFileFirstNonExisting() throws IOException {
 
-        getFileSystem().isSameFile(createPath("/foo"), createPath("/"));
+        fileSystem.isSameFile(createPath("/foo"), createPath("/"));
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testIsSameFileSecondNonExisting() throws IOException {
 
-        getFileSystem().isSameFile(createPath("/"), createPath("/foo"));
+        fileSystem.isSameFile(createPath("/"), createPath("/foo"));
     }
 
     // FTPFileSystem.isHidden
@@ -1506,43 +1508,43 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         addFile("/foo/bar");
         addFile("/foo/.bar");
 
-        assertFalse(getFileSystem().isHidden(createPath("/foo")));
-        assertTrue(getFileSystem().isHidden(createPath("/.foo")));
-        assertFalse(getFileSystem().isHidden(createPath("/foo/bar")));
-        assertTrue(getFileSystem().isHidden(createPath("/foo/.bar")));
+        assertFalse(fileSystem.isHidden(createPath("/foo")));
+        assertTrue(fileSystem.isHidden(createPath("/.foo")));
+        assertFalse(fileSystem.isHidden(createPath("/foo/bar")));
+        assertTrue(fileSystem.isHidden(createPath("/foo/.bar")));
     }
 
     @Test(expected = NoSuchFileException.class)
     public void testIsHiddenNonExisting() throws IOException {
-        getFileSystem().isHidden(createPath("/foo"));
+        fileSystem.isHidden(createPath("/foo"));
     }
 
     // FTPFileSystem.checkAccess
 
     @Test(expected = NoSuchFileException.class)
     public void testCheckAccessNonExisting() throws IOException {
-        getFileSystem().checkAccess(createPath("/foo/bar"));
+        fileSystem.checkAccess(createPath("/foo/bar"));
     }
 
     @Test
     public void testCheckAccessNoModes() throws IOException {
         addDirectory("/foo/bar");
 
-        getFileSystem().checkAccess(createPath("/foo/bar"));
+        fileSystem.checkAccess(createPath("/foo/bar"));
     }
 
     @Test
     public void testCheckAccessOnlyRead() throws IOException {
         addDirectory("/foo/bar");
 
-        getFileSystem().checkAccess(createPath("/foo/bar"), AccessMode.READ);
+        fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.READ);
     }
 
     @Test
     public void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
         addDirectory("/foo/bar");
 
-        getFileSystem().checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
+        fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -1550,7 +1552,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry bar = addDirectory("/foo/bar");
         bar.setPermissionsFromString("r-xr-xr-x");
 
-        getFileSystem().checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
+        fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -1558,7 +1560,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry bar = addDirectory("/foo/bar");
         bar.setPermissionsFromString("rw-rw-rw-");
 
-        getFileSystem().checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE);
+        fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE);
     }
 
     // FTPFileSystem.readAttributes (PosixFileAttributes variant)
@@ -1571,7 +1573,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setOwner("user");
         foo.setGroup("group");
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/foo"));
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"));
 
         assertEquals(foo.getSize(), attributes.size());
         assertEquals("user", attributes.owner().getName());
@@ -1591,7 +1593,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setOwner("user");
         foo.setGroup("group");
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
 
         assertEquals(foo.getSize(), attributes.size());
         assertEquals("user", attributes.owner().getName());
@@ -1610,7 +1612,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setOwner("user");
         foo.setGroup("group");
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/foo"));
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"));
 
         assertEquals(foo.getSize(), attributes.size());
         assertEquals("user", attributes.owner().getName());
@@ -1629,7 +1631,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setOwner("user");
         foo.setGroup("group");
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
 
         assertEquals(foo.getSize(), attributes.size());
         assertEquals("user", attributes.owner().getName());
@@ -1650,7 +1652,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setGroup("group");
         SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/bar"));
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"));
 
         assertEquals(foo.getSize(), attributes.size());
         assertNotEquals(bar.getSize(), attributes.size());
@@ -1671,7 +1673,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setGroup("group");
         SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
 
         assertEquals(bar.getSize(), attributes.size());
         assertNotEquals(foo.getSize(), attributes.size());
@@ -1692,7 +1694,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setGroup("group");
         SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/bar"));
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"));
 
         assertEquals(foo.getSize(), attributes.size());
         assertNotEquals(bar.getSize(), attributes.size());
@@ -1713,7 +1715,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setGroup("group");
         SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-        PosixFileAttributes attributes = getFileSystem().readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
+        PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
 
         assertEquals(bar.getSize(), attributes.size());
         assertNotEquals(foo.getSize(), attributes.size());
@@ -1728,7 +1730,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     @Test(expected = NoSuchFileException.class)
     public void testReadAttributesNonExisting() throws IOException {
-        getFileSystem().readAttributes(createPath("/foo"));
+        fileSystem.readAttributes(createPath("/foo"));
     }
 
     // FTPFileSystem.readAttributes (map variant)
@@ -1737,7 +1739,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "lastModifiedTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "lastModifiedTime");
         assertEquals(Collections.singleton("basic:lastModifiedTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:lastModifiedTime"));
     }
@@ -1746,7 +1748,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeLastAccessTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "lastAccessTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "lastAccessTime");
         assertEquals(Collections.singleton("basic:lastAccessTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:lastAccessTime"));
     }
@@ -1755,7 +1757,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeCreateTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "creationTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "creationTime");
         assertEquals(Collections.singleton("basic:creationTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:creationTime"));
     }
@@ -1765,7 +1767,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry foo = addFile("/foo");
         foo.setContents(new byte[1024]);
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "size");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "size");
         Map<String, ?> expected = Collections.singletonMap("basic:size", foo.getSize());
         assertEquals(expected, attributes);
     }
@@ -1774,7 +1776,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeIsRegularFile() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "isRegularFile");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isRegularFile");
         Map<String, ?> expected = Collections.singletonMap("basic:isRegularFile", false);
         assertEquals(expected, attributes);
     }
@@ -1783,7 +1785,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeIsDirectory() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "isDirectory");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isDirectory");
         Map<String, ?> expected = Collections.singletonMap("basic:isDirectory", true);
         assertEquals(expected, attributes);
     }
@@ -1792,7 +1794,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeIsSymbolicLink() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "isSymbolicLink");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isSymbolicLink");
         Map<String, ?> expected = Collections.singletonMap("basic:isSymbolicLink", false);
         assertEquals(expected, attributes);
     }
@@ -1801,7 +1803,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeIsOther() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "isOther");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isOther");
         Map<String, ?> expected = Collections.singletonMap("basic:isOther", false);
         assertEquals(expected, attributes);
     }
@@ -1810,7 +1812,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeFileKey() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "fileKey");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "fileKey");
         Map<String, ?> expected = Collections.singletonMap("basic:fileKey", null);
         assertEquals(expected, attributes);
     }
@@ -1819,7 +1821,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeMultiple() throws IOException {
         DirectoryEntry foo = addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "size,isDirectory");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "size,isDirectory");
         Map<String, Object> expected = new HashMap<>();
         expected.put("basic:size", foo.getSize());
         expected.put("basic:isDirectory", true);
@@ -1830,7 +1832,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapNoTypeAll() throws IOException {
         DirectoryEntry foo = addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "*");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "*");
         Map<String, Object> expected = new HashMap<>();
         expected.put("basic:size", foo.getSize());
         expected.put("basic:isRegularFile", false);
@@ -1844,7 +1846,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         assertNotNull(attributes.remove("basic:creationTime"));
         assertEquals(expected, attributes);
 
-        attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+        attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
         assertNotNull(attributes.remove("basic:lastModifiedTime"));
         assertNotNull(attributes.remove("basic:lastAccessTime"));
         assertNotNull(attributes.remove("basic:creationTime"));
@@ -1855,7 +1857,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicLastModifiedTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:lastModifiedTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime");
         assertEquals(Collections.singleton("basic:lastModifiedTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:lastModifiedTime"));
     }
@@ -1864,7 +1866,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicLastAccessTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:lastAccessTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastAccessTime");
         assertEquals(Collections.singleton("basic:lastAccessTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:lastAccessTime"));
     }
@@ -1873,7 +1875,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicCreateTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:creationTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:creationTime");
         assertEquals(Collections.singleton("basic:creationTime"), attributes.keySet());
         assertNotNull(attributes.get("basic:creationTime"));
     }
@@ -1883,7 +1885,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry foo = addFile("/foo");
         foo.setContents(new byte[1024]);
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:size");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:size");
         Map<String, ?> expected = Collections.singletonMap("basic:size", foo.getSize());
         assertEquals(expected, attributes);
     }
@@ -1892,7 +1894,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicIsRegularFile() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:isRegularFile");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isRegularFile");
         Map<String, ?> expected = Collections.singletonMap("basic:isRegularFile", false);
         assertEquals(expected, attributes);
     }
@@ -1901,7 +1903,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicIsDirectory() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:isDirectory");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isDirectory");
         Map<String, ?> expected = Collections.singletonMap("basic:isDirectory", true);
         assertEquals(expected, attributes);
     }
@@ -1910,7 +1912,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicIsSymbolicLink() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:isSymbolicLink");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isSymbolicLink");
         Map<String, ?> expected = Collections.singletonMap("basic:isSymbolicLink", false);
         assertEquals(expected, attributes);
     }
@@ -1919,7 +1921,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicIsOther() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:isOther");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isOther");
         Map<String, ?> expected = Collections.singletonMap("basic:isOther", false);
         assertEquals(expected, attributes);
     }
@@ -1928,7 +1930,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicFileKey() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:fileKey");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:fileKey");
         Map<String, ?> expected = Collections.singletonMap("basic:fileKey", null);
         assertEquals(expected, attributes);
     }
@@ -1937,7 +1939,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicMultiple() throws IOException {
         DirectoryEntry foo = addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:size,isDirectory");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:size,isDirectory");
         Map<String, Object> expected = new HashMap<>();
         expected.put("basic:size", foo.getSize());
         expected.put("basic:isDirectory", true);
@@ -1948,7 +1950,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapBasicAll() throws IOException {
         DirectoryEntry foo = addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:*");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:*");
         Map<String, Object> expected = new HashMap<>();
         expected.put("basic:size", foo.getSize());
         expected.put("basic:isRegularFile", false);
@@ -1962,7 +1964,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         assertNotNull(attributes.remove("basic:creationTime"));
         assertEquals(expected, attributes);
 
-        attributes = getFileSystem().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+        attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
         assertNotNull(attributes.remove("basic:lastModifiedTime"));
         assertNotNull(attributes.remove("basic:lastAccessTime"));
         assertNotNull(attributes.remove("basic:creationTime"));
@@ -1973,7 +1975,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixLastModifiedTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:lastModifiedTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastModifiedTime");
         assertEquals(Collections.singleton("posix:lastModifiedTime"), attributes.keySet());
         assertNotNull(attributes.get("posix:lastModifiedTime"));
     }
@@ -1982,7 +1984,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixLastAccessTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:lastAccessTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastAccessTime");
         assertEquals(Collections.singleton("posix:lastAccessTime"), attributes.keySet());
         assertNotNull(attributes.get("posix:lastAccessTime"));
     }
@@ -1991,7 +1993,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixCreateTime() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:creationTime");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:creationTime");
         assertEquals(Collections.singleton("posix:creationTime"), attributes.keySet());
         assertNotNull(attributes.get("posix:creationTime"));
     }
@@ -2001,7 +2003,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         FileEntry foo = addFile("/foo");
         foo.setContents(new byte[1024]);
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:size");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:size");
         Map<String, ?> expected = Collections.singletonMap("posix:size", foo.getSize());
         assertEquals(expected, attributes);
     }
@@ -2010,7 +2012,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixIsRegularFile() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:isRegularFile");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isRegularFile");
         Map<String, ?> expected = Collections.singletonMap("posix:isRegularFile", false);
         assertEquals(expected, attributes);
     }
@@ -2019,7 +2021,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixIsDirectory() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:isDirectory");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isDirectory");
         Map<String, ?> expected = Collections.singletonMap("posix:isDirectory", true);
         assertEquals(expected, attributes);
     }
@@ -2028,7 +2030,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixIsSymbolicLink() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:isSymbolicLink");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isSymbolicLink");
         Map<String, ?> expected = Collections.singletonMap("posix:isSymbolicLink", false);
         assertEquals(expected, attributes);
     }
@@ -2037,7 +2039,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixIsOther() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:isOther");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isOther");
         Map<String, ?> expected = Collections.singletonMap("posix:isOther", false);
         assertEquals(expected, attributes);
     }
@@ -2046,7 +2048,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testReadAttributesMapPosixFileKey() throws IOException {
         addDirectory("/foo");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:fileKey");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:fileKey");
         Map<String, ?> expected = Collections.singletonMap("posix:fileKey", null);
         assertEquals(expected, attributes);
     }
@@ -2056,7 +2058,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setOwner("test");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "owner:owner");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "owner:owner");
         Map<String, ?> expected = Collections.singletonMap("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
         assertEquals(expected, attributes);
     }
@@ -2066,12 +2068,12 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setOwner("test");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "owner:*");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "owner:*");
         Map<String, Object> expected = new HashMap<>();
         expected.put("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
         assertEquals(expected, attributes);
 
-        attributes = getFileSystem().readAttributes(createPath("/foo"), "owner:owner,*");
+        attributes = fileSystem.readAttributes(createPath("/foo"), "owner:owner,*");
         assertEquals(expected, attributes);
     }
 
@@ -2080,7 +2082,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setOwner("test");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:owner");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:owner");
         Map<String, ?> expected = Collections.singletonMap("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
         assertEquals(expected, attributes);
     }
@@ -2090,7 +2092,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setGroup("test");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:group");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:group");
         Map<String, ?> expected = Collections.singletonMap("posix:group", new SimpleGroupPrincipal(foo.getGroup()));
         assertEquals(expected, attributes);
     }
@@ -2100,7 +2102,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setPermissionsFromString("r-xr-xr-x");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:permissions");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:permissions");
         Map<String, ?> expected = Collections.singletonMap("posix:permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
         assertEquals(expected, attributes);
     }
@@ -2111,7 +2113,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setOwner("test");
         foo.setGroup("test");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:size,owner,group");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:size,owner,group");
         Map<String, Object> expected = new HashMap<>();
         expected.put("posix:size", foo.getSize());
         expected.put("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
@@ -2126,7 +2128,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         foo.setGroup("group");
         foo.setPermissionsFromString("r-xr-xr-x");
 
-        Map<String, Object> attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:*");
+        Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:*");
         Map<String, Object> expected = new HashMap<>();
         expected.put("posix:size", foo.getSize());
         expected.put("posix:isRegularFile", false);
@@ -2143,7 +2145,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         assertNotNull(attributes.remove("posix:creationTime"));
         assertEquals(expected, attributes);
 
-        attributes = getFileSystem().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
+        attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
         assertNotNull(attributes.remove("posix:lastModifiedTime"));
         assertNotNull(attributes.remove("posix:lastAccessTime"));
         assertNotNull(attributes.remove("posix:creationTime"));
@@ -2155,14 +2157,14 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
         DirectoryEntry foo = addDirectory("/foo");
         foo.setOwner("test");
 
-        getFileSystem().readAttributes(createPath("/foo"), "posix:lastModifiedTime,owner,dummy");
+        fileSystem.readAttributes(createPath("/foo"), "posix:lastModifiedTime,owner,dummy");
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testReadAttributesMapUnsupportedType() throws IOException {
         addDirectory("/foo");
 
-        getFileSystem().readAttributes(createPath("/foo"), "zipfs:*");
+        fileSystem.readAttributes(createPath("/foo"), "zipfs:*");
     }
 
     // FTPFileSystem.getFTPFile
@@ -2171,7 +2173,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testGetFTPFileFile() throws IOException {
         addFile("/foo");
 
-        FTPFile file = getFileSystem().getFTPFile(createPath("/foo"));
+        FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
         assertNotNull(file);
         assertEquals("foo", file.getName());
         assertTrue(file.isFile());
@@ -2181,7 +2183,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testGetFTPFileFileNotExisting() throws IOException {
 
         try {
-            getFileSystem().getFTPFile(createPath("/foo"));
+            fileSystem.getFTPFile(createPath("/foo"));
 
         } finally {
             VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
@@ -2208,7 +2210,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testGetFTPFileFileAccessDenied0() throws IOException {
         try {
-            FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
+            FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
             assertNotNull(file);
             assertEquals("bar", file.getName());
             assertTrue(file.isFile());
@@ -2228,7 +2230,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
     public void testGetFTPFileDirectory() throws IOException {
         addDirectory("/foo");
 
-        FTPFile file = getFileSystem().getFTPFile(createPath("/foo"));
+        FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
         assertNotNull(file);
         if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
             assertEquals(".", file.getName());
@@ -2257,7 +2259,7 @@ public class FTPFileSystemTest extends AbstractFTPFileSystemTest {
 
     private void testGetFTPFileDirectoryAccessDenied0() throws IOException {
         try {
-            FTPFile file = getFileSystem().getFTPFile(createPath("/foo/bar"));
+            FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
             assertNotNull(file);
             assertEquals("bar", file.getName());
             assertTrue(file.isDirectory());

@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -60,7 +61,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     @Test
     public void testPathsAndFilesSupport() throws IOException {
 
-        try (FTPFileSystem fs = (FTPFileSystem) FileSystems.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(createEnv(true))) {
             Path path = Paths.get(URI.create(getBaseUrl() + "/foo"));
             assertThat(path, instanceOf(FTPPath.class));
             // as required by Paths.get
@@ -107,7 +108,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         URI uri;
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             uri = path.toUri();
@@ -129,7 +130,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         inputs.put("/foo/bar", "/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             for (Map.Entry<String, String> entry : inputs.entrySet()) {
                 URI uri = fs.getPath(entry.getKey()).toUri();
                 Path path = provider.getPath(uri);
@@ -170,7 +171,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     public void testGetFileAttributeViewBasic() throws IOException {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
@@ -183,7 +184,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     public void testGetFileAttributeViewPosix() throws IOException {
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             PosixFileAttributeView view = fs.provider().getFileAttributeView(path, PosixFileAttributeView.class);
@@ -197,7 +198,7 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
@@ -213,14 +214,16 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     @Test
     public void testKeepAliveWithFTPFileSystem() throws IOException {
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPFileSystemProvider.keepAlive(fs);
         }
     }
 
     @Test(expected = ProviderMismatchException.class)
     public void testKeepAliveWithNonFTPFileSystem() throws IOException {
-        FTPFileSystemProvider.keepAlive(FileSystems.getDefault());
+        @SuppressWarnings("resource")
+        FileSystem defaultFileSystem = FileSystems.getDefault();
+        FTPFileSystemProvider.keepAlive(defaultFileSystem);
     }
 
     @Test(expected = ProviderMismatchException.class)
@@ -235,11 +238,19 @@ public class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = (FTPFileSystem) provider.newFileSystem(getURI(), createEnv(true))) {
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(true))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
             Files.createDirectories(path);
         }
 
         assertNotNull(getFileSystemEntry("/foo/bar"));
+    }
+
+    private FTPFileSystem newFileSystem(Map<String, ?> env) throws IOException {
+        return (FTPFileSystem) FileSystems.newFileSystem(getURI(), env);
+    }
+
+    private FTPFileSystem newFileSystem(FTPFileSystemProvider provider, Map<String, ?> env) throws IOException {
+        return (FTPFileSystem) provider.newFileSystem(getURI(), env);
     }
 }

@@ -56,7 +56,7 @@ public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
         FileEntry file = addFile("/foo");
         file.setContents(content);
 
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals('H', input.read());
             assertEquals('e', input.read());
             assertEquals('l', input.read());
@@ -80,7 +80,7 @@ public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
         file.setContents(content);
 
         byte[] b = new byte[20];
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals(0, input.read(b, 0, 0));
             assertEquals(5, input.read(b, 1, 5));
             assertArrayEquals(content.substring(0, 5).getBytes(), Arrays.copyOfRange(b, 1, 6));
@@ -97,20 +97,20 @@ public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
         FileEntry file = addFile("/foo");
         file.setContents(content);
 
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals(0, input.skip(0));
             assertArrayEquals(content.getBytes(), readRemaining(input));
         }
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals(5, input.skip(5));
             assertArrayEquals(content.substring(5).getBytes(), readRemaining(input));
         }
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals(content.length(), input.skip(content.length()));
             assertEquals(-1, input.read());
             assertEquals(0, input.skip(1));
         }
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
             assertEquals(content.length(), input.skip(content.length() + 1));
             assertEquals(-1, input.read());
             assertEquals(0, input.skip(1));
@@ -118,13 +118,16 @@ public class FTPFileSystemInputStreamTest extends AbstractFTPFileSystemTest {
     }
 
     @Test
-    public void testAvailable() throws IOException {
+    public void testAvailable() throws IOException, InterruptedException {
         final String content = "Hello World";
 
         FileEntry file = addFile("/foo");
         file.setContents(content);
 
-        try (InputStream input = getFileSystem().newInputStream(createPath("/foo"))) {
+        try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
+            // there is a timing issue here that may cause a different result for different instances each time
+            Thread.sleep(100);
+
             assertEquals(content.length(), input.available());
 
             for (int i = 0; i < 5; i++) {

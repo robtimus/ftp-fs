@@ -191,7 +191,7 @@ class FTPPath extends SimpleAbstractPath {
         if (this.equals(other)) {
             return true;
         }
-        if (other == null || getFileSystem() != other.getFileSystem()) {
+        if (other == null) {
             return false;
         }
         return fs.isSameFile(this, (FTPPath) other);

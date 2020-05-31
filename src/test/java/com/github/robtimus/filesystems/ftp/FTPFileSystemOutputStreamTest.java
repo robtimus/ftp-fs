@@ -17,57 +17,81 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.mockftpserver.fake.filesystem.FileEntry;
 
-@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
-public class FTPFileSystemOutputStreamTest extends AbstractFTPFileSystemTest {
+public class FTPFileSystemOutputStreamTest {
 
-    public FTPFileSystemOutputStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
-        super(useUnixFtpServer, supportAbsoluteFilePaths);
-    }
+    @Nested
+    @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
+    public class UnixServerUsingAbsoluteFilePaths extends OutputStreamTest {
 
-    @Parameters(name = "Use UNIX FTP server: {0}; support absolute file paths: {1}")
-    public static List<Object[]> getParameters() {
-        Object[][] parameters = {
-            { true, true, },
-            { true, false, },
-            { false, true, },
-            { false, false, },
-        };
-        return Arrays.asList(parameters);
-    }
-
-    @Test
-    public void testWriteSingle() throws IOException {
-
-        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
-            output.write('H');
-            output.write('e');
-            output.write('l');
-            output.write('l');
-            output.write('o');
+        public UnixServerUsingAbsoluteFilePaths() {
+            super(true, true);
         }
-        FileEntry file = getFile("/foo");
-        assertEquals("Hello", getStringContents(file));
     }
 
-    @Test
-    public void testWriteBulk() throws IOException {
+    @Nested
+    @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
+    public class UnixServerNotUsingAbsoluteFilePaths extends OutputStreamTest {
 
-        try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
-            output.write("Hello".getBytes());
+        public UnixServerNotUsingAbsoluteFilePaths() {
+            super(true, false);
         }
-        FileEntry file = getFile("/foo");
-        assertEquals("Hello", getStringContents(file));
+    }
+
+    @Nested
+    @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
+    public class NonUnixServerUsingAbsoluteFilePaths extends OutputStreamTest {
+
+        public NonUnixServerUsingAbsoluteFilePaths() {
+            super(false, true);
+        }
+    }
+
+    @Nested
+    @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
+    public class NonUnixServerNotUsingAbsoluteFilePaths extends OutputStreamTest {
+
+        public NonUnixServerNotUsingAbsoluteFilePaths() {
+            super(false, false);
+        }
+    }
+
+    private abstract static class OutputStreamTest extends AbstractFTPFileSystemTest {
+
+        private OutputStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+            super(useUnixFtpServer, supportAbsoluteFilePaths);
+        }
+
+        @Test
+        public void testWriteSingle() throws IOException {
+
+            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
+                output.write('H');
+                output.write('e');
+                output.write('l');
+                output.write('l');
+                output.write('o');
+            }
+            FileEntry file = getFile("/foo");
+            assertEquals("Hello", getStringContents(file));
+        }
+
+        @Test
+        public void testWriteBulk() throws IOException {
+
+            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
+                output.write("Hello".getBytes());
+            }
+            FileEntry file = getFile("/foo");
+            assertEquals("Hello", getStringContents(file));
+        }
     }
 }

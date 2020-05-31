@@ -27,32 +27,17 @@ public interface FTPFileStrategyFactory {
     /**
      * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#unix()}.
      */
-    FTPFileStrategyFactory UNIX = new FTPFileStrategyFactory() {
-        @Override
-        public FTPFileStrategy createFTPFileStrategy() {
-            return FTPFileStrategy.unix();
-        }
-    };
+    FTPFileStrategyFactory UNIX = FTPFileStrategy::unix;
 
     /**
      * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#nonUnix()}.
      */
-    FTPFileStrategyFactory NON_UNIX = new FTPFileStrategyFactory() {
-        @Override
-        public FTPFileStrategy createFTPFileStrategy() {
-            return FTPFileStrategy.nonUnix();
-        }
-    };
+    FTPFileStrategyFactory NON_UNIX = FTPFileStrategy::nonUnix;
 
     /**
      * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#autoDetect()}.
      */
-    FTPFileStrategyFactory AUTO_DETECT = new FTPFileStrategyFactory() {
-        @Override
-        public FTPFileStrategy createFTPFileStrategy() {
-            return FTPFileStrategy.autoDetect();
-        }
-    };
+    FTPFileStrategyFactory AUTO_DETECT = FTPFileStrategy::autoDetect;
 
     /**
      * Creates an {@link FTPFileStrategy}. This {@code FTPFileStrategy} will be tied to a specific FTP file system.

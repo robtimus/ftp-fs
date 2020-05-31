@@ -17,6 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URI;
@@ -32,12 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPMessagesTest {
 
@@ -85,33 +86,25 @@ public class FTPMessagesTest {
         INSTANCES = Collections.unmodifiableMap(map);
     }
 
-    private final Method method;
-    private final Object target;
-
-    public FTPMessagesTest(@SuppressWarnings("unused") String testName, Method method, Object target) {
-        this.method = method;
-        this.target = target;
-    }
-
-    @Test
-    public void testMethodCall() throws ReflectiveOperationException {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    public void testMethodCall(@SuppressWarnings("unused") String testName, Method method, Object target) {
         Object obj = Modifier.isStatic(method.getModifiers()) ? null : target;
         Object[] args = getArguments(method);
-        method.invoke(obj, args);
+        assertDoesNotThrow(() -> method.invoke(obj, args));
     }
 
-    @Parameters(name = "{0}")
-    public static Iterable<Object[]> getParameters() {
-        List<Object[]> parameters = new ArrayList<>();
+    static Stream<Arguments> testMethodCall() {
+        List<Arguments> parameters = new ArrayList<>();
         collectParameters(parameters, FTPMessages.class, null, "FTPMessages");
-        return parameters;
+        return parameters.stream();
     }
 
-    private static void collectParameters(List<Object[]> parameters, Class<?> cls, Object instance, String path) {
+    private static void collectParameters(List<Arguments> parameters, Class<?> cls, Object instance, String path) {
         for (Method method : cls.getMethods()) {
             if (method.getDeclaringClass() != Object.class) {
                 String methodPath = path + "." + method.getName();
-                parameters.add(new Object[] { methodPath, method, instance });
+                parameters.add(arguments(methodPath, method, instance));
 
                 Class<?> returnType = method.getReturnType();
                 if (returnType.getDeclaringClass() == FTPMessages.class) {

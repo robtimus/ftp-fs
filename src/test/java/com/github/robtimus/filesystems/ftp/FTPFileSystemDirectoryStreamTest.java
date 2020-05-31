@@ -21,229 +21,257 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import com.github.robtimus.filesystems.Messages;
 
-@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
-public class FTPFileSystemDirectoryStreamTest extends AbstractFTPFileSystemTest {
+public class FTPFileSystemDirectoryStreamTest {
 
-    public FTPFileSystemDirectoryStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
-        super(useUnixFtpServer, supportAbsoluteFilePaths);
+    @Nested
+    @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
+    public class UnixServerUsingAbsoluteFilePaths extends DirectoryStreamTest {
+
+        public UnixServerUsingAbsoluteFilePaths() {
+            super(true, true);
+        }
     }
 
-    @Parameters(name = "Use UNIX FTP server: {0}; support absolute file paths: {1}")
-    public static List<Object[]> getParameters() {
-        Object[][] parameters = {
-            { true, true, },
-            { true, false, },
-            { false, true, },
-            { false, false, },
-        };
-        return Arrays.asList(parameters);
+    @Nested
+    @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
+    public class UnixServerNotUsingAbsoluteFilePaths extends DirectoryStreamTest {
+
+        public UnixServerNotUsingAbsoluteFilePaths() {
+            super(true, false);
+        }
     }
 
-    @Test
-    public void testIterator() throws IOException {
-        final int count = 100;
+    @Nested
+    @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
+    public class NonUnixServerUsingAbsoluteFilePaths extends DirectoryStreamTest {
 
-        List<Matcher<? super String>> matchers = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            matchers.add(equalTo("file" + i));
-            addFile("/foo/file" + i);
+        public NonUnixServerUsingAbsoluteFilePaths() {
+            super(false, true);
+        }
+    }
+
+    @Nested
+    @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
+    public class NonUnixServerNotUsingAbsoluteFilePaths extends DirectoryStreamTest {
+
+        public NonUnixServerNotUsingAbsoluteFilePaths() {
+            super(false, false);
+        }
+    }
+
+    private abstract static class DirectoryStreamTest extends AbstractFTPFileSystemTest {
+
+        private DirectoryStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+            super(useUnixFtpServer, supportAbsoluteFilePaths);
         }
 
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                names.add(iterator.next().getFileName().toString());
-            }
-        }
-        assertThat(names, containsInAnyOrder(matchers));
-    }
+        @Test
+        public void testIterator() throws IOException {
+            final int count = 100;
 
-    @Test
-    public void testFilteredIterator() throws IOException {
-        final int count = 100;
-
-        List<Matcher<? super String>> matchers = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            if (i % 2 == 1) {
+            List<Matcher<? super String>> matchers = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
                 matchers.add(equalTo("file" + i));
-            }
-            addFile("/foo/file" + i);
-        }
-
-        List<String> names = new ArrayList<>();
-        Filter<Path> filter = new PatternFilter("file\\d*[13579]");
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), filter)) {
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                names.add(iterator.next().getFileName().toString());
-            }
-        }
-        assertThat(names, containsInAnyOrder(matchers));
-    }
-
-    @Test
-    public void testCloseWhileIterating() throws IOException {
-        final int count = 100;
-
-        // there is no guaranteed order, just a count
-        for (int i = 0; i < count; i++) {
-            addFile("/foo/file" + i);
-        }
-        Matcher<String> matcher = new TypeSafeDiagnosingMatcher<String>() {
-            private final Pattern pattern = Pattern.compile("file\\d+");
-
-            @Override
-            protected boolean matchesSafely(String item, Description mismatchDescription) {
-                return item != null && pattern.matcher(item).matches();
+                addFile("/foo/file" + i);
             }
 
-            @Override
-            public void describeTo(Description description) {
-                description
-                        .appendText("matches ")
-                        .appendValue(pattern);
-            }
-        };
-        int expectedCount = count / 2;
-
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
-
-            int index = 0;
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                if (++index == count / 2) {
-                    stream.close();
+            List<String> names = new ArrayList<>();
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    names.add(iterator.next().getFileName().toString());
                 }
-                names.add(iterator.next().getFileName().toString());
             }
-        }
-        assertEquals(expectedCount, names.size());
-        assertThat(names, everyItem(matcher));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testIteratorAfterClose() throws IOException {
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
-            stream.close();
-            stream.iterator();
-        }
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testIteratorAfterIterator() throws IOException {
-        boolean iteratorCalled = false;
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
-            stream.iterator();
-            iteratorCalled = true;
-            stream.iterator();
-        } finally {
-            assertTrue(iteratorCalled);
-        }
-    }
-
-    @Test
-    public void testDeleteWhileIterating() throws IOException {
-        final int count = 100;
-
-        List<Matcher<? super String>> matchers = new ArrayList<>();
-        addDirectory("/foo");
-        for (int i = 0; i < count; i++) {
-            matchers.add(equalTo("file" + i));
-            addFile("/foo/file" + i);
+            assertThat(names, containsInAnyOrder(matchers));
         }
 
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        @Test
+        public void testFilteredIterator() throws IOException {
+            final int count = 100;
 
-            int index = 0;
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                if (++index < count / 2) {
-                    delete("/foo");
+            List<Matcher<? super String>> matchers = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                if (i % 2 == 1) {
+                    matchers.add(equalTo("file" + i));
                 }
-                names.add(iterator.next().getFileName().toString());
+                addFile("/foo/file" + i);
             }
-        }
-        assertThat(names, containsInAnyOrder(matchers));
-    }
 
-    @Test
-    public void testDeleteChildrenWhileIterating() throws IOException {
-        final int count = 100;
-
-        List<Matcher<? super String>> matchers = new ArrayList<>();
-        addDirectory("/foo");
-        for (int i = 0; i < count; i++) {
-            matchers.add(equalTo("file" + i));
-            addFile("/foo/file" + i);
+            List<String> names = new ArrayList<>();
+            Filter<Path> filter = new PatternFilter("file\\d*[13579]");
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), filter)) {
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    names.add(iterator.next().getFileName().toString());
+                }
+            }
+            assertThat(names, containsInAnyOrder(matchers));
         }
 
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+        @Test
+        public void testCloseWhileIterating() throws IOException {
+            final int count = 100;
 
-            int index = 0;
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                if (++index < count / 2) {
-                    for (int i = 0; i < count; i++) {
-                        delete("/foo/file" + i);
+            // there is no guaranteed order, just a count
+            for (int i = 0; i < count; i++) {
+                addFile("/foo/file" + i);
+            }
+            Matcher<String> matcher = new TypeSafeDiagnosingMatcher<String>() {
+                private final Pattern pattern = Pattern.compile("file\\d+");
+
+                @Override
+                protected boolean matchesSafely(String item, Description mismatchDescription) {
+                    return item != null && pattern.matcher(item).matches();
+                }
+
+                @Override
+                public void describeTo(Description description) {
+                    description
+                            .appendText("matches ")
+                            .appendValue(pattern);
+                }
+            };
+            int expectedCount = count / 2;
+
+            List<String> names = new ArrayList<>();
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+
+                int index = 0;
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    if (++index == count / 2) {
+                        stream.close();
                     }
-                    assertEquals(0, getChildCount("/foo"));
+                    names.add(iterator.next().getFileName().toString());
                 }
-                names.add(iterator.next().getFileName().toString());
+            }
+            assertEquals(expectedCount, names.size());
+            assertThat(names, everyItem(matcher));
+        }
+
+        @Test
+        public void testIteratorAfterClose() throws IOException {
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+                stream.close();
+                IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
+                assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
             }
         }
-        assertThat(names, containsInAnyOrder(matchers));
-    }
 
-    @Test
-    public void testDeleteBeforeIterator() throws IOException {
-        final int count = 100;
-
-        List<Matcher<? super String>> matchers = new ArrayList<>();
-        addDirectory("/foo");
-        for (int i = 0; i < count; i++) {
-            // the entries are collected before the iteration starts
-            matchers.add(equalTo("file" + i));
-            addFile("/foo/file" + i);
-        }
-
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
-
-            delete("/foo");
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                names.add(iterator.next().getFileName().toString());
+        @Test
+        public void testIteratorAfterIterator() throws IOException {
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+                stream.iterator();
+                IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
+                assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
             }
         }
-        assertThat(names, containsInAnyOrder(matchers));
-    }
 
-    @Test(expected = DirectoryIteratorException.class)
-    public void testThrowWhileIterating() throws IOException {
-        addFile("/foo");
+        @Test
+        public void testDeleteWhileIterating() throws IOException {
+            final int count = 100;
 
-        try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
-            for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
-                iterator.next();
+            List<Matcher<? super String>> matchers = new ArrayList<>();
+            addDirectory("/foo");
+            for (int i = 0; i < count; i++) {
+                matchers.add(equalTo("file" + i));
+                addFile("/foo/file" + i);
+            }
+
+            List<String> names = new ArrayList<>();
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+
+                int index = 0;
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    if (++index < count / 2) {
+                        delete("/foo");
+                    }
+                    names.add(iterator.next().getFileName().toString());
+                }
+            }
+            assertThat(names, containsInAnyOrder(matchers));
+        }
+
+        @Test
+        public void testDeleteChildrenWhileIterating() throws IOException {
+            final int count = 100;
+
+            List<Matcher<? super String>> matchers = new ArrayList<>();
+            addDirectory("/foo");
+            for (int i = 0; i < count; i++) {
+                matchers.add(equalTo("file" + i));
+                addFile("/foo/file" + i);
+            }
+
+            List<String> names = new ArrayList<>();
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+
+                int index = 0;
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    if (++index < count / 2) {
+                        for (int i = 0; i < count; i++) {
+                            delete("/foo/file" + i);
+                        }
+                        assertEquals(0, getChildCount("/foo"));
+                    }
+                    names.add(iterator.next().getFileName().toString());
+                }
+            }
+            assertThat(names, containsInAnyOrder(matchers));
+        }
+
+        @Test
+        public void testDeleteBeforeIterator() throws IOException {
+            final int count = 100;
+
+            List<Matcher<? super String>> matchers = new ArrayList<>();
+            addDirectory("/foo");
+            for (int i = 0; i < count; i++) {
+                // the entries are collected before the iteration starts
+                matchers.add(equalTo("file" + i));
+                addFile("/foo/file" + i);
+            }
+
+            List<String> names = new ArrayList<>();
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE)) {
+
+                delete("/foo");
+                for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                    names.add(iterator.next().getFileName().toString());
+                }
+            }
+            assertThat(names, containsInAnyOrder(matchers));
+        }
+
+        @Test
+        public void testThrowWhileIterating() throws IOException {
+            addFile("/foo");
+
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), ThrowingFilter.INSTANCE)) {
+                DirectoryIteratorException exception = assertThrows(DirectoryIteratorException.class, () -> {
+                    for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
+                        iterator.next();
+                    }
+                });
+                assertThat(exception.getCause(), instanceOf(IOException.class));
             }
         }
     }

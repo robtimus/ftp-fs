@@ -31,10 +31,10 @@ import java.nio.file.FileSystemException;
 import java.nio.file.OpenOption;
 import java.util.Collection;
 import java.util.Map;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockftpserver.fake.FakeFtpServer;
 import org.mockftpserver.fake.UserAccount;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
@@ -84,7 +84,7 @@ public abstract class AbstractFTPFileSystemTest {
         multiClientFileSystem = useUnixFtpServer ? multiClientUnixFtpFileSystem : multiClientNonUnixFtpFileSystem;
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws IOException {
         unixFtpServer = new FakeFtpServer();
         unixFtpServer.setSystemName("UNIX");
@@ -122,7 +122,7 @@ public abstract class AbstractFTPFileSystemTest {
         multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3, false);
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanupClass() throws IOException {
         unixFtpFileSystem.close();
         nonUnixFileSystem.close();
@@ -158,7 +158,7 @@ public abstract class AbstractFTPFileSystemTest {
                 .withFileSystemExceptionFactory(exceptionFactory);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         fs = new ExtendedUnixFakeFileSystem();
         fs.add(new DirectoryEntry(HOME_DIR));
@@ -169,7 +169,7 @@ public abstract class AbstractFTPFileSystemTest {
         exceptionFactory.delegate = spy(DefaultFileSystemExceptionFactory.INSTANCE);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         exceptionFactory.delegate = null;
 

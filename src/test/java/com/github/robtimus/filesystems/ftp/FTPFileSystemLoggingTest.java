@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -45,11 +45,11 @@ import org.apache.log4j.varia.NullAppender;
 import org.hamcrest.Description;
 import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({ "nls", "javadoc" })
@@ -67,7 +67,7 @@ public class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
         super(true, true);
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setupLogging() {
         logger = LogManager.getLogger(FTPClientPool.class);
         originalLevel = logger.getLevel();
@@ -88,7 +88,7 @@ public class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
         return appenders;
     }
 
-    @AfterClass
+    @AfterAll
     public static void clearLogging() {
         logger.setLevel(originalLevel);
         for (Appender appender : originalAppenders) {
@@ -101,13 +101,13 @@ public class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setupAppender() {
         appender = spy(new NullAppender());
         logger.addAppender(appender);
     }
 
-    @After
+    @AfterEach
     public void clearAppender() {
         logger.removeAppender(appender);
     }
@@ -122,11 +122,7 @@ public class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             brokenUri = URI.create("ftp://localhost:" + serverSocket.getLocalPort());
         }
-        try (FileSystem fs = FileSystems.newFileSystem(brokenUri, createEnv(true))) {
-            fail("Expected connection error");
-        } catch (@SuppressWarnings("unused") IOException e) {
-            // expected
-        }
+        assertThrows(IOException.class, () -> FileSystems.newFileSystem(brokenUri, createEnv(true)));
 
         ArgumentCaptor<LoggingEvent> captor = ArgumentCaptor.forClass(LoggingEvent.class);
         verify(appender, atLeast(1)).doAppend(captor.capture());

@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPFileFilter;
 import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
 /**
@@ -216,12 +215,9 @@ public abstract class FTPFileStrategy {
         protected FTPFile getFTPFile(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
             final String name = fileName(path);
 
-            FTPFile[] ftpFiles = client.listFiles(path(path), new FTPFileFilter() {
-                @Override
-                public boolean accept(FTPFile ftpFile) {
-                    String fileName = FTPFileSystem.getFileName(ftpFile);
-                    return FTPFileSystem.CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
-                }
+            FTPFile[] ftpFiles = client.listFiles(path(path), f -> {
+                String fileName = FTPFileSystem.getFileName(f);
+                return FTPFileSystem.CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
             });
             throwIfEmpty(ftpFiles, path, client, exceptionFactory);
             if (ftpFiles.length == 1) {
@@ -252,12 +248,8 @@ public abstract class FTPFileStrategy {
                     return null;
                 }
 
-                FTPFile[] ftpFiles = client.listFiles(parentPath, new FTPFileFilter() {
-                    @Override
-                    public boolean accept(FTPFile ftpFile) {
-                        return (ftpFile.isDirectory() || ftpFile.isSymbolicLink()) && name.equals(FTPFileSystem.getFileName(ftpFile));
-                    }
-                });
+                FTPFile[] ftpFiles = client.listFiles(parentPath,
+                        f -> (f.isDirectory() || f.isSymbolicLink()) && name.equals(FTPFileSystem.getFileName(f)));
                 throwIfEmpty(ftpFiles, path, client, exceptionFactory);
                 return ftpFiles[0].getLink() == null ? null : ftpFiles[0];
             }
@@ -313,12 +305,7 @@ public abstract class FTPFileStrategy {
                 return rootFtpFile;
             }
 
-            FTPFile[] ftpFiles = client.listFiles(parentPath, new FTPFileFilter() {
-                @Override
-                public boolean accept(FTPFile ftpFile) {
-                    return name.equals(FTPFileSystem.getFileName(ftpFile));
-                }
-            });
+            FTPFile[] ftpFiles = client.listFiles(parentPath, f -> name.equals(FTPFileSystem.getFileName(f)));
             if (ftpFiles.length == 0) {
                 throw new NoSuchFileException(path(path));
             }
@@ -345,12 +332,9 @@ public abstract class FTPFileStrategy {
                 throw new IllegalStateException(FTPMessages.autoDetectFileStrategyAlreadyInitialized());
             }
 
-            FTPFile[] ftpFiles = client.listFiles("/", new FTPFileFilter() { //$NON-NLS-1$
-                @Override
-                public boolean accept(FTPFile ftpFile) {
-                    String fileName = FTPFileSystem.getFileName(ftpFile);
-                    return FTPFileSystem.CURRENT_DIR.equals(fileName);
-                }
+            FTPFile[] ftpFiles = client.listFiles("/", f -> { //$NON-NLS-1$
+                String fileName = FTPFileSystem.getFileName(f);
+                return FTPFileSystem.CURRENT_DIR.equals(fileName);
             });
             delegate = ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
         }

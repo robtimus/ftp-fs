@@ -17,8 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -26,7 +27,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.ftp.FileType.Format;
 
 @SuppressWarnings({ "nls", "javadoc" })
@@ -107,11 +108,11 @@ public class FileTypeTest {
         verifyNoMoreInteractions(client);
     }
 
-    @Test(expected = FTPFileSystemException.class)
+    @Test
     public void testApplyFailure() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileType(FTP.ASCII_FILE_TYPE)).thenReturn(false);
-        FileType.ascii().apply(client);
+        assertThrows(FTPFileSystemException.class, () -> FileType.ascii().apply(client));
     }
 
     @Test
@@ -143,35 +144,35 @@ public class FileTypeTest {
 
         assertNotEquals(FileType.ascii(), FileType.ebcdic());
 
-        assertNotEquals(FileType.ascii(), null);
-        assertNotEquals(FileType.ascii(null), null);
-        assertNotEquals(FileType.ascii(Format.NON_PRINT), null);
-        assertNotEquals(FileType.ascii(Format.TELNET), null);
-        assertNotEquals(FileType.ascii(Format.CARRIAGE_CONTROL), null);
-        assertNotEquals(FileType.ebcdic(), null);
-        assertNotEquals(FileType.ebcdic(null), null);
-        assertNotEquals(FileType.ebcdic(Format.NON_PRINT), null);
-        assertNotEquals(FileType.ebcdic(Format.TELNET), null);
-        assertNotEquals(FileType.ebcdic(Format.CARRIAGE_CONTROL), null);
-        assertNotEquals(FileType.binary(), null);
-        assertNotEquals(FileType.local(), null);
-        assertNotEquals(FileType.local(0), null);
-        assertNotEquals(FileType.local(1024), null);
+        assertNotEquals(null, FileType.ascii());
+        assertNotEquals(null, FileType.ascii(null));
+        assertNotEquals(null, FileType.ascii(Format.NON_PRINT));
+        assertNotEquals(null, FileType.ascii(Format.TELNET));
+        assertNotEquals(null, FileType.ascii(Format.CARRIAGE_CONTROL));
+        assertNotEquals(null, FileType.ebcdic());
+        assertNotEquals(null, FileType.ebcdic(null));
+        assertNotEquals(null, FileType.ebcdic(Format.NON_PRINT));
+        assertNotEquals(null, FileType.ebcdic(Format.TELNET));
+        assertNotEquals(null, FileType.ebcdic(Format.CARRIAGE_CONTROL));
+        assertNotEquals(null, FileType.binary());
+        assertNotEquals(null, FileType.local());
+        assertNotEquals(null, FileType.local(0));
+        assertNotEquals(null, FileType.local(1024));
 
-        assertNotEquals(FileType.ascii(), "foo");
-        assertNotEquals(FileType.ascii(null), "foo");
-        assertNotEquals(FileType.ascii(Format.NON_PRINT), "foo");
-        assertNotEquals(FileType.ascii(Format.TELNET), "foo");
-        assertNotEquals(FileType.ascii(Format.CARRIAGE_CONTROL), "foo");
-        assertNotEquals(FileType.ebcdic(), "foo");
-        assertNotEquals(FileType.ebcdic(null), "foo");
-        assertNotEquals(FileType.ebcdic(Format.NON_PRINT), "foo");
-        assertNotEquals(FileType.ebcdic(Format.TELNET), "foo");
-        assertNotEquals(FileType.ebcdic(Format.CARRIAGE_CONTROL), "foo");
-        assertNotEquals(FileType.binary(), "foo");
-        assertNotEquals(FileType.local(), "foo");
-        assertNotEquals(FileType.local(0), "foo");
-        assertNotEquals(FileType.local(1024), "foo");
+        assertNotEquals("foo", FileType.ascii());
+        assertNotEquals("foo", FileType.ascii(null));
+        assertNotEquals("foo", FileType.ascii(Format.NON_PRINT));
+        assertNotEquals("foo", FileType.ascii(Format.TELNET));
+        assertNotEquals("foo", FileType.ascii(Format.CARRIAGE_CONTROL));
+        assertNotEquals("foo", FileType.ebcdic());
+        assertNotEquals("foo", FileType.ebcdic(null));
+        assertNotEquals("foo", FileType.ebcdic(Format.NON_PRINT));
+        assertNotEquals("foo", FileType.ebcdic(Format.TELNET));
+        assertNotEquals("foo", FileType.ebcdic(Format.CARRIAGE_CONTROL));
+        assertNotEquals("foo", FileType.binary());
+        assertNotEquals("foo", FileType.local());
+        assertNotEquals("foo", FileType.local(0));
+        assertNotEquals("foo", FileType.local(1024));
     }
 
     @Test

@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("javadoc")
 public class FileTransferModeTest {
@@ -50,10 +51,10 @@ public class FileTransferModeTest {
         verifyNoMoreInteractions(client);
     }
 
-    @Test(expected = FTPFileSystemException.class)
+    @Test
     public void testApplyFailure() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileTransferMode(FTP.STREAM_TRANSFER_MODE)).thenReturn(false);
-        FileTransferMode.STREAM.apply(client);
+        assertThrows(FTPFileSystemException.class, () -> FileTransferMode.STREAM.apply(client));
     }
 }

@@ -17,36 +17,24 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.lang.reflect.Method;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+import java.util.stream.Stream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Parameterized.class)
 @SuppressWarnings({ "nls", "javadoc" })
 public class FTPSEnvironmentSetterTest {
-
-    private final Method setter;
-    private final String propertyName;
-    private final Object propertyValue;
-
-    public FTPSEnvironmentSetterTest(String methodName, String propertyName, Object propertyValue) {
-        this.setter = findMethod(methodName);
-        this.propertyName = propertyName;
-        this.propertyValue = propertyValue;
-    }
 
     private Method findMethod(String methodName) {
         for (Method method : FTPSEnvironment.class.getMethods()) {
@@ -57,32 +45,31 @@ public class FTPSEnvironmentSetterTest {
         throw new AssertionError("Could not find method " + methodName);
     }
 
-    @Parameters(name = "{0}")
-    public static List<Object[]> getParameters() throws NoSuchAlgorithmException {
-        Object[][] parameters = {
-                { "withSecurityMode", "securityMode", SecurityMode.EXPLICIT, },
-                { "withSSLContext", "sslContext", SSLContext.getDefault(), },
-                { "withProtocol", "protocol", "tls", },
-                { "withAuthCommand", "authCommand", "auth", },
-                { "withKeyManager", "keyManager", new TestKeyManager(), },
-                { "withTrustManager", "trustManager", new TestTrustManager(), },
-                { "withHostnameVerifier", "hostnameVerifier", new TestHostnameVerifier(), },
-                { "withEndpointCheckingEnabled", "endpointCheckingEnabled", true, },
-                { "withEnabledSessionCreation", "enabledSessionCreation", true, },
-                { "withNeedClientAuth", "needClientAuth", false, },
-                { "withWantClientAuth", "wantClientAuth", false, },
-                { "withUseClientMode", "useClientMode", true, },
-                { "withEnabledCipherSuites", "enabledCipherSuites", new String[] { "suite1", "suite2", }, },
-                { "withEnabledProtocols", "enabledProtocols", new String[] { "protocol1", "protocol2", }, },
+    static Stream<Arguments> testSetter() throws NoSuchAlgorithmException {
+        Arguments[] arguments = {
+                arguments("withSecurityMode", "securityMode", SecurityMode.EXPLICIT),
+                arguments("withSSLContext", "sslContext", SSLContext.getDefault()),
+                arguments("withProtocol", "protocol", "tls"),
+                arguments("withAuthCommand", "authCommand", "auth"),
+                arguments("withKeyManager", "keyManager", new TestKeyManager()),
+                arguments("withTrustManager", "trustManager", new TestTrustManager()),
+                arguments("withHostnameVerifier", "hostnameVerifier", new TestHostnameVerifier()),
+                arguments("withEndpointCheckingEnabled", "endpointCheckingEnabled", true),
+                arguments("withEnabledSessionCreation", "enabledSessionCreation", true),
+                arguments("withNeedClientAuth", "needClientAuth", false),
+                arguments("withWantClientAuth", "wantClientAuth", false),
+                arguments("withUseClientMode", "useClientMode", true),
+                arguments("withEnabledCipherSuites", "enabledCipherSuites", new String[] { "suite1", "suite2", }),
+                arguments("withEnabledProtocols", "enabledProtocols", new String[] { "protocol1", "protocol2", }),
         };
-        List<Object[]> parameterList = new ArrayList<>();
-        parameterList.addAll(FTPEnvironmentSetterTest.getParameters());
-        parameterList.addAll(Arrays.asList(parameters));
-        return parameterList;
+        return Stream.concat(FTPEnvironmentSetterTest.testSetter(), Arrays.stream(arguments));
     }
 
-    @Test
-    public void testSetter() throws ReflectiveOperationException {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    public void testSetter(String methodName, String propertyName, Object propertyValue) throws ReflectiveOperationException {
+        Method setter = findMethod(methodName);
+
         FTPSEnvironment env = new FTPSEnvironment();
 
         assertEquals(Collections.emptyMap(), env);

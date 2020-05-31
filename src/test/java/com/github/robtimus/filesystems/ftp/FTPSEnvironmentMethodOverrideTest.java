@@ -17,38 +17,32 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Parameterized.class)
 @SuppressWarnings("javadoc")
 public class FTPSEnvironmentMethodOverrideTest {
 
-    private final Method parentMethod;
-
-    public FTPSEnvironmentMethodOverrideTest(Method parentMethod) {
-        this.parentMethod = parentMethod;
-    }
-
-    @Parameters(name = "{0}")
-    public static List<Object[]> getParameters() {
-        List<Object[]> parameters = new ArrayList<>();
+    static Stream<Arguments> testMethodOverride() {
+        List<Arguments> arguments = new ArrayList<>();
         for (Method method : FTPEnvironment.class.getMethods()) {
             if (method.getReturnType() == FTPEnvironment.class) {
-                parameters.add(new Object[] { method });
+                arguments.add(arguments(method));
             }
         }
-        return parameters;
+        return arguments.stream();
     }
 
-    @Test
-    public void testMethodOverride() throws NoSuchMethodException {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource
+    public void testMethodOverride(Method parentMethod) throws NoSuchMethodException {
         Method method = FTPSEnvironment.class.getMethod(parentMethod.getName(), parentMethod.getParameterTypes());
         assertEquals(FTPSEnvironment.class, method.getReturnType());
     }

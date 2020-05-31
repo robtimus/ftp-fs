@@ -17,9 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("javadoc")
 public class FTPFileStrategyFactoryTest {

@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -61,8 +62,8 @@ class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
     private Appender appender;
 
     FTPFileSystemLoggingTest() {
-        // there's no need to test the FTP file system itself, so the logging
-        super(true, true);
+        // not going to use any default FTP file system, so FTPFile strategy factory doesn't matter
+        super(true, null);
     }
 
     @BeforeAll
@@ -113,14 +114,14 @@ class FTPFileSystemLoggingTest extends AbstractFTPFileSystemTest {
     @Test
     void testLogging() throws IOException {
         URI uri = getURI();
-        try (FileSystem fs = FileSystems.newFileSystem(uri, createEnv(true))) {
+        try (FileSystem fs = FileSystems.newFileSystem(uri, createEnv(UNIX))) {
             FTPFileSystemProvider.keepAlive(fs);
         }
         URI brokenUri;
         try (ServerSocket serverSocket = new ServerSocket(0)) {
             brokenUri = URI.create("ftp://localhost:" + serverSocket.getLocalPort());
         }
-        assertThrows(IOException.class, () -> FileSystems.newFileSystem(brokenUri, createEnv(true)));
+        assertThrows(IOException.class, () -> FileSystems.newFileSystem(brokenUri, createEnv(UNIX)));
 
         ArgumentCaptor<LoggingEvent> captor = ArgumentCaptor.forClass(LoggingEvent.class);
         verify(appender, atLeast(1)).doAppend(captor.capture());

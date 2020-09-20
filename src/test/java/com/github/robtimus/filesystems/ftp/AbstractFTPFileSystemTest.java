@@ -17,8 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
-import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
-import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.spy;
@@ -32,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystemException;
 import java.nio.file.OpenOption;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -59,31 +59,22 @@ abstract class AbstractFTPFileSystemTest {
     private static FakeFtpServer unixFtpServer;
     private static FakeFtpServer nonUnixFtpServer;
     private static ExceptionFactoryWrapper exceptionFactory;
-    private static FTPFileSystem unixFtpFileSystem;
-    private static FTPFileSystem nonUnixFileSystem;
-    private static FTPFileSystem unixFtpFileSystemWithNoAbsolutePathSupport;
-    private static FTPFileSystem nonUnixFtpFileSystemWithNoAbsolutePathSupport;
-    private static FTPFileSystem multiClientUnixFtpFileSystem;
-    private static FTPFileSystem multiClientNonUnixFtpFileSystem;
-    private static FTPFileSystem multiClientUnixFtpFileSystemWithNoAbsolutePathSupport;
-    private static FTPFileSystem multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport;
+    private static Map<StandardFTPFileStrategyFactory, FTPFileSystem> unixFileSystems;
+    private static Map<StandardFTPFileStrategyFactory, FTPFileSystem> nonUnixFileSystems;
+    private static Map<StandardFTPFileStrategyFactory, FTPFileSystem> multiClientUnixFileSystems;
+    private static Map<StandardFTPFileStrategyFactory, FTPFileSystem> multiClientNonUnixFileSystems;
 
     private FileSystem fs;
 
     private final boolean useUnixFtpServer;
-    private final boolean supportAbsoluteFilePaths;
+    private final FTPFileStrategyFactory ftpFileStrategyFactory;
 
-    protected final FTPFileSystem fileSystem;
-    protected final FTPFileSystem multiClientFileSystem;
+    protected FTPFileSystem fileSystem;
+    protected FTPFileSystem multiClientFileSystem;
 
-    AbstractFTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+    AbstractFTPFileSystemTest(boolean useUnixFtpServer, StandardFTPFileStrategyFactory ftpFileStrategyFactory) {
         this.useUnixFtpServer = useUnixFtpServer;
-        this.supportAbsoluteFilePaths = supportAbsoluteFilePaths;
-
-        fileSystem = useUnixFtpServer
-                ? (supportAbsoluteFilePaths ? unixFtpFileSystem : unixFtpFileSystemWithNoAbsolutePathSupport)
-                : (supportAbsoluteFilePaths ? nonUnixFileSystem : nonUnixFtpFileSystemWithNoAbsolutePathSupport);
-        multiClientFileSystem = useUnixFtpServer ? multiClientUnixFtpFileSystem : multiClientNonUnixFtpFileSystem;
+        this.ftpFileStrategyFactory = ftpFileStrategyFactory;
     }
 
     @BeforeAll
@@ -114,26 +105,27 @@ abstract class AbstractFTPFileSystemTest {
         nonUnixFtpServer.start();
 
         exceptionFactory = new ExceptionFactoryWrapper();
-        unixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), true);
-        nonUnixFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), true);
-        unixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(unixFtpServer.getServerControlPort(), false);
-        nonUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(nonUnixFtpServer.getServerControlPort(), false);
-        multiClientUnixFtpFileSystem = createFileSystem(unixFtpServer.getServerControlPort(), 3, true);
-        multiClientNonUnixFtpFileSystem = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3, true);
-        multiClientUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(unixFtpServer.getServerControlPort(), 3, false);
-        multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport = createFileSystem(nonUnixFtpServer.getServerControlPort(), 3, false);
+        unixFileSystems = createFileSystems(unixFtpServer.getServerControlPort(), 1);
+        nonUnixFileSystems = createFileSystems(nonUnixFtpServer.getServerControlPort(), 1);
+        multiClientUnixFileSystems = createFileSystems(unixFtpServer.getServerControlPort(), 3);
+        multiClientNonUnixFileSystems = createFileSystems(nonUnixFtpServer.getServerControlPort(), 3);
+    }
+
+    @SuppressWarnings("resource")
+    private static Map<StandardFTPFileStrategyFactory, FTPFileSystem> createFileSystems(int port, int clientConnectionCount) throws IOException {
+        Map<StandardFTPFileStrategyFactory, FTPFileSystem> fileSystems = new EnumMap<>(StandardFTPFileStrategyFactory.class);
+        for (StandardFTPFileStrategyFactory ftpFileStrategyFactory : StandardFTPFileStrategyFactory.values()) {
+            fileSystems.put(ftpFileStrategyFactory, createFileSystem(port, clientConnectionCount, ftpFileStrategyFactory));
+        }
+        return fileSystems;
     }
 
     @AfterAll
     static void cleanupClass() throws IOException {
-        unixFtpFileSystem.close();
-        nonUnixFileSystem.close();
-        unixFtpFileSystemWithNoAbsolutePathSupport.close();
-        nonUnixFtpFileSystemWithNoAbsolutePathSupport.close();
-        multiClientUnixFtpFileSystem.close();
-        multiClientNonUnixFtpFileSystem.close();
-        multiClientUnixFtpFileSystemWithNoAbsolutePathSupport.close();
-        multiClientNonUnixFtpFileSystemWithNoAbsolutePathSupport.close();
+        closeFileSystems(unixFileSystems);
+        closeFileSystems(nonUnixFileSystems);
+        closeFileSystems(multiClientUnixFileSystems);
+        closeFileSystems(multiClientNonUnixFileSystems);
 
         unixFtpServer.stop();
         unixFtpServer = null;
@@ -142,26 +134,37 @@ abstract class AbstractFTPFileSystemTest {
         nonUnixFtpServer = null;
     }
 
-    private static FTPFileSystem createFileSystem(int port, boolean supportAbsoluteFilePaths) throws IOException {
-        Map<String, ?> env = createEnv(supportAbsoluteFilePaths);
+    private static void closeFileSystems(Map<?, FTPFileSystem> fileSystems) throws IOException {
+        for (FTPFileSystem fs : fileSystems.values()) {
+            fs.close();
+        }
+    }
+
+    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount, FTPFileStrategyFactory ftpFileStrategyFactory)
+            throws IOException {
+
+        Map<String, ?> env = createEnv(ftpFileStrategyFactory).withClientConnectionCount(clientConnectionCount);
         return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
-    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount, boolean supportAbsoluteFilePaths) throws IOException {
-        Map<String, ?> env = createEnv(supportAbsoluteFilePaths).withClientConnectionCount(clientConnectionCount);
-        return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
-    }
-
-    protected static FTPEnvironment createEnv(boolean supportAbsoluteFilePaths) {
+    protected static FTPEnvironment createEnv(FTPFileStrategyFactory ftpFileStrategyFactory) {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withClientConnectionCount(1)
-                .withFTPFileStrategyFactory(supportAbsoluteFilePaths ? AUTO_DETECT : NON_UNIX)
+                .withFTPFileStrategyFactory(ftpFileStrategyFactory)
                 .withFileSystemExceptionFactory(exceptionFactory);
     }
 
     @BeforeEach
+    @SuppressWarnings("resource")
     void setup() {
+        fileSystem = useUnixFtpServer
+                ? unixFileSystems.get(ftpFileStrategyFactory)
+                : nonUnixFileSystems.get(ftpFileStrategyFactory);
+        multiClientFileSystem = useUnixFtpServer
+                ? multiClientUnixFileSystems.get(ftpFileStrategyFactory)
+                : multiClientNonUnixFileSystems.get(ftpFileStrategyFactory);
+
         fs = new ExtendedUnixFakeFileSystem();
         fs.add(new DirectoryEntry(HOME_DIR));
 
@@ -184,8 +187,8 @@ abstract class AbstractFTPFileSystemTest {
         return useUnixFtpServer;
     }
 
-    protected final boolean supportAbsoluteFilePaths() {
-        return supportAbsoluteFilePaths;
+    protected final boolean usesUnixFTPFileStrategyFactory() {
+        return ftpFileStrategyFactory == UNIX;
     }
 
     protected final String getBaseUrl() {

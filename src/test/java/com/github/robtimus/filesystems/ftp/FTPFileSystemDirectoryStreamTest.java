@@ -17,6 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -44,45 +47,46 @@ import com.github.robtimus.filesystems.Messages;
 class FTPFileSystemDirectoryStreamTest {
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
-    class UnixServerUsingAbsoluteFilePaths extends DirectoryStreamTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: UNIX")
+    class UnixServerUsingUnixStrategy extends DirectoryStreamTest {
 
-        UnixServerUsingAbsoluteFilePaths() {
-            super(true, true);
+        UnixServerUsingUnixStrategy() {
+            super(true, UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
-    class UnixServerNotUsingAbsoluteFilePaths extends DirectoryStreamTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: NON_UNIX")
+    class UnixServerUsingNonUnixStrategy extends DirectoryStreamTest {
 
-        UnixServerNotUsingAbsoluteFilePaths() {
-            super(true, false);
+        UnixServerUsingNonUnixStrategy() {
+            super(true, NON_UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
-    class NonUnixServerUsingAbsoluteFilePaths extends DirectoryStreamTest {
+    // Use UNIX FTP server: false; FTPFile strategy factory: UNIX: not possible; use AUTO_DETECT instead
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: AUTO_DETECT")
+    class NonUnixServerUsingAutoDetectStrategy extends DirectoryStreamTest {
 
-        NonUnixServerUsingAbsoluteFilePaths() {
-            super(false, true);
+        NonUnixServerUsingAutoDetectStrategy() {
+            super(false, AUTO_DETECT);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
-    class NonUnixServerNotUsingAbsoluteFilePaths extends DirectoryStreamTest {
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: NON_UNIX")
+    class NonUnixServerUsingNonUnixStrategy extends DirectoryStreamTest {
 
-        NonUnixServerNotUsingAbsoluteFilePaths() {
-            super(false, false);
+        NonUnixServerUsingNonUnixStrategy() {
+            super(false, NON_UNIX);
         }
     }
 
     abstract static class DirectoryStreamTest extends AbstractFTPFileSystemTest {
 
-        private DirectoryStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
-            super(useUnixFtpServer, supportAbsoluteFilePaths);
+        private DirectoryStreamTest(boolean useUnixFtpServer, StandardFTPFileStrategyFactory ftpFileStrategyFactory) {
+            super(useUnixFtpServer, ftpFileStrategyFactory);
         }
 
         @Test

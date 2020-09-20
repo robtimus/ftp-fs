@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +38,8 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 class FTPClientPoolTest extends AbstractFTPFileSystemTest {
 
     FTPClientPoolTest() {
-        super(false, false);
+        // not going to use any default FTP file system, so FTPFile strategy factory doesn't matter
+        super(false, null);
     }
 
     @Test
@@ -45,7 +47,7 @@ class FTPClientPoolTest extends AbstractFTPFileSystemTest {
         final int clientCount = 3;
 
         URI uri = getURI();
-        FTPEnvironment env = createEnv(false)
+        FTPEnvironment env = createEnv(NON_UNIX)
                 .withClientConnectionCount(clientCount)
                 .withClientConnectionWaitTimeout(500, TimeUnit.MILLISECONDS);
 

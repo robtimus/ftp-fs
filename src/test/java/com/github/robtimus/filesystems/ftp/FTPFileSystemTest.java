@@ -94,41 +94,42 @@ import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
 @SuppressWarnings("nls")
+@TestInstance(Lifecycle.PER_CLASS)
 class FTPFileSystemTest {
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
-    class UnixServerUsingAbsoluteFilePaths extends FileSystemTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: UNIX")
+    class UnixServerUsingUnixStrategy extends FileSystemTest {
 
-        UnixServerUsingAbsoluteFilePaths() {
-            super(true, true);
+        UnixServerUsingUnixStrategy() {
+            super(true, UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
-    class UnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: NON_UNIX")
+    class UnixServerUsingNonUnixStrategy extends FileSystemTest {
 
-        UnixServerNotUsingAbsoluteFilePaths() {
-            super(true, false);
+        UnixServerUsingNonUnixStrategy() {
+            super(true, NON_UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
-    class NonUnixServerUsingAbsoluteFilePaths extends FileSystemTest {
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: AUTO_DETECT")
+    class NonUnixServerUsingUnixStrategy extends FileSystemTest {
 
-        NonUnixServerUsingAbsoluteFilePaths() {
-            super(false, true);
+        NonUnixServerUsingUnixStrategy() {
+            super(false, AUTO_DETECT);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: NON_UNIX")
     class NonUnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
 
         NonUnixServerNotUsingAbsoluteFilePaths() {
-            super(false, false);
+            super(false, NON_UNIX);
         }
     }
 
@@ -138,16 +139,16 @@ class FTPFileSystemTest {
     class ListHiddenFiles extends AbstractFTPFileSystemTest {
 
         ListHiddenFiles() {
-            super(true, true);
+            // not going to use any default FTP file system, so FTPFile strategy factory doesn't matter
+            super(true, null);
         }
 
         @ParameterizedTest(name = "List hidden files: {0}; strategy: {1}")
         @MethodSource("listHiddenFilesArguments")
         void testListHiddenFiles(boolean listHiddenFiles, FTPFileStrategyFactory strategyFactory, boolean expectFailure) throws IOException {
             URI uri = getURI();
-            FTPEnvironment env = createEnv(true)
-                    .withListHiddenFiles(listHiddenFiles)
-                    .withFTPFileStrategyFactory(strategyFactory);
+            FTPEnvironment env = createEnv(strategyFactory)
+                    .withListHiddenFiles(listHiddenFiles);
             try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
                 addDirectory("/foo/bar");
 
@@ -180,8 +181,8 @@ class FTPFileSystemTest {
 
     abstract static class FileSystemTest extends AbstractFTPFileSystemTest {
 
-        private FileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
-            super(useUnixFtpServer, supportAbsoluteFilePaths);
+        private FileSystemTest(boolean useUnixFtpServer, StandardFTPFileStrategyFactory ftpFileStrategyFactory) {
+            super(useUnixFtpServer, ftpFileStrategyFactory);
         }
 
         // FTPFileSystem.getPath
@@ -2276,7 +2277,7 @@ class FTPFileSystemTest {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
 
-            VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
+            VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
             verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo"), eq(226), anyString());
         }
 
@@ -2285,7 +2286,7 @@ class FTPFileSystemTest {
             addFile("/foo/bar");
             getFile("/foo/bar").setPermissionsFromString("---------");
 
-            if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
+            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
                 assertThrows(NoSuchFileException.class, this::testGetFTPFileFileAccessDenied0);
             } else {
                 testGetFTPFileFileAccessDenied0();
@@ -2305,7 +2306,7 @@ class FTPFileSystemTest {
                 }
 
             } finally {
-                VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
+                VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
                 verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
             }
         }
@@ -2316,7 +2317,7 @@ class FTPFileSystemTest {
 
             FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
             assertNotNull(file);
-            if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
+            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
                 assertEquals(".", file.getName());
             } else {
                 assertEquals("foo", file.getName());
@@ -2329,7 +2330,7 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("---------");
 
-            if (useUnixFtpServer() && supportAbsoluteFilePaths()) {
+            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
                 assertThrows(NoSuchFileException.class, this::testGetFTPFileDirectoryAccessDenied0);
             } else {
                 testGetFTPFileDirectoryAccessDenied0();
@@ -2349,7 +2350,7 @@ class FTPFileSystemTest {
                 }
 
             } finally {
-                VerificationMode verificationMode = useUnixFtpServer() && supportAbsoluteFilePaths() ? times(1) : never();
+                VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
                 verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
             }
         }

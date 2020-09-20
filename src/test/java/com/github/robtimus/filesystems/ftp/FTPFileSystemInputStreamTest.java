@@ -17,6 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayOutputStream;
@@ -32,45 +34,45 @@ import org.mockftpserver.fake.filesystem.FileEntry;
 class FTPFileSystemInputStreamTest {
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
-    class UnixServerUsingAbsoluteFilePaths extends InputStreamTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: UNIX")
+    class UnixServerUsingUnixStrategy extends InputStreamTest {
 
-        UnixServerUsingAbsoluteFilePaths() {
-            super(true, true);
+        UnixServerUsingUnixStrategy() {
+            super(true, UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
-    class UnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
+    @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: NON_UNIX")
+    class UnixServerUsingNonUnixStrategy extends InputStreamTest {
 
-        UnixServerNotUsingAbsoluteFilePaths() {
-            super(true, false);
+        UnixServerUsingNonUnixStrategy() {
+            super(true, NON_UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
-    class NonUnixServerUsingAbsoluteFilePaths extends InputStreamTest {
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: UNIX")
+    class NonUnixServerUsingUnixStrategy extends InputStreamTest {
 
-        NonUnixServerUsingAbsoluteFilePaths() {
-            super(false, true);
+        NonUnixServerUsingUnixStrategy() {
+            super(false, UNIX);
         }
     }
 
     @Nested
-    @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
+    @DisplayName("Use UNIX FTP server: false; FTPFile strategy factory: NON_UNIX")
     class NonUnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
 
         NonUnixServerNotUsingAbsoluteFilePaths() {
-            super(false, false);
+            super(false, NON_UNIX);
         }
     }
 
     abstract static class InputStreamTest extends AbstractFTPFileSystemTest {
 
-        private InputStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
-            super(useUnixFtpServer, supportAbsoluteFilePaths);
+        private InputStreamTest(boolean useUnixFtpServer, StandardFTPFileStrategyFactory ftpFileStrategyFactory) {
+            super(useUnixFtpServer, ftpFileStrategyFactory);
         }
 
         @Test

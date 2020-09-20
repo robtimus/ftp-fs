@@ -94,7 +94,6 @@ import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
 @SuppressWarnings("nls")
-@TestInstance(Lifecycle.PER_CLASS)
 class FTPFileSystemTest {
 
     @Nested
@@ -661,8 +660,44 @@ class FTPFileSystemTest {
         }
 
         @Test
-        void testGetDirectoryStreamNotDirectory() {
+        void testNewDirectoryStreamNotDirectory() {
             addFile("/foo");
+
+            NotDirectoryException exception = assertThrows(NotDirectoryException.class,
+                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            assertEquals("/foo", exception.getFile());
+        }
+
+        @Test
+        void testnewDirectoryStreamWithLinks() throws IOException {
+            DirectoryEntry foo = addDirectory("/foo");
+            addFile("/foo/bar");
+            SymbolicLinkEntry bar = addSymLink("/bar", foo);
+            addSymLink("/baz", bar);
+
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/baz"), entry -> true)) {
+                Iterator<Path> iterator = stream.iterator();
+                assertTrue(iterator.hasNext());
+                assertEquals("bar", iterator.next().getFileName().toString());
+            }
+        }
+
+        @Test
+        void testnewDirectoryStreamWithBrokenLinks() {
+            SymbolicLinkEntry bar = addSymLink("/bar", new DirectoryEntry("/foo"));
+            addSymLink("/baz", bar);
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
+                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            assertEquals("/foo", exception.getFile());
+        }
+
+        @Test
+        void testnewDirectoryStreamWithLinkToFile() {
+            FileEntry foo = addFile("/foo");
+            addFile("/foo/bar");
+            SymbolicLinkEntry bar = addSymLink("/bar", foo);
+            addSymLink("/baz", bar);
 
             NotDirectoryException exception = assertThrows(NotDirectoryException.class,
                     () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));

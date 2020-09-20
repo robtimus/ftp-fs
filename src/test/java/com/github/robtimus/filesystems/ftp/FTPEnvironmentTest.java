@@ -17,6 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -97,10 +100,11 @@ class FTPEnvironmentTest {
                 arguments("withControlKeepAliveReplyTimeout", "controlKeepAliveReplyTimeout", 1000),
                 arguments("withPassiveNatWorkaroundStrategy", "passiveNatWorkaroundStrategy", new FTPClient.NatServerResolverImpl(new FTPClient())),
                 arguments("withAutodetectEncoding", "autodetectEncoding", true),
+                arguments("withListHiddenFiles", "listHiddenFiles", false),
                 arguments("withClientConnectionCount", "clientConnectionCount", 5),
                 arguments("withClientConnectionWaitTimeout", "clientConnectionWaitTimeout", 1000L),
                 arguments("withFileSystemExceptionFactory", "fileSystemExceptionFactory", DefaultFileSystemExceptionFactory.INSTANCE),
-                arguments("withFTPFileStrategyFactory", "ftpFileStrategyFactory", FTPFileStrategyFactory.UNIX),
+                arguments("withFTPFileStrategyFactory", "ftpFileStrategyFactory", UNIX),
         };
         return Arrays.stream(arguments);
     }
@@ -213,13 +217,13 @@ class FTPEnvironmentTest {
         env.clear();
         assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
 
-        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.UNIX);
+        env.withFTPFileStrategyFactory(UNIX);
         assertSame(FTPFileStrategy.unix(), env.getFTPFileStrategy());
 
-        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.NON_UNIX);
+        env.withFTPFileStrategyFactory(NON_UNIX);
         assertSame(FTPFileStrategy.nonUnix(), env.getFTPFileStrategy());
 
-        env.withFTPFileStrategyFactory(FTPFileStrategyFactory.AUTO_DETECT);
+        env.withFTPFileStrategyFactory(AUTO_DETECT);
         assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
     }
 

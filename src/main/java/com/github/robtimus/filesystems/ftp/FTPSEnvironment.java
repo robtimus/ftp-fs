@@ -296,6 +296,16 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     * @since 2.0
+     */
+    @Override
+    public FTPSEnvironment withListHiddenFiles(boolean listHiddenFiles) {
+        super.withListHiddenFiles(listHiddenFiles);
+        return this;
+    }
+
     @Override
     public FTPSEnvironment withClientConnectionCount(int count) {
         super.withClientConnectionCount(count);

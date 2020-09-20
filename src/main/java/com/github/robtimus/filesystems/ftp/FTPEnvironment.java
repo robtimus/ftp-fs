@@ -104,6 +104,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final String CONTROL_KEEP_ALIVE_REPLY_TIMEOUT = "controlKeepAliveReplyTimeout"; //$NON-NLS-1$
     private static final String PASSIVE_NAT_WORKAROUND_STRATEGY = "passiveNatWorkaroundStrategy"; //$NON-NLS-1$
     private static final String AUTODETECT_ENCODING = "autodetectEncoding"; //$NON-NLS-1$
+    private static final String LIST_HIDDEN_FILES = "listHiddenFiles"; //$NON-NLS-1$
 
     // FTP file system support
 
@@ -560,6 +561,24 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return this;
     }
 
+    /**
+     * Stores whether or not to list hidden files.
+     * If this flag is not set, it will default to {@code true}.
+     * <p>
+     * Note that if this flag is set to {@code false}, the current directory will (most likely) not be returned when listing directories.
+     * That means that {@link StandardFTPFileStrategyFactory#UNIX} will not work correctly.
+     * <p>
+     * Ideally, only set this flag (to {@code false}) if the FTP server does not support the {@code -a} option for {@code LIST} commands.
+     *
+     * @param listHiddenFiles {@code true} to list hidden files, or {@code false} to omit them.
+     * @return This object.
+     * @since 2.0
+     */
+    public FTPEnvironment withListHiddenFiles(boolean listHiddenFiles) {
+        put(LIST_HIDDEN_FILES, listHiddenFiles);
+        return this;
+    }
+
     // FTP file system support
 
     /**
@@ -617,6 +636,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
 
     /**
      * Stores the FTP file strategy factory to use.
+     * If the FTP file strategy factory is not set, it will default to {@link StandardFTPFileStrategyFactory#AUTO_DETECT}.
      *
      * @param factory The FTP file strategy factory to use.
      * @return This object.
@@ -662,7 +682,7 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
 
     FTPFileStrategy getFTPFileStrategy() {
         FTPFileStrategyFactory factory = FileSystemProviderSupport.getValue(this, FTP_FILE_STRATEGY_FACTORY, FTPFileStrategyFactory.class,
-                FTPFileStrategyFactory.AUTO_DETECT);
+                StandardFTPFileStrategyFactory.AUTO_DETECT);
         return factory.createFTPFileStrategy();
     }
 
@@ -700,7 +720,8 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void initializePreConnect(FTPClient client) throws IOException {
-        client.setListHiddenFiles(true);
+        boolean listHiddenFiles = FileSystemProviderSupport.getBooleanValue(this, LIST_HIDDEN_FILES, true);
+        client.setListHiddenFiles(listHiddenFiles);
 
         if (containsKey(SEND_BUFFER_SIZE)) {
             int size = FileSystemProviderSupport.getIntValue(this, SEND_BUFFER_SIZE);

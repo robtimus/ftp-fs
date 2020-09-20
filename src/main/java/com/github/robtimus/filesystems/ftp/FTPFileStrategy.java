@@ -255,6 +255,12 @@ public abstract class FTPFileStrategy {
             }
             return null;
         }
+
+        @Override
+        @SuppressWarnings("nls")
+        public String toString() {
+            return "UNIX";
+        }
     }
 
     private static final class NonUnix extends FTPFileStrategy {
@@ -320,6 +326,12 @@ public abstract class FTPFileStrategy {
             // getFTPFile always returns the entry in the parent, so there's no need to list the parent here.
             return ftpFile.getLink() == null ? null : ftpFile;
         }
+
+        @Override
+        @SuppressWarnings("nls")
+        public String toString() {
+            return "NON_UNIX";
+        }
     }
 
     private static final class AutoDetect extends FTPFileStrategy {
@@ -361,6 +373,12 @@ public abstract class FTPFileStrategy {
         protected FTPFile getLink(FTPClient client, FTPFile ftpFile, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
             checkInitialized();
             return delegate.getLink(client, ftpFile, path, exceptionFactory);
+        }
+
+        @Override
+        @SuppressWarnings("nls")
+        public String toString() {
+            return "AUTO_DETECT";
         }
     }
 }

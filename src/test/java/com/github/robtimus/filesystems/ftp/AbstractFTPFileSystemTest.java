@@ -17,6 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.spy;
@@ -154,7 +156,7 @@ abstract class AbstractFTPFileSystemTest {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withClientConnectionCount(1)
-                .withFTPFileStrategyFactory(supportAbsoluteFilePaths ? FTPFileStrategyFactory.AUTO_DETECT : FTPFileStrategyFactory.NON_UNIX)
+                .withFTPFileStrategyFactory(supportAbsoluteFilePaths ? AUTO_DETECT : NON_UNIX)
                 .withFileSystemExceptionFactory(exceptionFactory);
     }
 

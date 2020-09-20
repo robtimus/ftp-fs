@@ -17,6 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
+import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -30,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -49,7 +53,10 @@ import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystemException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
@@ -60,15 +67,23 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.commons.net.ftp.FTPFile;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.FileSystemEntry;
@@ -114,6 +129,52 @@ class FTPFileSystemTest {
 
         NonUnixServerNotUsingAbsoluteFilePaths() {
             super(false, false);
+        }
+    }
+
+    @Nested
+    @DisplayName("List hidden files")
+    @TestInstance(Lifecycle.PER_CLASS)
+    class ListHiddenFiles extends AbstractFTPFileSystemTest {
+
+        ListHiddenFiles() {
+            super(true, true);
+        }
+
+        @ParameterizedTest(name = "List hidden files: {0}; strategy: {1}")
+        @MethodSource("listHiddenFilesArguments")
+        void testListHiddenFiles(boolean listHiddenFiles, FTPFileStrategyFactory strategyFactory, boolean expectFailure) throws IOException {
+            URI uri = getURI();
+            FTPEnvironment env = createEnv(true)
+                    .withListHiddenFiles(listHiddenFiles)
+                    .withFTPFileStrategyFactory(strategyFactory);
+            try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                addDirectory("/foo/bar");
+
+                Path path = new FTPPath((FTPFileSystem) fs, "/foo");
+                if (expectFailure) {
+                    NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> Files.newDirectoryStream(path));
+                    assertEquals("/foo", exception.getFile());
+                } else {
+                    try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+                        Iterator<Path> iterator = stream.iterator();
+                        assertTrue(iterator.hasNext());
+                        assertEquals("bar", iterator.next().getFileName().toString());
+                    }
+                }
+            }
+        }
+
+        Stream<Arguments> listHiddenFilesArguments() {
+            Arguments[] arguments = {
+                    arguments(false, UNIX, true),
+                    arguments(false, NON_UNIX, false),
+                    arguments(false, AUTO_DETECT, false),
+                    arguments(true, UNIX, false),
+                    arguments(true, NON_UNIX, false),
+                    arguments(true, AUTO_DETECT, false),
+            };
+            return Arrays.stream(arguments);
         }
     }
 

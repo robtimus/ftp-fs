@@ -25,21 +25,6 @@ package com.github.robtimus.filesystems.ftp;
 public interface FTPFileStrategyFactory {
 
     /**
-     * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#unix()}.
-     */
-    FTPFileStrategyFactory UNIX = FTPFileStrategy::unix;
-
-    /**
-     * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#nonUnix()}.
-     */
-    FTPFileStrategyFactory NON_UNIX = FTPFileStrategy::nonUnix;
-
-    /**
-     * An {@link FTPFileStrategy} factory that delegates to {@link FTPFileStrategy#autoDetect()}.
-     */
-    FTPFileStrategyFactory AUTO_DETECT = FTPFileStrategy::autoDetect;
-
-    /**
      * Creates an {@link FTPFileStrategy}. This {@code FTPFileStrategy} will be tied to a specific FTP file system.
      * <p>
      * Note: it is allowed to return shared instances if these do not contain any state that is specific to an FTP file system.

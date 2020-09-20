@@ -34,15 +34,14 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 /**
  * @author Pei-Tang Huang
  */
-@SuppressWarnings("javadoc")
-public class FTPClientPoolTest extends AbstractFTPFileSystemTest {
+class FTPClientPoolTest extends AbstractFTPFileSystemTest {
 
-    public FTPClientPoolTest() {
+    FTPClientPoolTest() {
         super(false, false);
     }
 
     @Test
-    public void testGetWithTimeout() throws Exception {
+    void testGetWithTimeout() throws Exception {
         final int clientCount = 3;
 
         URI uri = getURI();

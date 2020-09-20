@@ -23,11 +23,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import org.apache.commons.net.ftp.FTPClient;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("javadoc")
-public class ConnectionModeTest {
+class ConnectionModeTest {
 
     @Test
-    public void testApply() {
+    void testApply() {
         FTPClient client = mock(FTPClient.class);
         ConnectionMode.ACTIVE.apply(client);
         verify(client).enterLocalActiveMode();

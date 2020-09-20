@@ -56,11 +56,11 @@ public class FTPDirectoryNotEmptyException extends DirectoryNotEmptyException im
 
     @Override
     public String getReason() {
-        return replyString;
+        return getReplyString();
     }
 
     @Override
     public String getMessage() {
-        return replyString;
+        return getReplyString();
     }
 }

@@ -27,11 +27,10 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("javadoc")
-public class FileStructureTest {
+class FileStructureTest {
 
     @Test
-    public void testApply() throws IOException {
+    void testApply() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileStructure(FTP.FILE_STRUCTURE)).thenReturn(true);
         FileStructure.FILE.apply(client);
@@ -52,7 +51,7 @@ public class FileStructureTest {
     }
 
     @Test
-    public void testApplyFailure() throws IOException {
+    void testApplyFailure() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileStructure(FTP.FILE_STRUCTURE)).thenReturn(false);
         assertThrows(FTPFileSystemException.class, () -> FileStructure.FILE.apply(client));

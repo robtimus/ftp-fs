@@ -47,8 +47,8 @@ import com.github.robtimus.filesystems.ftp.server.ListHiddenFilesCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.MDTMCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public abstract class AbstractFTPFileSystemTest {
+@SuppressWarnings("nls")
+abstract class AbstractFTPFileSystemTest {
 
     private static final String USERNAME = "TEST_USER";
     private static final String PASSWORD = "TEST_PASSWORD";
@@ -74,7 +74,7 @@ public abstract class AbstractFTPFileSystemTest {
     protected final FTPFileSystem fileSystem;
     protected final FTPFileSystem multiClientFileSystem;
 
-    public AbstractFTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
+    AbstractFTPFileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
         this.useUnixFtpServer = useUnixFtpServer;
         this.supportAbsoluteFilePaths = supportAbsoluteFilePaths;
 
@@ -85,7 +85,7 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     @BeforeAll
-    public static void setupClass() throws IOException {
+    static void setupClass() throws IOException {
         unixFtpServer = new FakeFtpServer();
         unixFtpServer.setSystemName("UNIX");
         unixFtpServer.setServerControlPort(0);
@@ -123,7 +123,7 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     @AfterAll
-    public static void cleanupClass() throws IOException {
+    static void cleanupClass() throws IOException {
         unixFtpFileSystem.close();
         nonUnixFileSystem.close();
         unixFtpFileSystemWithNoAbsolutePathSupport.close();
@@ -159,7 +159,7 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         fs = new ExtendedUnixFakeFileSystem();
         fs.add(new DirectoryEntry(HOME_DIR));
 
@@ -170,7 +170,7 @@ public abstract class AbstractFTPFileSystemTest {
     }
 
     @AfterEach
-    public void cleanup() {
+    void cleanup() {
         exceptionFactory.delegate = null;
 
         unixFtpServer.setFileSystem(null);

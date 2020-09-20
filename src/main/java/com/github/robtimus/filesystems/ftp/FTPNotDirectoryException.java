@@ -56,11 +56,11 @@ public class FTPNotDirectoryException extends NotDirectoryException implements F
 
     @Override
     public String getReason() {
-        return replyString;
+        return getReplyString();
     }
 
     @Override
     public String getMessage() {
-        return replyString;
+        return getReplyString();
     }
 }

@@ -27,11 +27,10 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("javadoc")
-public class FileTransferModeTest {
+class FileTransferModeTest {
 
     @Test
-    public void testApply() throws IOException {
+    void testApply() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileTransferMode(FTP.STREAM_TRANSFER_MODE)).thenReturn(true);
         FileTransferMode.STREAM.apply(client);
@@ -52,7 +51,7 @@ public class FileTransferModeTest {
     }
 
     @Test
-    public void testApplyFailure() throws IOException {
+    void testApplyFailure() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileTransferMode(FTP.STREAM_TRANSFER_MODE)).thenReturn(false);
         assertThrows(FTPFileSystemException.class, () -> FileTransferMode.STREAM.apply(client));

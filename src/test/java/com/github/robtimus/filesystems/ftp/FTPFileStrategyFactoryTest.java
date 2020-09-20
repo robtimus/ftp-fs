@@ -21,21 +21,20 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("javadoc")
-public class FTPFileStrategyFactoryTest {
+class FTPFileStrategyFactoryTest {
 
     @Test
-    public void testUnix() {
+    void testUnix() {
         assertSame(FTPFileStrategy.unix(), FTPFileStrategyFactory.UNIX.createFTPFileStrategy());
     }
 
     @Test
-    public void testNonUnix() {
+    void testNonUnix() {
         assertSame(FTPFileStrategy.nonUnix(), FTPFileStrategyFactory.NON_UNIX.createFTPFileStrategy());
     }
 
     @Test
-    public void testAutoDetect() {
+    void testAutoDetect() {
         FTPFileStrategy autoDetect = FTPFileStrategy.autoDetect();
         FTPFileStrategy created = FTPFileStrategyFactory.AUTO_DETECT.createFTPFileStrategy();
         assertNotSame(autoDetect, created);

@@ -48,7 +48,6 @@ import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
-import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystemException;
 import java.nio.file.LinkOption;
@@ -79,46 +78,46 @@ import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
 import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class FTPFileSystemTest {
+@SuppressWarnings("nls")
+class FTPFileSystemTest {
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
-    public class UnixServerUsingAbsoluteFilePaths extends FileSystemTest {
+    class UnixServerUsingAbsoluteFilePaths extends FileSystemTest {
 
-        public UnixServerUsingAbsoluteFilePaths() {
+        UnixServerUsingAbsoluteFilePaths() {
             super(true, true);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
-    public class UnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
+    class UnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
 
-        public UnixServerNotUsingAbsoluteFilePaths() {
+        UnixServerNotUsingAbsoluteFilePaths() {
             super(true, false);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
-    public class NonUnixServerUsingAbsoluteFilePaths extends FileSystemTest {
+    class NonUnixServerUsingAbsoluteFilePaths extends FileSystemTest {
 
-        public NonUnixServerUsingAbsoluteFilePaths() {
+        NonUnixServerUsingAbsoluteFilePaths() {
             super(false, true);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
-    public class NonUnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
+    class NonUnixServerNotUsingAbsoluteFilePaths extends FileSystemTest {
 
-        public NonUnixServerNotUsingAbsoluteFilePaths() {
+        NonUnixServerNotUsingAbsoluteFilePaths() {
             super(false, false);
         }
     }
 
-    private abstract static class FileSystemTest extends AbstractFTPFileSystemTest {
+    abstract static class FileSystemTest extends AbstractFTPFileSystemTest {
 
         private FileSystemTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
             super(useUnixFtpServer, supportAbsoluteFilePaths);
@@ -127,7 +126,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.getPath
 
         @Test
-        public void testGetPath() {
+        void testGetPath() {
             testGetPath("/", "/");
             testGetPath("/foo/bar", "/", "/foo", "/bar");
             testGetPath("/foo/../bar", "/foo/", "../bar");
@@ -142,14 +141,14 @@ public class FTPFileSystemTest {
         // FTPFileSystem.keepAlive
 
         @Test
-        public void testKeepAlive() {
+        void testKeepAlive() {
             assertDoesNotThrow(fileSystem::keepAlive);
         }
 
         // FTPFileSystem.toUri
 
         @Test
-        public void testToUri() {
+        void testToUri() {
             final String prefix = getBaseUrl();
 
             testToUri("/", prefix + "/");
@@ -170,7 +169,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.toAbsolutePath
 
         @Test
-        public void testToAbsolutePath() {
+        void testToAbsolutePath() {
 
             testToAbsolutePath("/", "/");
             testToAbsolutePath("/foo/bar", "/foo/bar");
@@ -190,7 +189,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.toRealPath
 
         @Test
-        public void testToRealPathNoFollowLinks() throws IOException {
+        void testToRealPathNoFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             addDirectory("/foo/bar");
             addDirectory("/bar");
@@ -225,7 +224,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testToRealPathFollowLinks() throws IOException {
+        void testToRealPathFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             addDirectory("/foo/bar");
             addDirectory("/bar");
@@ -260,7 +259,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testToRealPathBrokenLink() {
+        void testToRealPathBrokenLink() {
             addSymLink("/foo", new FileEntry("/bar"));
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
@@ -268,7 +267,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testToRealPathNotExisting() {
+        void testToRealPathNotExisting() {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
             assertEquals("/foo", exception.getFile());
         }
@@ -276,7 +275,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.newInputStream
 
         @Test
-        public void testNewInputStream() throws IOException {
+        void testNewInputStream() throws IOException {
             addFile("/foo/bar");
 
             try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"))) {
@@ -287,7 +286,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewInputStreamDeleteOnClose() throws IOException {
+        void testNewInputStreamDeleteOnClose() throws IOException {
             addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
@@ -299,7 +298,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewInputStreamFTPFailure() {
+        void testNewInputStreamFTPFailure() {
 
             // failure: file not found
 
@@ -312,7 +311,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.newOutputStream
 
         @Test
-        public void testNewOutputStreamExisting() throws IOException {
+        void testNewOutputStreamExisting() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -328,7 +327,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingDeleteOnClose() throws IOException {
+        void testNewOutputStreamExistingDeleteOnClose() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -346,7 +345,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingCreate() throws IOException {
+        void testNewOutputStreamExistingCreate() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -362,7 +361,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingCreateDeleteOnClose() throws IOException {
+        void testNewOutputStreamExistingCreateDeleteOnClose() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -379,7 +378,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingCreateNew() {
+        void testNewOutputStreamExistingCreateNew() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -395,7 +394,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingFTPFailure() {
+        void testNewOutputStreamExistingFTPFailure() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             bar.setPermissionsFromString("r--r--r--");
@@ -413,7 +412,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamExistingFTPFailureDeleteOnClose() {
+        void testNewOutputStreamExistingFTPFailureDeleteOnClose() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             bar.setPermissionsFromString("r--r--r--");
@@ -431,7 +430,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamNonExistingNoCreate() {
+        void testNewOutputStreamNonExistingNoCreate() {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.WRITE };
@@ -444,7 +443,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamNonExistingCreate() throws IOException {
+        void testNewOutputStreamNonExistingCreate() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE };
@@ -457,7 +456,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamNonExistingCreateDeleteOnClose() throws IOException {
+        void testNewOutputStreamNonExistingCreateDeleteOnClose() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
@@ -472,7 +471,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamNonExistingCreateNew() throws IOException {
+        void testNewOutputStreamNonExistingCreateNew() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE_NEW };
@@ -485,7 +484,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamNonExistingCreateNewDeleteOnClose() throws IOException {
+        void testNewOutputStreamNonExistingCreateNewDeleteOnClose() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
@@ -499,7 +498,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamDirectoryNoCreate() {
+        void testNewOutputStreamDirectoryNoCreate() {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.WRITE };
@@ -513,7 +512,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewOutputStreamDirectoryDeleteOnClose() {
+        void testNewOutputStreamDirectoryDeleteOnClose() {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
@@ -529,7 +528,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.newByteChannel
 
         @Test
-        public void testNewByteChannelRead() throws IOException {
+        void testNewByteChannelRead() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             bar.setContents(new byte[1024]);
@@ -544,7 +543,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewByteChannelReadNonExisting() {
+        void testNewByteChannelReadNonExisting() {
 
             // failure: file does not exist
 
@@ -559,7 +558,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewByteChannelWrite() throws IOException {
+        void testNewByteChannelWrite() throws IOException {
             addFile("/foo/bar");
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
@@ -570,7 +569,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testNewByteChannelWriteAppend() throws IOException {
+        void testNewByteChannelWriteAppend() throws IOException {
             FileEntry bar = addFile("/foo/bar");
             bar.setContents(new byte[1024]);
 
@@ -584,44 +583,34 @@ public class FTPFileSystemTest {
         // FTPFileSystem.newDirectoryStream
 
         @Test
-        public void testNewDirectoryStream() throws IOException {
+        void testNewDirectoryStream() throws IOException {
 
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), AcceptAllFilter.INSTANCE)) {
+            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), entry -> true)) {
                 assertNotNull(stream);
                 // don't do anything with the stream, there's a separate test for that
             }
         }
 
         @Test
-        public void testNewDirectoryStreamNotExisting() {
+        void testNewDirectoryStreamNotExisting() {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
             assertEquals("/foo", exception.getFile());
         }
 
         @Test
-        public void testGetDirectoryStreamNotDirectory() {
+        void testGetDirectoryStreamNotDirectory() {
             addFile("/foo");
 
             NotDirectoryException exception = assertThrows(NotDirectoryException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), AcceptAllFilter.INSTANCE));
+                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
             assertEquals("/foo", exception.getFile());
-        }
-
-        private static final class AcceptAllFilter implements Filter<Path> {
-
-            private static final AcceptAllFilter INSTANCE = new AcceptAllFilter();
-
-            @Override
-            public boolean accept(Path entry) {
-                return true;
-            }
         }
 
         // FTPFileSystem.createNewDirectory
 
         @Test
-        public void testCreateDirectory() throws IOException {
+        void testCreateDirectory() throws IOException {
             assertNull(getFileSystemEntry("/foo"));
 
             fileSystem.createDirectory(createPath("/foo"));
@@ -631,7 +620,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCreateDirectoryAlreadyExists() {
+        void testCreateDirectoryAlreadyExists() {
             addDirectory("/foo/bar");
 
             FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
@@ -643,7 +632,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCreateDirectoryFTPFailure() {
+        void testCreateDirectoryFTPFailure() {
             DirectoryEntry root = getDirectory("/");
             root.setPermissionsFromString("r-xr-xr-x");
 
@@ -659,7 +648,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.delete
 
         @Test
-        public void testDeleteNonExisting() {
+        void testDeleteNonExisting() {
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.delete(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
@@ -668,7 +657,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testDeleteRoot() {
+        void testDeleteRoot() {
 
             FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> fileSystem.delete(createPath("/")));
             assertEquals("/", exception.getFile());
@@ -677,7 +666,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testDeleteFile() throws IOException {
+        void testDeleteFile() throws IOException {
             addFile("/foo/bar");
             FileSystemEntry foo = getFileSystemEntry("/foo");
 
@@ -688,7 +677,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testDeleteEmptyDir() throws IOException {
+        void testDeleteEmptyDir() throws IOException {
             addDirectory("/foo/bar");
             FileSystemEntry foo = getFileSystemEntry("/foo");
 
@@ -699,7 +688,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testDeleteFTPFailure() {
+        void testDeleteFTPFailure() {
             addDirectory("/foo/bar/baz");
             FileSystemEntry foo = getFileSystemEntry("/foo");
             FileSystemEntry bar = getFileSystemEntry("/foo/bar");
@@ -717,7 +706,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.readSymbolicLink
 
         @Test
-        public void testReadSymbolicLinkToFile() throws IOException {
+        void testReadSymbolicLinkToFile() throws IOException {
             FileEntry foo = addFile("/foo");
             addSymLink("/bar", foo);
 
@@ -726,7 +715,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadSymbolicLinkToDirectory() throws IOException {
+        void testReadSymbolicLinkToDirectory() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             addSymLink("/bar", foo);
 
@@ -735,7 +724,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadSymbolicLinkToNonExistingTarget() throws IOException {
+        void testReadSymbolicLinkToNonExistingTarget() throws IOException {
             addSymLink("/bar", new FileEntry("/foo"));
 
             FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
@@ -743,14 +732,14 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadSymbolicLinkNotExisting() {
+        void testReadSymbolicLinkNotExisting() {
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
         }
 
         @Test
-        public void testReadSymbolicLinkNoLinkButFile() {
+        void testReadSymbolicLinkNoLinkButFile() {
             addFile("/foo");
 
             NotLinkException exception = assertThrows(NotLinkException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
@@ -758,7 +747,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadSymbolicLinkNoLinkButDirectory() {
+        void testReadSymbolicLinkNoLinkButDirectory() {
             addDirectory("/foo");
 
             NotLinkException exception = assertThrows(NotLinkException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
@@ -768,7 +757,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.copy
 
         @Test
-        public void testCopySame() throws IOException {
+        void testCopySame() throws IOException {
             DirectoryEntry foo = addDirectory("/home/test/foo");
             DirectoryEntry bar = addDirectory("/home/test/foo/bar");
 
@@ -783,7 +772,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyNonExisting() {
+        void testCopyNonExisting() {
             DirectoryEntry foo = addDirectory("/foo");
 
             CopyOption[] options = {};
@@ -796,7 +785,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyFTPFailure() {
+        void testCopyFTPFailure() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -815,7 +804,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyRoot() throws IOException {
+        void testCopyRoot() throws IOException {
             // copying a directory (including the root) will not copy its contents, so copying the root is allowed
             DirectoryEntry foo = addDirectory("/foo");
 
@@ -831,7 +820,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceFile() {
+        void testCopyReplaceFile() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -847,7 +836,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceFileAllowed() throws IOException {
+        void testCopyReplaceFileAllowed() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -863,7 +852,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceNonEmptyDir() {
+        void testCopyReplaceNonEmptyDir() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -879,7 +868,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceNonEmptyDirAllowed() {
+        void testCopyReplaceNonEmptyDirAllowed() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -896,7 +885,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceEmptyDir() {
+        void testCopyReplaceEmptyDir() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -910,7 +899,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceEmptyDirAllowed() throws IOException {
+        void testCopyReplaceEmptyDirAllowed() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -923,7 +912,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyFile() throws IOException {
+        void testCopyFile() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -940,7 +929,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyFileMultipleConnections() throws IOException {
+        void testCopyFileMultipleConnections() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -957,7 +946,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyEmptyDir() throws IOException {
+        void testCopyEmptyDir() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -977,7 +966,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyNonEmptyDir() throws IOException {
+        void testCopyNonEmptyDir() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
             addFile("/baz/qux");
@@ -998,7 +987,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceFileDifferentFileSystems() {
+        void testCopyReplaceFileDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1014,7 +1003,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceFileAllowedDifferentFileSystems() throws IOException {
+        void testCopyReplaceFileAllowedDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1030,7 +1019,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceNonEmptyDirDifferentFileSystems() {
+        void testCopyReplaceNonEmptyDirDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1046,7 +1035,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceNonEmptyDirAllowedDifferentFileSystems() {
+        void testCopyReplaceNonEmptyDirAllowedDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1063,7 +1052,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceEmptyDirDifferentFileSystems() {
+        void testCopyReplaceEmptyDirDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1077,7 +1066,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+        void testCopyReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -1090,7 +1079,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyFileDifferentFileSystems() throws IOException {
+        void testCopyFileDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1107,7 +1096,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyEmptyDirDifferentFileSystems() throws IOException {
+        void testCopyEmptyDirDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -1127,7 +1116,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyNonEmptyDirDifferentFileSystems() throws IOException {
+        void testCopyNonEmptyDirDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
             addFile("/baz/qux");
@@ -1148,7 +1137,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCopyWithAttributes() {
+        void testCopyWithAttributes() {
             addDirectory("/foo");
             addDirectory("/baz");
             addFile("/baz/qux");
@@ -1163,7 +1152,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.move
 
         @Test
-        public void testMoveSame() throws IOException {
+        void testMoveSame() throws IOException {
             DirectoryEntry foo = addDirectory("/home/test/foo");
             DirectoryEntry bar = addDirectory("/home/test/foo/bar");
             SymbolicLinkEntry baz = addSymLink("/baz", foo);
@@ -1183,7 +1172,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveNonExisting() {
+        void testMoveNonExisting() {
             DirectoryEntry foo = addDirectory("/foo");
 
             CopyOption[] options = {};
@@ -1196,7 +1185,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveFTPFailure() {
+        void testMoveFTPFailure() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -1215,7 +1204,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveEmptyRoot() {
+        void testMoveEmptyRoot() {
 
             CopyOption[] options = {};
             DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
@@ -1226,7 +1215,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveNonEmptyRoot() {
+        void testMoveNonEmptyRoot() {
             DirectoryEntry foo = addDirectory("/foo");
 
             CopyOption[] options = {};
@@ -1239,7 +1228,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceFile() {
+        void testMoveReplaceFile() {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry bar = addDirectory("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1257,7 +1246,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceFileAllowed() throws IOException {
+        void testMoveReplaceFileAllowed() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1271,7 +1260,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceEmptyDir() {
+        void testMoveReplaceEmptyDir() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1287,7 +1276,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceEmptyDirAllowed() throws IOException {
+        void testMoveReplaceEmptyDirAllowed() throws IOException {
             addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1299,7 +1288,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveFile() throws IOException {
+        void testMoveFile() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1312,7 +1301,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveEmptyDir() throws IOException {
+        void testMoveEmptyDir() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -1325,7 +1314,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveNonEmptyDir() throws IOException {
+        void testMoveNonEmptyDir() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
             FileEntry qux = addFile("/baz/qux");
@@ -1341,7 +1330,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveNonEmptyDirSameParent() throws IOException {
+        void testMoveNonEmptyDirSameParent() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
@@ -1356,7 +1345,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceFileDifferentFileSystems() {
+        void testMoveReplaceFileDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry bar = addDirectory("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1373,7 +1362,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceFileAllowedDifferentFileSystems() throws IOException {
+        void testMoveReplaceFileAllowedDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
@@ -1388,7 +1377,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceEmptyDirDifferentFileSystems() {
+        void testMoveReplaceEmptyDirDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1403,7 +1392,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+        void testMoveReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
             addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1416,7 +1405,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveFileDifferentFileSystems() throws IOException {
+        void testMoveFileDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
@@ -1430,7 +1419,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveEmptyDirDifferentFileSystems() throws IOException {
+        void testMoveEmptyDirDifferentFileSystems() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
 
@@ -1444,7 +1433,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testMoveNonEmptyDirDifferentFileSystems() {
+        void testMoveNonEmptyDirDifferentFileSystems() {
             DirectoryEntry foo = addDirectory("/foo");
             DirectoryEntry baz = addDirectory("/baz");
             addFile("/baz/qux");
@@ -1482,7 +1471,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.isSameFile
 
         @Test
-        public void testIsSameFileEquals() throws IOException {
+        void testIsSameFileEquals() throws IOException {
 
             assertTrue(fileSystem.isSameFile(createPath("/"), createPath("/")));
             assertTrue(fileSystem.isSameFile(createPath("/foo"), createPath("/foo")));
@@ -1497,7 +1486,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testIsSameFileExisting() throws IOException {
+        void testIsSameFileExisting() throws IOException {
             FileEntry bar = addFile("/home/test/foo/bar");
             addSymLink("/bar", bar);
 
@@ -1515,14 +1504,14 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testIsSameFileFirstNonExisting() {
+        void testIsSameFileFirstNonExisting() {
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isSameFile(createPath("/foo"), createPath("/")));
             assertEquals("/foo", exception.getFile());
         }
 
         @Test
-        public void testIsSameFileSecondNonExisting() {
+        void testIsSameFileSecondNonExisting() {
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isSameFile(createPath("/"), createPath("/foo")));
             assertEquals("/foo", exception.getFile());
@@ -1531,7 +1520,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.isHidden
 
         @Test
-        public void testIsHidden() throws IOException {
+        void testIsHidden() throws IOException {
             addDirectory("/foo");
             addDirectory("/.foo");
             addFile("/foo/bar");
@@ -1544,7 +1533,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testIsHiddenNonExisting() {
+        void testIsHiddenNonExisting() {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isHidden(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
         }
@@ -1552,34 +1541,34 @@ public class FTPFileSystemTest {
         // FTPFileSystem.checkAccess
 
         @Test
-        public void testCheckAccessNonExisting() {
+        void testCheckAccessNonExisting() {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.checkAccess(createPath("/foo/bar")));
             assertEquals("/foo/bar", exception.getFile());
         }
 
         @Test
-        public void testCheckAccessNoModes() throws IOException {
+        void testCheckAccessNoModes() throws IOException {
             addDirectory("/foo/bar");
 
             fileSystem.checkAccess(createPath("/foo/bar"));
         }
 
         @Test
-        public void testCheckAccessOnlyRead() throws IOException {
+        void testCheckAccessOnlyRead() throws IOException {
             addDirectory("/foo/bar");
 
             fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.READ);
         }
 
         @Test
-        public void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
+        void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
             addDirectory("/foo/bar");
 
             fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
         }
 
         @Test
-        public void testCheckAccessOnlyWriteReadOnly() {
+        void testCheckAccessOnlyWriteReadOnly() {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("r-xr-xr-x");
 
@@ -1589,7 +1578,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testCheckAccessOnlyExecute() {
+        void testCheckAccessOnlyExecute() {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("rw-rw-rw-");
 
@@ -1601,7 +1590,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.readAttributes (PosixFileAttributes variant)
 
         @Test
-        public void testReadAttributesFileFollowLinks() throws IOException {
+        void testReadAttributesFileFollowLinks() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
             foo.setPermissionsFromString("r-xr-xr-x");
@@ -1621,7 +1610,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesFileNoFollowLinks() throws IOException {
+        void testReadAttributesFileNoFollowLinks() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
             foo.setPermissionsFromString("r-xr-xr-x");
@@ -1641,7 +1630,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesDirectoryFollowLinks() throws IOException {
+        void testReadAttributesDirectoryFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
             foo.setOwner("user");
@@ -1660,7 +1649,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesDirectoryNoFollowLinks() throws IOException {
+        void testReadAttributesDirectoryNoFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
             foo.setOwner("user");
@@ -1679,7 +1668,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesSymLinkToFileFollowLinks() throws IOException {
+        void testReadAttributesSymLinkToFileFollowLinks() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
             foo.setPermissionsFromString("r-xr-xr-x");
@@ -1701,7 +1690,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesSymLinkToFileNoFollowLinks() throws IOException {
+        void testReadAttributesSymLinkToFileNoFollowLinks() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
             foo.setOwner("user");
@@ -1722,7 +1711,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesSymLinkToDirectoryFollowLinks() throws IOException {
+        void testReadAttributesSymLinkToDirectoryFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
             foo.setOwner("user");
@@ -1743,7 +1732,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesSymLinkToDirectoryNoFollowLinks() throws IOException {
+        void testReadAttributesSymLinkToDirectoryNoFollowLinks() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
             foo.setOwner("user");
@@ -1764,7 +1753,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesNonExisting() {
+        void testReadAttributesNonExisting() {
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.readAttributes(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
         }
@@ -1772,7 +1761,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.readAttributes (map variant)
 
         @Test
-        public void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {
+        void testReadAttributesMapNoTypeLastModifiedTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "lastModifiedTime");
@@ -1781,7 +1770,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeLastAccessTime() throws IOException {
+        void testReadAttributesMapNoTypeLastAccessTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "lastAccessTime");
@@ -1790,7 +1779,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeCreateTime() throws IOException {
+        void testReadAttributesMapNoTypeCreateTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "creationTime");
@@ -1799,7 +1788,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeBasicSize() throws IOException {
+        void testReadAttributesMapNoTypeBasicSize() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
 
@@ -1809,7 +1798,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeIsRegularFile() throws IOException {
+        void testReadAttributesMapNoTypeIsRegularFile() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isRegularFile");
@@ -1818,7 +1807,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeIsDirectory() throws IOException {
+        void testReadAttributesMapNoTypeIsDirectory() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isDirectory");
@@ -1827,7 +1816,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeIsSymbolicLink() throws IOException {
+        void testReadAttributesMapNoTypeIsSymbolicLink() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isSymbolicLink");
@@ -1836,7 +1825,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeIsOther() throws IOException {
+        void testReadAttributesMapNoTypeIsOther() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "isOther");
@@ -1845,7 +1834,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeFileKey() throws IOException {
+        void testReadAttributesMapNoTypeFileKey() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "fileKey");
@@ -1854,7 +1843,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeMultiple() throws IOException {
+        void testReadAttributesMapNoTypeMultiple() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "size,isDirectory");
@@ -1865,7 +1854,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapNoTypeAll() throws IOException {
+        void testReadAttributesMapNoTypeAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "*");
@@ -1890,7 +1879,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicLastModifiedTime() throws IOException {
+        void testReadAttributesMapBasicLastModifiedTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime");
@@ -1899,7 +1888,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicLastAccessTime() throws IOException {
+        void testReadAttributesMapBasicLastAccessTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastAccessTime");
@@ -1908,7 +1897,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicCreateTime() throws IOException {
+        void testReadAttributesMapBasicCreateTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:creationTime");
@@ -1917,7 +1906,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicSize() throws IOException {
+        void testReadAttributesMapBasicSize() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
 
@@ -1927,7 +1916,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicIsRegularFile() throws IOException {
+        void testReadAttributesMapBasicIsRegularFile() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isRegularFile");
@@ -1936,7 +1925,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicIsDirectory() throws IOException {
+        void testReadAttributesMapBasicIsDirectory() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isDirectory");
@@ -1945,7 +1934,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicIsSymbolicLink() throws IOException {
+        void testReadAttributesMapBasicIsSymbolicLink() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isSymbolicLink");
@@ -1954,7 +1943,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicIsOther() throws IOException {
+        void testReadAttributesMapBasicIsOther() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:isOther");
@@ -1963,7 +1952,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicFileKey() throws IOException {
+        void testReadAttributesMapBasicFileKey() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:fileKey");
@@ -1972,7 +1961,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicMultiple() throws IOException {
+        void testReadAttributesMapBasicMultiple() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:size,isDirectory");
@@ -1983,7 +1972,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapBasicAll() throws IOException {
+        void testReadAttributesMapBasicAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:*");
@@ -2008,7 +1997,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixLastModifiedTime() throws IOException {
+        void testReadAttributesMapPosixLastModifiedTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastModifiedTime");
@@ -2017,7 +2006,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixLastAccessTime() throws IOException {
+        void testReadAttributesMapPosixLastAccessTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastAccessTime");
@@ -2026,7 +2015,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixCreateTime() throws IOException {
+        void testReadAttributesMapPosixCreateTime() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:creationTime");
@@ -2035,7 +2024,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixSize() throws IOException {
+        void testReadAttributesMapPosixSize() throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
 
@@ -2045,7 +2034,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixIsRegularFile() throws IOException {
+        void testReadAttributesMapPosixIsRegularFile() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isRegularFile");
@@ -2054,7 +2043,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixIsDirectory() throws IOException {
+        void testReadAttributesMapPosixIsDirectory() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isDirectory");
@@ -2063,7 +2052,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixIsSymbolicLink() throws IOException {
+        void testReadAttributesMapPosixIsSymbolicLink() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isSymbolicLink");
@@ -2072,7 +2061,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixIsOther() throws IOException {
+        void testReadAttributesMapPosixIsOther() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:isOther");
@@ -2081,7 +2070,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixFileKey() throws IOException {
+        void testReadAttributesMapPosixFileKey() throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:fileKey");
@@ -2090,7 +2079,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapOwnerOwner() throws IOException {
+        void testReadAttributesMapOwnerOwner() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
@@ -2100,7 +2089,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapOwnerAll() throws IOException {
+        void testReadAttributesMapOwnerAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
@@ -2114,7 +2103,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixOwner() throws IOException {
+        void testReadAttributesMapPosixOwner() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
@@ -2124,7 +2113,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixGroup() throws IOException {
+        void testReadAttributesMapPosixGroup() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setGroup("test");
 
@@ -2134,7 +2123,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixPermissions() throws IOException {
+        void testReadAttributesMapPosixPermissions() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
 
@@ -2145,7 +2134,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixMultiple() throws IOException {
+        void testReadAttributesMapPosixMultiple() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
             foo.setGroup("test");
@@ -2159,7 +2148,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapPosixAll() throws IOException {
+        void testReadAttributesMapPosixAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
             foo.setGroup("group");
@@ -2190,7 +2179,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapUnsupportedAttribute() {
+        void testReadAttributesMapUnsupportedAttribute() {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
@@ -2200,7 +2189,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testReadAttributesMapUnsupportedType() {
+        void testReadAttributesMapUnsupportedType() {
             addDirectory("/foo");
 
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
@@ -2211,7 +2200,7 @@ public class FTPFileSystemTest {
         // FTPFileSystem.getFTPFile
 
         @Test
-        public void testGetFTPFileFile() throws IOException {
+        void testGetFTPFileFile() throws IOException {
             addFile("/foo");
 
             FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
@@ -2221,7 +2210,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testGetFTPFileFileNotExisting() {
+        void testGetFTPFileFileNotExisting() {
 
             NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(createPath("/foo")));
             assertEquals("/foo", exception.getFile());
@@ -2231,7 +2220,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testGetFTPFileFileAccessDenied() throws IOException {
+        void testGetFTPFileFileAccessDenied() throws IOException {
             addFile("/foo/bar");
             getFile("/foo/bar").setPermissionsFromString("---------");
 
@@ -2261,7 +2250,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testGetFTPFileDirectory() throws IOException {
+        void testGetFTPFileDirectory() throws IOException {
             addDirectory("/foo");
 
             FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
@@ -2275,7 +2264,7 @@ public class FTPFileSystemTest {
         }
 
         @Test
-        public void testGetFTPFileDirectoryAccessDenied() throws IOException {
+        void testGetFTPFileDirectoryAccessDenied() throws IOException {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("---------");
 

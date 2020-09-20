@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import java.util.function.Consumer;
 import org.apache.commons.net.ftp.FTPClient;
 
 /**
@@ -26,20 +27,18 @@ import org.apache.commons.net.ftp.FTPClient;
  */
 public enum ConnectionMode {
     /** Indicates that FTP servers should connect to clients' data ports to initiate data transfers. */
-    ACTIVE {
-        @Override
-        void apply(FTPClient client) {
-            client.enterLocalActiveMode();
-        }
-    },
+    ACTIVE(FTPClient::enterLocalActiveMode),
     /** Indicates that FTP servers are in passive mode, requiring clients to connect to the servers' data ports to initiate transfers. */
-    PASSIVE {
-        @Override
-        void apply(FTPClient client) {
-            client.enterLocalPassiveMode();
-        }
-    },
+    PASSIVE(FTPClient::enterLocalPassiveMode),
     ;
 
-    abstract void apply(FTPClient client);
+    private final Consumer<FTPClient> setter;
+
+    ConnectionMode(Consumer<FTPClient> setter) {
+        this.setter = setter;
+    }
+
+    void apply(FTPClient client) {
+        setter.accept(client);
+    }
 }

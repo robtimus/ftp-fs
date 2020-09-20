@@ -37,7 +37,7 @@ final class FTPLogger {
     private static final ResourceBundle BUNDLE = ResourceBundle.getBundle(BUNDLE_NAME, UTF8Control.INSTANCE);
 
     private FTPLogger() {
-        throw new Error("cannot create instances of " + getClass().getName()); //$NON-NLS-1$
+        throw new IllegalStateException("cannot create instances of " + getClass().getName()); //$NON-NLS-1$
     }
 
     public static Logger createLogger(Class<?> clazz) {

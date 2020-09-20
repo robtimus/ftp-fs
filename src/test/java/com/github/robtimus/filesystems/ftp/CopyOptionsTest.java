@@ -32,18 +32,17 @@ import java.util.Collection;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
-@SuppressWarnings("javadoc")
-public class CopyOptionsTest {
+class CopyOptionsTest {
 
     @Test
-    public void testToOpenOptions() {
+    void testToOpenOptions() {
         CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
         Collection<OpenOption> openOptions = options.toOpenOptions(StandardOpenOption.READ);
         assertEquals(Arrays.asList(LinkOption.NOFOLLOW_LINKS, StandardOpenOption.READ), openOptions);
     }
 
     @Test
-    public void testForCopy() {
+    void testForCopy() {
         CopyOptions options = CopyOptions.forCopy();
         assertFalse(options.replaceExisting);
         assertNull(options.fileType);
@@ -84,7 +83,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForCopyWithInvalid() {
+    void testForCopyWithInvalid() {
         testForCopyWithInvalid(StandardCopyOption.COPY_ATTRIBUTES);
         testForCopyWithInvalid(StandardCopyOption.ATOMIC_MOVE);
     }
@@ -95,7 +94,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForCopyWithDuplicates() {
+    void testForCopyWithDuplicates() {
         testForCopyWithDuplicates(FileType.ascii(), FileType.binary());
         testForCopyWithDuplicates(FileStructure.FILE, FileStructure.PAGE);
         testForCopyWithDuplicates(FileTransferMode.STREAM, FileTransferMode.BLOCK);
@@ -107,7 +106,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForMove() {
+    void testForMove() {
         CopyOptions options = CopyOptions.forMove(true);
         assertFalse(options.replaceExisting);
         assertNull(options.fileType);
@@ -196,7 +195,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForMoveWithInvalid() {
+    void testForMoveWithInvalid() {
         testForMoveWithInvalid(true, StandardCopyOption.COPY_ATTRIBUTES);
         testForMoveWithInvalid(false, StandardCopyOption.COPY_ATTRIBUTES);
         testForMoveWithInvalid(false, StandardCopyOption.ATOMIC_MOVE);
@@ -209,7 +208,7 @@ public class CopyOptionsTest {
     }
 
     @Test
-    public void testForMoveWithDuplicates() {
+    void testForMoveWithDuplicates() {
         testForMoveWithDuplicates(true, FileType.ascii(), FileType.binary());
         testForMoveWithDuplicates(false, FileType.ascii(), FileType.binary());
         testForMoveWithDuplicates(true, FileStructure.FILE, FileStructure.PAGE);

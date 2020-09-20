@@ -22,7 +22,6 @@ import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.FileStore;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.security.SecureRandom;
@@ -36,7 +35,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
-import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClient.HostnameResolver;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPSClient;
@@ -284,17 +282,6 @@ public class FTPSEnvironment extends FTPEnvironment {
 
     /**
      * {@inheritDoc}
-     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(FTPClient.HostnameResolver)} instead.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withPassiveNatWorkaround(boolean enabled) {
-        super.withPassiveNatWorkaround(enabled);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
      * @since 1.1
      */
     @Override
@@ -336,28 +323,6 @@ public class FTPSEnvironment extends FTPEnvironment {
     @Override
     public FTPSEnvironment withFTPFileStrategyFactory(FTPFileStrategyFactory factory) {
         super.withFTPFileStrategyFactory(factory);
-        return this;
-    }
-
-    /**
-     * @deprecated Use {@link #withFTPFileStrategyFactory(FTPFileStrategyFactory)} instead. A value of {@code true} should be replaced with
-     *             {@link FTPFileStrategyFactory#AUTO_DETECT}, a value of {@code false} with {@link FTPFileStrategyFactory#NON_UNIX}.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
-        super.withAbsoluteFilePathSupport(supportAbsoluteFilePaths);
-        return this;
-    }
-
-    /**
-     * @deprecated {@link FileStore#getTotalSpace()} does not need to traverse the file system, because that would calculate the total <em>used</em>
-     *             space, not the total space.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withActualTotalSpaceCalculation(boolean calculateActualTotalSpace) {
-        super.withActualTotalSpaceCalculation(calculateActualTotalSpace);
         return this;
     }
 

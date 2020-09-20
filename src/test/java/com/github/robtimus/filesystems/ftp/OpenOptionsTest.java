@@ -33,11 +33,10 @@ import java.util.LinkedHashSet;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
-@SuppressWarnings("javadoc")
-public class OpenOptionsTest {
+class OpenOptionsTest {
 
     @Test
-    public void testForNewInputStream() {
+    void testForNewInputStream() {
         OpenOptions options = OpenOptions.forNewInputStream();
         assertTrue(options.read);
         assertFalse(options.write);
@@ -284,7 +283,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewInputStreamWithInvalid() {
+    void testForNewInputStreamWithInvalid() {
         testForNewInputStreamWithInvalid(StandardOpenOption.WRITE);
         testForNewInputStreamWithInvalid(StandardOpenOption.APPEND);
         testForNewInputStreamWithInvalid(StandardOpenOption.TRUNCATE_EXISTING);
@@ -298,7 +297,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewInputStreamWithDuplicates() {
+    void testForNewInputStreamWithDuplicates() {
         testForNewInputStreamWithDuplicates(FileType.ascii(), FileType.binary());
         testForNewInputStreamWithDuplicates(FileStructure.FILE, FileStructure.PAGE);
         testForNewInputStreamWithDuplicates(FileTransferMode.STREAM, FileTransferMode.BLOCK);
@@ -310,7 +309,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutStream() {
+    void testForNewOutStream() {
         OpenOptions options = OpenOptions.forNewOutputStream();
         assertFalse(options.read);
         assertTrue(options.write);
@@ -677,7 +676,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutputStreamWithInvalid() {
+    void testForNewOutputStreamWithInvalid() {
         testForNewOutputStreamWithInvalid(StandardOpenOption.READ);
     }
 
@@ -687,7 +686,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutputStreamWithIllegalCombinations() {
+    void testForNewOutputStreamWithIllegalCombinations() {
         testForNewOutputStreamWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
@@ -697,7 +696,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewOutputStreamWithDuplicates() {
+    void testForNewOutputStreamWithDuplicates() {
         testForNewOutputStreamWithDuplicates(FileType.ascii(), FileType.binary());
         testForNewOutputStreamWithDuplicates(FileStructure.FILE, FileStructure.PAGE);
         testForNewOutputStreamWithDuplicates(FileTransferMode.STREAM, FileTransferMode.BLOCK);
@@ -709,7 +708,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannel() {
+    void testForNewByteChannel() {
         OpenOptions options = OpenOptions.forNewByteChannel(EnumSet.noneOf(StandardOpenOption.class));
         assertTrue(options.read);
         assertFalse(options.write);
@@ -857,7 +856,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannelWithInvalid() {
+    void testForNewByteChannelWithInvalid() {
         testForNewByteChannelInvalid(DummyOption.DUMMY);
     }
 
@@ -868,7 +867,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannelWithIllegalCombinations() {
+    void testForNewByteChannelWithIllegalCombinations() {
         testForNewByteChannelWithIllegalCombination(StandardOpenOption.READ, StandardOpenOption.WRITE);
         testForNewByteChannelWithIllegalCombination(StandardOpenOption.READ, StandardOpenOption.APPEND);
         testForNewByteChannelWithIllegalCombination(StandardOpenOption.APPEND, StandardOpenOption.TRUNCATE_EXISTING);
@@ -881,7 +880,7 @@ public class OpenOptionsTest {
     }
 
     @Test
-    public void testForNewByteChannelWithDuplicates() {
+    void testForNewByteChannelWithDuplicates() {
         testForNewByteChannelWithDuplicates(FileType.ascii(), FileType.binary());
         testForNewByteChannelWithDuplicates(FileType.ascii(), FileType.binary());
         testForNewByteChannelWithDuplicates(FileStructure.FILE, FileStructure.PAGE);

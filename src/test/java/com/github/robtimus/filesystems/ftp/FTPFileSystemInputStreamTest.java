@@ -28,53 +28,53 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockftpserver.fake.filesystem.FileEntry;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class FTPFileSystemInputStreamTest {
+@SuppressWarnings("nls")
+class FTPFileSystemInputStreamTest {
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; support absolute file paths: true")
-    public class UnixServerUsingAbsoluteFilePaths extends InputStreamTest {
+    class UnixServerUsingAbsoluteFilePaths extends InputStreamTest {
 
-        public UnixServerUsingAbsoluteFilePaths() {
+        UnixServerUsingAbsoluteFilePaths() {
             super(true, true);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; support absolute file paths: false")
-    public class UnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
+    class UnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
 
-        public UnixServerNotUsingAbsoluteFilePaths() {
+        UnixServerNotUsingAbsoluteFilePaths() {
             super(true, false);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: false; support absolute file paths: true")
-    public class NonUnixServerUsingAbsoluteFilePaths extends InputStreamTest {
+    class NonUnixServerUsingAbsoluteFilePaths extends InputStreamTest {
 
-        public NonUnixServerUsingAbsoluteFilePaths() {
+        NonUnixServerUsingAbsoluteFilePaths() {
             super(false, true);
         }
     }
 
     @Nested
     @DisplayName("Use UNIX FTP server: false; support absolute file paths: false")
-    public class NonUnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
+    class NonUnixServerNotUsingAbsoluteFilePaths extends InputStreamTest {
 
-        public NonUnixServerNotUsingAbsoluteFilePaths() {
+        NonUnixServerNotUsingAbsoluteFilePaths() {
             super(false, false);
         }
     }
 
-    private abstract static class InputStreamTest extends AbstractFTPFileSystemTest {
+    abstract static class InputStreamTest extends AbstractFTPFileSystemTest {
 
         private InputStreamTest(boolean useUnixFtpServer, boolean supportAbsoluteFilePaths) {
             super(useUnixFtpServer, supportAbsoluteFilePaths);
         }
 
         @Test
-        public void testReadSingle() throws IOException {
+        void testReadSingle() throws IOException {
             final String content = "Hello World";
 
             FileEntry file = addFile("/foo");
@@ -97,7 +97,7 @@ public class FTPFileSystemInputStreamTest {
         }
 
         @Test
-        public void testReadBulk() throws IOException {
+        void testReadBulk() throws IOException {
             final String content = "Hello World";
 
             FileEntry file = addFile("/foo");
@@ -115,7 +115,7 @@ public class FTPFileSystemInputStreamTest {
         }
 
         @Test
-        public void testSkip() throws IOException {
+        void testSkip() throws IOException {
             final String content = "Hello World";
 
             FileEntry file = addFile("/foo");
@@ -142,7 +142,7 @@ public class FTPFileSystemInputStreamTest {
         }
 
         @Test
-        public void testAvailable() throws IOException, InterruptedException {
+        void testAvailable() throws IOException, InterruptedException {
             final String content = "Hello World";
 
             FileEntry file = addFile("/foo");

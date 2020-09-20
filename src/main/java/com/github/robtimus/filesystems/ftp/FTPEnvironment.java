@@ -25,7 +25,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.FileStore;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collection;
@@ -103,7 +102,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final String USE_EPSV_WITH_IPV4 = "useEPSVwithIPv4"; //$NON-NLS-1$
     private static final String CONTROL_KEEP_ALIVE_TIMEOUT = "controlKeepAliveTimeout"; //$NON-NLS-1$
     private static final String CONTROL_KEEP_ALIVE_REPLY_TIMEOUT = "controlKeepAliveReplyTimeout"; //$NON-NLS-1$
-    private static final String PASSIVE_NAT_WORKAROUND = "passiveNatWorkaround"; //$NON-NLS-1$
     private static final String PASSIVE_NAT_WORKAROUND_STRATEGY = "passiveNatWorkaroundStrategy"; //$NON-NLS-1$
     private static final String AUTODETECT_ENCODING = "autodetectEncoding"; //$NON-NLS-1$
 
@@ -115,8 +113,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private static final String CLIENT_CONNECTION_WAIT_TIMEOUT = "clientConnectionWaitTimeout"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
     private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
-    private static final String SUPPORT_ABSOLUTE_FILE_PATHS = "supportAbsoluteFilePaths"; //$NON-NLS-1$
-    private static final String CALCULATE_ACTUAL_TOTAL_SPACE = "calculateActualTotalSpace"; //$NON-NLS-1$
 
     private Map<String, Object> map;
 
@@ -537,23 +533,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     /**
-     * Stores whether or not to enable the passive mode NAT workaround.
-     * If enabled, a site-local PASV mode reply address will be replaced with the remote host address to which the PASV mode request was sent
-     * (unless that is also a site local address). This gets around the problem that some NAT boxes may change the reply.
-     *
-     * The default is true, i.e. site-local replies are replaced.
-     *
-     * @param enabled {@code true} to enable replacing internal IP's in passive mode, or {@code false} otherwise.
-     * @return This object.
-     * @deprecated Use {@link #withPassiveNatWorkaroundStrategy(FTPClient.HostnameResolver)} instead.
-     */
-    @Deprecated
-    public FTPEnvironment withPassiveNatWorkaround(boolean enabled) {
-        put(PASSIVE_NAT_WORKAROUND, enabled);
-        return this;
-    }
-
-    /**
      * Stores the workaround strategy to replace the PASV mode reply addresses.
      * This gets around the problem that some NAT boxes may change the reply.
      *
@@ -647,40 +626,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return this;
     }
 
-    /**
-     * Stores whether or not FTP servers support absolute paths to list files. If set to {@code false}, getting information about a file will list its
-     * parent directory. If set to {@code true}, the server settings will determine how files are listed.
-     * <p>
-     * This setting should be set to {@code false} for servers that do not support {@code LIST} commands of absolute files.
-     *
-     * @param supportAbsoluteFilePaths {@code false} if FTP servers do not support absolute paths to list files,
-     *            or {@code true} to use the server settings.
-     * @return This object.
-     * @deprecated Use {@link #withFTPFileStrategyFactory(FTPFileStrategyFactory)} instead. A value of {@code true} should be replaced with
-     *             {@link FTPFileStrategyFactory#AUTO_DETECT}, a value of {@code false} with {@link FTPFileStrategyFactory#NON_UNIX}.
-     */
-    @Deprecated
-    public FTPEnvironment withAbsoluteFilePathSupport(boolean supportAbsoluteFilePaths) {
-        put(SUPPORT_ABSOLUTE_FILE_PATHS, supportAbsoluteFilePaths);
-        return this;
-    }
-
-    /**
-     * Stores whether or not {@link FileStore#getTotalSpace()} should calculate the actual total space by traversing the file system.
-     * If not explicitly set to {@code true}, the method will return {@link Long#MAX_VALUE} instead.
-     *
-     * @param calculateActualTotalSpace {@code true} if {@link FileStore#getTotalSpace()} should calculate the actual total space by traversing the
-     *            file system, or {@code false} otherwise.
-     * @return This object.
-     * @deprecated {@link FileStore#getTotalSpace()} does not need to traverse the file system, because that would calculate the total <em>used</em>
-     *             space, not the total space.
-     */
-    @Deprecated
-    public FTPEnvironment withActualTotalSpaceCalculation(boolean calculateActualTotalSpace) {
-        put(CALCULATE_ACTUAL_TOTAL_SPACE, calculateActualTotalSpace);
-        return this;
-    }
-
     String getUsername() {
         return FileSystemProviderSupport.getValue(this, USERNAME, String.class, null);
     }
@@ -716,12 +661,8 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     FTPFileStrategy getFTPFileStrategy() {
-        FTPFileStrategyFactory factory = FileSystemProviderSupport.getValue(this, FTP_FILE_STRATEGY_FACTORY, FTPFileStrategyFactory.class, null);
-        if (factory == null) {
-            boolean supportAbsolutePaths = FileSystemProviderSupport.getBooleanValue(this, SUPPORT_ABSOLUTE_FILE_PATHS, true);
-            // nonUnix uses the parent directory to list files
-            factory = supportAbsolutePaths ? FTPFileStrategyFactory.AUTO_DETECT : FTPFileStrategyFactory.NON_UNIX;
-        }
+        FTPFileStrategyFactory factory = FileSystemProviderSupport.getValue(this, FTP_FILE_STRATEGY_FACTORY, FTPFileStrategyFactory.class,
+                FTPFileStrategyFactory.AUTO_DETECT);
         return factory.createFTPFileStrategy();
     }
 
@@ -861,16 +802,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         if (containsKey(AUTODETECT_ENCODING)) {
             boolean autodetect = FileSystemProviderSupport.getBooleanValue(this, AUTODETECT_ENCODING);
             client.setAutodetectUTF8(autodetect);
-        }
-
-        initializeDeprecatedPreConnect(client);
-    }
-
-    @SuppressWarnings("deprecation")
-    void initializeDeprecatedPreConnect(FTPClient client) {
-        if (containsKey(PASSIVE_NAT_WORKAROUND)) {
-            boolean enabled = FileSystemProviderSupport.getBooleanValue(this, PASSIVE_NAT_WORKAROUND);
-            client.setPassiveNatWorkaround(enabled);
         }
     }
 

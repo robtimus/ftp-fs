@@ -30,11 +30,11 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.ftp.FileType.Format;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class FileTypeTest {
+@SuppressWarnings("nls")
+class FileTypeTest {
 
     @Test
-    public void testApply() throws IOException {
+    void testApply() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileType(FTP.ASCII_FILE_TYPE)).thenReturn(true);
         FileType.ascii().apply(client);
@@ -109,14 +109,14 @@ public class FileTypeTest {
     }
 
     @Test
-    public void testApplyFailure() throws IOException {
+    void testApplyFailure() throws IOException {
         FTPClient client = mock(FTPClient.class);
         when(client.setFileType(FTP.ASCII_FILE_TYPE)).thenReturn(false);
         assertThrows(FTPFileSystemException.class, () -> FileType.ascii().apply(client));
     }
 
     @Test
-    public void testEquals() {
+    void testEquals() {
         assertEquals(FileType.ascii(), FileType.ascii());
         assertEquals(FileType.ascii(), FileType.ascii(null));
         assertEquals(FileType.ascii(Format.NON_PRINT), FileType.ascii(Format.NON_PRINT));
@@ -176,7 +176,7 @@ public class FileTypeTest {
     }
 
     @Test
-    public void testToString() {
+    void testToString() {
         assertEquals("FileType.ascii", FileType.ascii().toString());
         assertEquals("FileType.ascii", FileType.ascii(null).toString());
         assertEquals("FileType.ascii(NON_PRINT)", FileType.ascii(Format.NON_PRINT).toString());

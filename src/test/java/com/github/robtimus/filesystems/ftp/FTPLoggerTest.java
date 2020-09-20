@@ -39,8 +39,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 
-@SuppressWarnings({ "nls", "javadoc" })
-public class FTPLoggerTest {
+@SuppressWarnings("nls")
+class FTPLoggerTest {
 
     private static final Map<Class<?>, Object> INSTANCES;
 
@@ -67,7 +67,7 @@ public class FTPLoggerTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    public void testMethodCall(@SuppressWarnings("unused") String testName, Method method) throws ReflectiveOperationException {
+    void testMethodCall(@SuppressWarnings("unused") String testName, Method method) throws ReflectiveOperationException {
         Object[] args = getArguments(method);
 
         if ("creatingPool".equals(method.getName()) || "createdPool".equals(method.getName())) {
@@ -100,7 +100,7 @@ public class FTPLoggerTest {
     }
 
     @BeforeAll
-    public static void loadResourceBundle() throws IOException {
+    static void loadResourceBundle() throws IOException {
         resourceBundle = new Properties();
         try (InputStream input = FTPLogger.class.getResourceAsStream("fs.properties")) {
             resourceBundle.load(input);

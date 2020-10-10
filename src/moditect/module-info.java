@@ -4,4 +4,6 @@ module com.github.robtimus.filesystems.ftp {
     requires static org.slf4j;
 
     exports com.github.robtimus.filesystems.ftp;
+
+    provides java.nio.file.spi.FileSystemProvider with com.github.robtimus.filesystems.ftp.FTPFileSystemProvider;
 }

@@ -55,6 +55,10 @@
       <name>Pei-Tang Huang</name>
       <url>https://github.com/tan9/</url>
     </contributor>
+    <contributor>
+      <name>Jörg Schaible</name>
+      <url>https://github.com/joehni</url>
+    </contributor>
   </contributors>
 
   <scm>
@@ -70,7 +74,7 @@
   </issueManagement>
 
   <properties>
-    <version.commons-net>3.7.1</version.commons-net>
+    <version.commons-net>3.7.2</version.commons-net>
     <version.fs-core>2.0</version.fs-core>
     <version.MockFtpServer>2.7.1</version.MockFtpServer>
   </properties>

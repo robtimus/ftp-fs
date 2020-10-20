@@ -178,9 +178,24 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     * @deprecated This method is named incorrectly. Use {@link #withStrictMultilineParsing(boolean)} instead.
+     */
     @Override
+    @Deprecated
     public FTPSEnvironment withStrictlyMultilineParsing(boolean strictMultilineParsing) {
         super.withStrictlyMultilineParsing(strictMultilineParsing);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @since 2.1
+     */
+    @Override
+    public FTPSEnvironment withStrictMultilineParsing(boolean strictMultilineParsing) {
+        super.withStrictMultilineParsing(strictMultilineParsing);
         return this;
     }
 

@@ -340,8 +340,21 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      *
      * @param strictMultilineParsing {@code true} to enable strict multiline parsing, or {@code false} to disable it.
      * @return This object.
+     * @deprecated This method is named incorrectly. Use {@link #withStrictMultilineParsing(boolean)} instead.
      */
+    @Deprecated
     public FTPEnvironment withStrictlyMultilineParsing(boolean strictMultilineParsing) {
+        return withStrictMultilineParsing(strictMultilineParsing);
+    }
+
+    /**
+     * Stores whether or not strict multiline parsing should be enabled, as per RFC 959, section 4.2.
+     *
+     * @param strictMultilineParsing {@code true} to enable strict multiline parsing, or {@code false} to disable it.
+     * @return This object.
+     * @since 2.1
+     */
+    public FTPEnvironment withStrictMultilineParsing(boolean strictMultilineParsing) {
         put(STRICT_MULTILINE_PARSING, strictMultilineParsing);
         return this;
     }

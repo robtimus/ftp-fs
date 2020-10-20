@@ -5,5 +5,6 @@ module com.github.robtimus.filesystems.ftp {
 
     exports com.github.robtimus.filesystems.ftp;
 
-    provides java.nio.file.spi.FileSystemProvider with com.github.robtimus.filesystems.ftp.FTPFileSystemProvider;
+    provides java.nio.file.spi.FileSystemProvider with com.github.robtimus.filesystems.ftp.FTPFileSystemProvider,
+            com.github.robtimus.filesystems.ftp.FTPSFileSystemProvider;
 }

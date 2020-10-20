@@ -552,7 +552,7 @@ public class FTPSEnvironment extends FTPEnvironment {
         }
 
         if (containsKey(ENDPOINT_CHECKING_ENABLED)) {
-            boolean enable = FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION);
+            boolean enable = FileSystemProviderSupport.getBooleanValue(this, ENDPOINT_CHECKING_ENABLED);
             client.setEndpointCheckingEnabled(enable);
         }
         if (containsKey(ENABLED_SESSION_CREATION)) {

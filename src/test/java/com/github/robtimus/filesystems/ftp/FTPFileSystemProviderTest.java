@@ -41,6 +41,7 @@ import java.nio.file.ProviderMismatchException;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -173,6 +174,26 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         URI uri = URI.create("ftp://ftp.github.com/");
         FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
         assertEquals(uri.toString(), exception.getMessage());
+    }
+
+    // FTPFileSystemProvider.isSameFile
+
+    @Test
+    void testIsSameFileWithDifferentTypes() throws IOException {
+
+        FTPFileSystemProvider ftpProvider = new FTPFileSystemProvider();
+
+        @SuppressWarnings("resource")
+        FileSystem defaultFileSystem = FileSystems.getDefault();
+        FileSystemProvider defaultProvider = defaultFileSystem.provider();
+
+        try (FTPFileSystem fs1 = newFileSystem(ftpProvider, createEnv(UNIX))) {
+            FTPPath path1 = new FTPPath(fs1, "pom.xml");
+            Path path2 = Paths.get("pom.xml");
+
+            assertFalse(ftpProvider.isSameFile(path1, path2));
+            assertFalse(defaultProvider.isSameFile(path2, path1));
+        }
     }
 
     // FTPFileSystemProvider.getFileAttributeView

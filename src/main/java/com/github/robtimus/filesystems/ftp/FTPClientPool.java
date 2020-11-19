@@ -395,9 +395,14 @@ final class FTPClientPool {
             @Override
             public void close() throws IOException {
                 if (open) {
-                    in.close();
-                    open = false;
-                    finalizeStream();
+                    try {
+                        in.close();
+                    } finally {
+                        // always finalize the stream, to prevent pool starvation
+                        // set open to false as well, to prevent finalizing the stream twice
+                        open = false;
+                        finalizeStream();
+                    }
                     if (deleteOnClose) {
                         delete(path, false);
                     }
@@ -473,9 +478,14 @@ final class FTPClientPool {
             @Override
             public void close() throws IOException {
                 if (open) {
-                    out.close();
-                    open = false;
-                    finalizeStream();
+                    try {
+                        out.close();
+                    } finally {
+                        // always finalize the stream, to prevent pool starvation
+                        // set open to false as well, to prevent finalizing the stream twice
+                        open = false;
+                        finalizeStream();
+                    }
                     if (deleteOnClose) {
                         delete(path, false);
                     }

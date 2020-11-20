@@ -63,6 +63,7 @@ public class FTPSEnvironment extends FTPEnvironment {
     private static final String USE_CLIENT_MODE = "useClientMode"; //$NON-NLS-1$
     private static final String ENABLED_CIPHER_SUITES = "enabledCipherSuites"; //$NON-NLS-1$
     private static final String ENABLED_PROTOCOLS = "enabledProtocols"; //$NON-NLS-1$
+    private static final String DATA_CHANNEL_PROTECTION_LEVEL = "dataChannelProtectionLevel"; //$NON-NLS-1$
 
     /**
      * Creates a new FTPS environment.
@@ -522,6 +523,18 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * Sets a data channel protection level required for secure data transmission.
+     *
+     * @param dataChannelProtectionLevel the data channel protection level
+     * @return This object.
+     * @see SSLSocket#setUseClientMode(boolean)
+     */
+    public FTPSEnvironment withDataChannelProtectionLevel(FTPSDataChannelProtectionLevel dataChannelProtectionLevel) {
+        put(DATA_CHANNEL_PROTECTION_LEVEL, dataChannelProtectionLevel);
+        return this;
+    }
+
     @Override
     FTPSClient createClient(String hostname, int port) throws IOException {
         SecurityMode securityMode = FileSystemProviderSupport.getValue(this, SECURITY_MODE, SecurityMode.class, SecurityMode.EXPLICIT);
@@ -595,6 +608,17 @@ public class FTPSEnvironment extends FTPEnvironment {
         if (containsKey(ENABLED_PROTOCOLS)) {
             String[] protocolVersions = FileSystemProviderSupport.getValue(this, ENABLED_PROTOCOLS, String[].class, null);
             client.setEnabledProtocols(protocolVersions);
+        }
+    }
+
+    void initializePostConnect( FTPSClient client ) throws IOException
+    {
+        super.initializePostConnect( client );
+        if (containsKey(DATA_CHANNEL_PROTECTION_LEVEL)) {
+            FTPSDataChannelProtectionLevel dataChannelProtectionLevel =
+                FileSystemProviderSupport.getValue(this, DATA_CHANNEL_PROTECTION_LEVEL, FTPSDataChannelProtectionLevel.class, null);
+            client.execPBSZ( 0 ); // 0 means streaming
+            client.execPROT( dataChannelProtectionLevel.name() );
         }
     }
 

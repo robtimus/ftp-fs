@@ -2,6 +2,8 @@
 .checkstyle
 .classpath
 .project
+.externalToolBuilders
 .idea
+maven-eclipse.xml
 src/site/markdown/index.md
 target

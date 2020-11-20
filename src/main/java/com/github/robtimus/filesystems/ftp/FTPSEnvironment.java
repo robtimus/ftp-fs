@@ -63,6 +63,7 @@ public class FTPSEnvironment extends FTPEnvironment {
     private static final String USE_CLIENT_MODE = "useClientMode"; //$NON-NLS-1$
     private static final String ENABLED_CIPHER_SUITES = "enabledCipherSuites"; //$NON-NLS-1$
     private static final String ENABLED_PROTOCOLS = "enabledProtocols"; //$NON-NLS-1$
+    private static final String DATA_CHANNEL_PROTECTION_LEVEL = "dataChannelProtectionLevel"; //$NON-NLS-1$
 
     /**
      * Creates a new FTPS environment.
@@ -522,6 +523,19 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * Stores the data channel protection level to use.
+     *
+     * @param dataChannelProtectionLevel The data channel protection level to use.
+     * @return This object.
+     * @see SSLSocket#setUseClientMode(boolean)
+     * @since 2.2
+     */
+    public FTPSEnvironment withDataChannelProtectionLevel(DataChannelProtectionLevel dataChannelProtectionLevel) {
+        put(DATA_CHANNEL_PROTECTION_LEVEL, dataChannelProtectionLevel);
+        return this;
+    }
+
     @Override
     FTPSClient createClient(String hostname, int port) throws IOException {
         SecurityMode securityMode = FileSystemProviderSupport.getValue(this, SECURITY_MODE, SecurityMode.class, SecurityMode.EXPLICIT);
@@ -597,6 +611,18 @@ public class FTPSEnvironment extends FTPEnvironment {
         if (containsKey(ENABLED_PROTOCOLS)) {
             String[] protocolVersions = FileSystemProviderSupport.getValue(this, ENABLED_PROTOCOLS, String[].class, null);
             client.setEnabledProtocols(protocolVersions);
+        }
+    }
+
+    void initializePostConnect(FTPSClient client) throws IOException {
+        super.initializePostConnect(client);
+
+        if (containsKey(DATA_CHANNEL_PROTECTION_LEVEL)) {
+            DataChannelProtectionLevel dataChannelProtectionLevel
+                    = FileSystemProviderSupport.getValue(this, DATA_CHANNEL_PROTECTION_LEVEL, DataChannelProtectionLevel.class);
+            // 0 means streaming, see https://tools.ietf.org/html/rfc4217#section-9
+            client.execPBSZ(0);
+            dataChannelProtectionLevel.apply(client);
         }
     }
 

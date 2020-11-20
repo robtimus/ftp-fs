@@ -59,10 +59,10 @@ public final class FileType implements OpenOption, CopyOption {
         CARRIAGE_CONTROL(FTP.CARRIAGE_CONTROL_TEXT_FORMAT),
         ;
 
-        private final int format;
+        private final int value;
 
-        Format(int format) {
-            this.format = format;
+        Format(int value) {
+            this.value = value;
         }
     }
 
@@ -81,7 +81,7 @@ public final class FileType implements OpenOption, CopyOption {
     private FileType(int fileType, String fileTypeString, Format format) {
         this.fileType = fileType;
         this.fileTypeString = fileTypeString;
-        this.formatOrByteSize = format.format;
+        this.formatOrByteSize = format.value;
         this.format = format;
     }
 

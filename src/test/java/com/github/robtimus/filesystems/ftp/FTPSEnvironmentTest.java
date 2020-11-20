@@ -19,9 +19,11 @@ package com.github.robtimus.filesystems.ftp;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -45,6 +47,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import com.github.robtimus.filesystems.Messages;
 
 @SuppressWarnings("nls")
 @TestInstance(Lifecycle.PER_CLASS)
@@ -77,6 +80,7 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
                 arguments("withUseClientMode", "useClientMode", true),
                 arguments("withEnabledCipherSuites", "enabledCipherSuites", new String[] { "suite1", "suite2", }),
                 arguments("withEnabledProtocols", "enabledProtocols", new String[] { "protocol1", "protocol2", }),
+                arguments("withDataChannelProtectionLevel", "dataChannelProtectionLevel", DataChannelProtectionLevel.PRIVATE),
         };
         return Stream.concat(super.findSetters(), Arrays.stream(arguments));
     }
@@ -505,7 +509,44 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
 
     @Nested
     class InitializePostConnectTest {
-        // added to skip inherited post connect tests
+
+        @Nested
+        class DataChannelProtectionLevelTest {
+
+            @Test
+            void testDataChannelProtectionLevelNotSet() throws IOException {
+                FTPSClient client = mock(FTPSClient.class);
+
+                FTPSEnvironment env = new FTPSEnvironment();
+                env.initializePostConnect(client);
+
+                verify(client, never()).execPBSZ(anyLong());
+                verify(client, never()).execPROT(anyString());
+            }
+
+            @Test
+            void testDataChannelProtectionLevelSet() throws IOException {
+                FTPSClient client = mock(FTPSClient.class);
+
+                FTPSEnvironment env = new FTPSEnvironment().withDataChannelProtectionLevel(DataChannelProtectionLevel.PRIVATE);
+                env.initializePostConnect(client);
+
+                verify(client).execPBSZ(0);
+                verify(client).execPROT("P");
+            }
+
+            @Test
+            void testDataChannelProtectionLevelSetToNull() throws IOException {
+                FTPSClient client = mock(FTPSClient.class);
+
+                FTPSEnvironment env = new FTPSEnvironment().withDataChannelProtectionLevel(null);
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> env.initializePostConnect(client));
+                assertEquals(Messages.fileSystemProvider().env().missingProperty("dataChannelProtectionLevel").getMessage(), exception.getMessage());
+
+                verify(client, never()).execPBSZ(anyLong());
+                verify(client, never()).execPROT(anyString());
+            }
+        }
     }
 
     @Nested

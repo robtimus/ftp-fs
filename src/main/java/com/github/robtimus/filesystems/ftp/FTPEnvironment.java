@@ -704,11 +704,13 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         initializePreConnect(client);
         connect(client, hostname, port);
         initializePostConnect(client);
+        login(client);
+        initializePostLogin(client);
         verifyConnection(client);
         return client;
     }
 
-    // this method is called twice, pre-connect and post-connect, to make sure these settings get set and don't get reset by FTPClient
+    // this method is called twice, pre-connect and post-login, to make sure these settings get set and don't get reset by FTPClient
     private void applyConnectionSettings(FTPClient client) throws IOException {
         FileSystemProviderSupport.getValue(this, CONNECTION_MODE, ConnectionMode.class, ConnectionMode.ACTIVE).apply(client);
 
@@ -852,26 +854,9 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         } else {
             client.connect(hostname, port);
         }
-
-        String username = getUsername();
-        char[] passwordChars = FileSystemProviderSupport.getValue(this, PASSWORD, char[].class, null);
-        String password = passwordChars != null ? new String(passwordChars) : null;
-        String account = FileSystemProviderSupport.getValue(this, ACCOUNT, String.class, null);
-        if (account != null) {
-            if (!client.login(username, password, account)) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
-            }
-        } else if (username != null || password != null) {
-            if (!client.login(username, password)) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
-            }
-        }
-        // else no account or username/password - don't log in
     }
 
     void initializePostConnect(FTPClient client) throws IOException {
-        applyConnectionSettings(client);
-
         if (containsKey(SO_TIMEOUT)) {
             int timeout = FileSystemProviderSupport.getIntValue(this, SO_TIMEOUT);
             client.setSoTimeout(timeout);
@@ -889,6 +874,28 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
             int val = FileSystemProviderSupport.getIntValue(this, SO_LINGER_VALUE);
             client.setSoLinger(on, val);
         }
+    }
+
+    void login(FTPClient client) throws IOException {
+
+        String username = getUsername();
+        char[] passwordChars = FileSystemProviderSupport.getValue(this, PASSWORD, char[].class, null);
+        String password = passwordChars != null ? new String(passwordChars) : null;
+        String account = FileSystemProviderSupport.getValue(this, ACCOUNT, String.class, null);
+        if (account != null) {
+            if (!client.login(username, password, account)) {
+                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+            }
+        } else if (username != null || password != null) {
+            if (!client.login(username, password)) {
+                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+            }
+        }
+        // else no account or username/password - don't log in
+    }
+
+    void initializePostLogin(FTPClient client) throws IOException {
+        applyConnectionSettings(client);
 
         // default to binary
         client.setFileType(FTP.BINARY_FILE_TYPE);

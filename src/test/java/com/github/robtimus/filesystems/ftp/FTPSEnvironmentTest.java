@@ -507,4 +507,14 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
     class InitializePostConnectTest {
         // added to skip inherited post connect tests
     }
+
+    @Nested
+    class LoginTest {
+        // added to skip inherited login tests
+    }
+
+    @Nested
+    class InitializePostLoginTest {
+        // added to skip inherited post login tests
+    }
 }

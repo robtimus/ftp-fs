@@ -709,7 +709,7 @@ class FTPEnvironmentTest {
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.put("activePortRange.min", 1000);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client, never()).setActivePortRange(anyInt(), anyInt());
             }
@@ -720,7 +720,7 @@ class FTPEnvironmentTest {
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.put("activePortRange.max", 200);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client, never()).setActivePortRange(anyInt(), anyInt());
             }
@@ -730,7 +730,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActivePortRange(1000, 2000);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setActivePortRange(1000, 2000);
             }
@@ -754,7 +754,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActiveExternalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setActiveExternalIPAddress("127.0.0.1");
             }
@@ -764,7 +764,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActiveExternalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setActiveExternalIPAddress(null);
             }
@@ -788,7 +788,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withPassiveLocalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setPassiveLocalIPAddress("127.0.0.1");
             }
@@ -798,7 +798,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withPassiveLocalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setPassiveLocalIPAddress((String) null);
             }
@@ -822,7 +822,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withReportActiveExternalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setReportActiveExternalIPAddress("127.0.0.1");
             }
@@ -832,7 +832,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withReportActiveExternalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePreConnect(client);
 
                 verify(client).setReportActiveExternalIPAddress(null);
             }
@@ -1146,10 +1146,13 @@ class FTPEnvironmentTest {
             @Test
             void testLocalAddressNotSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
+                doReturn(21).when(client).getDefaultPort();
 
+                String hostname = "localhost";
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
-                verify(client).setListHiddenFiles(true);
+                env.connect(client, hostname, -1);
+
+                verify(client).connect(hostname, 21);
             }
 
             @Test
@@ -1179,69 +1182,6 @@ class FTPEnvironmentTest {
                 verify(client).connect(hostname, 21);
             }
         }
-
-        @Nested
-        class CredentialsTest {
-
-            @Test
-            void testCredentialsNotSet() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-
-                FTPEnvironment env = new FTPEnvironment();
-                env.connect(client, "localhost", -1);
-
-                verify(client, never()).login(nullable(String.class), nullable(String.class));
-                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
-            }
-
-            @Test
-            void testCredentialsSetWithoutAccount() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).login(anyString(), anyString());
-
-                FTPEnvironment env = new FTPEnvironment().withCredentials("username", "password".toCharArray());
-                env.connect(client, "localhost", -1);
-
-                verify(client).login("username", "password");
-                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
-            }
-
-            @Test
-            void testCredentialsSetWithAccount() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).login(anyString(), anyString(), anyString());
-
-                FTPEnvironment env = new FTPEnvironment().withCredentials("username", "password".toCharArray(), "account");
-                env.connect(client, "localhost", -1);
-
-                verify(client).login("username", "password", "account");
-                verify(client, never()).login(nullable(String.class), nullable(String.class));
-            }
-
-            @Test
-            void testCredentialsSetWithNullUsername() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).login(nullable(String.class), anyString());
-
-                FTPEnvironment env = new FTPEnvironment().withCredentials(null, "password".toCharArray());
-                env.connect(client, "localhost", -1);
-
-                verify(client).login(null, "password");
-                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
-            }
-
-            @Test
-            void testCredentialsSetWithNullPassword() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).login(anyString(), nullable(String.class));
-
-                FTPEnvironment env = new FTPEnvironment().withCredentials("username", null);
-                env.connect(client, "localhost", -1);
-
-                verify(client).login("username", null);
-                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
-            }
-        }
     }
 
     @Nested
@@ -1255,7 +1195,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostConnect(client);
 
                 verify(client, never()).setSoTimeout(anyInt());
             }
@@ -1279,7 +1219,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostConnect(client);
 
                 verify(client, never()).setTcpNoDelay(anyBoolean());
             }
@@ -1313,7 +1253,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostConnect(client);
 
                 verify(client, never()).setKeepAlive(anyBoolean());
             }
@@ -1347,7 +1287,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostConnect(client);
 
                 verify(client, never()).setSoLinger(anyBoolean(), anyInt());
             }
@@ -1405,42 +1345,77 @@ class FTPEnvironmentTest {
                 verify(client).setSoLinger(false, 100);
             }
         }
+    }
+
+    @Nested
+    class LoginTest {
 
         @Nested
-        class DefaultDirectoryTest {
+        class CredentialsTest {
 
             @Test
-            void testDefaultDirectoryNotSet() throws IOException {
+            void testCredentialsNotSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.login(client);
 
-                verify(client, never()).changeWorkingDirectory(anyString());
+                verify(client, never()).login(nullable(String.class), nullable(String.class));
+                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
             }
 
             @Test
-            void testDefaultDirectorySet() throws IOException {
+            void testCredentialsSetWithoutAccount() throws IOException {
                 FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).changeWorkingDirectory(anyString());
+                doReturn(true).when(client).login(anyString(), anyString());
 
-                FTPEnvironment env = new FTPEnvironment().withDefaultDirectory("/path");
-                env.initializePostConnect(client);
+                FTPEnvironment env = new FTPEnvironment().withCredentials("username", "password".toCharArray());
+                env.login(client);
 
-                verify(client).changeWorkingDirectory("/path");
+                verify(client).login("username", "password");
+                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
             }
 
             @Test
-            void testDefaultDirectorySetToNull() throws IOException {
+            void testCredentialsSetWithAccount() throws IOException {
                 FTPClient client = mock(FTPClient.class);
-                doReturn(true).when(client).changeWorkingDirectory(anyString());
+                doReturn(true).when(client).login(anyString(), anyString(), anyString());
 
-                FTPEnvironment env = new FTPEnvironment().withDefaultDirectory(null);
-                env.initializePostConnect(client);
+                FTPEnvironment env = new FTPEnvironment().withCredentials("username", "password".toCharArray(), "account");
+                env.login(client);
 
-                verify(client, never()).changeWorkingDirectory(anyString());
+                verify(client).login("username", "password", "account");
+                verify(client, never()).login(nullable(String.class), nullable(String.class));
+            }
+
+            @Test
+            void testCredentialsSetWithNullUsername() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+                doReturn(true).when(client).login(nullable(String.class), anyString());
+
+                FTPEnvironment env = new FTPEnvironment().withCredentials(null, "password".toCharArray());
+                env.login(client);
+
+                verify(client).login(null, "password");
+                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
+            }
+
+            @Test
+            void testCredentialsSetWithNullPassword() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+                doReturn(true).when(client).login(anyString(), nullable(String.class));
+
+                FTPEnvironment env = new FTPEnvironment().withCredentials("username", null);
+                env.login(client);
+
+                verify(client).login("username", null);
+                verify(client, never()).login(nullable(String.class), nullable(String.class), nullable(String.class));
             }
         }
+    }
+
+    @Nested
+    class InitializePostLoginTest {
 
         @Nested
         class ConnectionModeTest {
@@ -1450,7 +1425,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).enterLocalActiveMode();
                 verify(client, never()).enterLocalPassiveMode();
@@ -1463,7 +1438,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withConnectionMode(ConnectionMode.ACTIVE);
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).enterLocalActiveMode();
                 verify(client, never()).enterLocalPassiveMode();
@@ -1476,7 +1451,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withConnectionMode(ConnectionMode.PASSIVE);
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).enterLocalPassiveMode();
                 verify(client, never()).enterLocalActiveMode();
@@ -1489,7 +1464,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withConnectionMode(null);
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).enterLocalActiveMode();
                 verify(client, never()).enterLocalPassiveMode();
@@ -1506,7 +1481,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setActivePortRange(anyInt(), anyInt());
             }
@@ -1517,7 +1492,7 @@ class FTPEnvironmentTest {
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.put("activePortRange.min", 1000);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setActivePortRange(anyInt(), anyInt());
             }
@@ -1528,7 +1503,7 @@ class FTPEnvironmentTest {
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.put("activePortRange.max", 200);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setActivePortRange(anyInt(), anyInt());
             }
@@ -1538,7 +1513,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActivePortRange(1000, 2000);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setActivePortRange(1000, 2000);
             }
@@ -1552,7 +1527,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setActiveExternalIPAddress(anyString());
             }
@@ -1562,7 +1537,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActiveExternalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setActiveExternalIPAddress("127.0.0.1");
             }
@@ -1572,7 +1547,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withActiveExternalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setActiveExternalIPAddress(null);
             }
@@ -1586,7 +1561,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setPassiveLocalIPAddress(anyString());
             }
@@ -1596,7 +1571,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withPassiveLocalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setPassiveLocalIPAddress("127.0.0.1");
             }
@@ -1606,7 +1581,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withPassiveLocalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setPassiveLocalIPAddress((String) null);
             }
@@ -1620,7 +1595,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
-                env.initializePreConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client, never()).setReportActiveExternalIPAddress(anyString());
             }
@@ -1630,7 +1605,7 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withReportActiveExternalIPAddress("127.0.0.1");
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setReportActiveExternalIPAddress("127.0.0.1");
             }
@@ -1640,9 +1615,45 @@ class FTPEnvironmentTest {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withReportActiveExternalIPAddress(null);
-                env.initializePostConnect(client);
+                env.initializePostLogin(client);
 
                 verify(client).setReportActiveExternalIPAddress(null);
+            }
+        }
+
+        @Nested
+        class DefaultDirectoryTest {
+
+            @Test
+            void testDefaultDirectoryNotSet() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment();
+                env.initializePostLogin(client);
+
+                verify(client, never()).changeWorkingDirectory(anyString());
+            }
+
+            @Test
+            void testDefaultDirectorySet() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+                doReturn(true).when(client).changeWorkingDirectory(anyString());
+
+                FTPEnvironment env = new FTPEnvironment().withDefaultDirectory("/path");
+                env.initializePostLogin(client);
+
+                verify(client).changeWorkingDirectory("/path");
+            }
+
+            @Test
+            void testDefaultDirectorySetToNull() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+                doReturn(true).when(client).changeWorkingDirectory(anyString());
+
+                FTPEnvironment env = new FTPEnvironment().withDefaultDirectory(null);
+                env.initializePostLogin(client);
+
+                verify(client, never()).changeWorkingDirectory(anyString());
             }
         }
     }

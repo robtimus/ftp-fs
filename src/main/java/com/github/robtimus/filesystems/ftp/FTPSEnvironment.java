@@ -542,6 +542,8 @@ public class FTPSEnvironment extends FTPEnvironment {
         initializePreConnect(client);
         connect(client, hostname, port);
         initializePostConnect(client);
+        login(client);
+        initializePostLogin(client);
         verifyConnection(client);
         return client;
     }

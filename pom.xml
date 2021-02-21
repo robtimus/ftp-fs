@@ -74,7 +74,7 @@
   </issueManagement>
 
   <properties>
-    <version.commons-net>3.7.2</version.commons-net>
+    <version.commons-net>3.8.0</version.commons-net>
     <version.fs-core>2.0.1</version.fs-core>
     <version.MockFtpServer>2.7.1</version.MockFtpServer>
   </properties>
@@ -264,4 +264,13 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>min-versions</id>
+      <properties>
+        <version.commons-net>3.6</version.commons-net>
+      </properties>
+    </profile>
+  </profiles>
 </project>

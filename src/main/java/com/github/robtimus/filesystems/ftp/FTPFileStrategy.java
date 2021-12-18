@@ -217,7 +217,8 @@ public abstract class FTPFileStrategy {
 
             FTPFile[] ftpFiles = client.listFiles(path(path), f -> {
                 String fileName = FTPFileSystem.getFileName(f);
-                return FTPFileSystem.CURRENT_DIR.equals(fileName) || (name != null && name.equals(fileName));
+                return FTPFileSystem.CURRENT_DIR.equals(fileName)
+                        || name != null && name.equals(fileName);
             });
             throwIfEmpty(ftpFiles, path, client, exceptionFactory);
             if (ftpFiles.length == 1) {

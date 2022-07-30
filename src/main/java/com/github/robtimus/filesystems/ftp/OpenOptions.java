@@ -81,7 +81,6 @@ final class OpenOptions extends TransferOptions {
             } else if (option instanceof FileTransferMode) {
                 fileTransferMode = setOnce((FileTransferMode) option, fileTransferMode, options);
             } else if (option != StandardOpenOption.READ && !isIgnoredOpenOption(option)) {
-                // TRUNCATE_EXISTING is ignored in combination with READ
                 throw Messages.fileSystemProvider().unsupportedOpenOption(option);
             }
         }

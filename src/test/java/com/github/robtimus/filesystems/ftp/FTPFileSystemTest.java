@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AccessMode;
@@ -639,6 +640,148 @@ class FTPFileSystemTest {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(bar.getSize(), channel.size());
             }
+        }
+
+        @Test
+        void testNewByteChannelCreateWriteExisting() throws IOException {
+            FileEntry bar = addFile("/foo/bar");
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                assertEquals(0, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(newContents.length, channel.size());
+            }
+
+            assertArrayEquals(newContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateAppendExisting() throws IOException {
+            FileEntry bar = addFile("/foo/bar");
+            bar.setContents(new byte[1024]);
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                long size = bar.getSize();
+                assertEquals(size, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(size + newContents.length, channel.size());
+            }
+
+            byte[] totalNewContents = new byte[1024 + newContents.length];
+            System.arraycopy(newContents, 0, totalNewContents, 1024, newContents.length);
+
+            assertArrayEquals(totalNewContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateWriteNonExisting() throws IOException {
+            addDirectory("/foo");
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                assertEquals(0, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(newContents.length, channel.size());
+            }
+
+            FileEntry bar = getFile("/foo/bar");
+
+            assertArrayEquals(newContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateAppendNonExisting() throws IOException {
+            addDirectory("/foo");
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                assertEquals(0, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(newContents.length, channel.size());
+            }
+
+            FileEntry bar = getFile("/foo/bar");
+
+            assertArrayEquals(newContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateNewWriteExisting() throws IOException {
+            FileEntry bar = addFile("/foo/bar");
+            byte[] oldContents = "Hello World".getBytes();
+            bar.setContents(oldContents);
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
+                    () -> fileSystem.newByteChannel(createPath("/foo/bar"), options));
+            assertEquals("/foo/bar", exception.getFile());
+
+            assertArrayEquals(oldContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateNewAppendExisting() throws IOException {
+            FileEntry bar = addFile("/foo/bar");
+            bar.setContents(new byte[1024]);
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
+                    () -> fileSystem.newByteChannel(createPath("/foo/bar"), options));
+            assertEquals("/foo/bar", exception.getFile());
+
+            assertArrayEquals(new byte[1024], getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateNewWriteNonExisting() throws IOException {
+            addDirectory("/foo");
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                assertEquals(0, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(newContents.length, channel.size());
+            }
+
+            FileEntry bar = getFile("/foo/bar");
+
+            assertArrayEquals(newContents, getContents(bar));
+        }
+
+        @Test
+        void testNewByteChannelCreateNewAppendNonExisting() throws IOException {
+            addDirectory("/foo");
+
+            byte[] newContents = "Lorem ipsum".getBytes();
+
+            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+                // don't do anything with the channel, there's a separate test for that
+                assertEquals(0, channel.size());
+                channel.write(ByteBuffer.wrap(newContents));
+                assertEquals(newContents.length, channel.size());
+            }
+
+            FileEntry bar = getFile("/foo/bar");
+
+            assertArrayEquals(newContents, getContents(bar));
         }
 
         // FTPFileSystem.newDirectoryStream

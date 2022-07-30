@@ -17,14 +17,13 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.FTPMessages.getMessage;
 import java.io.IOException;
-import java.util.ResourceBundle;
 import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.github.robtimus.filesystems.UTF8Control;
 
 /**
  * A utility class to perform logging.
@@ -32,9 +31,6 @@ import com.github.robtimus.filesystems.UTF8Control;
  * @author Rob Spoor
  */
 final class FTPLogger {
-
-    private static final String BUNDLE_NAME = "com.github.robtimus.filesystems.ftp.fs"; //$NON-NLS-1$
-    private static final ResourceBundle BUNDLE = ResourceBundle.getBundle(BUNDLE_NAME, UTF8Control.INSTANCE);
 
     private FTPLogger() {
         throw new IllegalStateException("cannot create instances of " + getClass().getName()); //$NON-NLS-1$
@@ -46,10 +42,6 @@ final class FTPLogger {
         } catch (@SuppressWarnings("unused") NoClassDefFoundError e) {
             return null;
         }
-    }
-
-    private static synchronized String getMessage(String key) {
-        return BUNDLE.getString(key);
     }
 
     public static void creatingPool(Logger logger, String hostname, int port, int poolSize, long poolWaitTimeout) {

@@ -22,7 +22,7 @@
   <parent>
     <groupId>com.github.robtimus</groupId>
     <artifactId>robtimus-parent</artifactId>
-    <version>1.4.2</version>
+    <version>1.4.3</version>
     <relativePath />
   </parent>
 
@@ -38,7 +38,7 @@
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
 
@@ -75,10 +75,8 @@
 
   <properties>
     <version.commons-net>3.8.0</version.commons-net>
-    <version.fs-core>2.0.1</version.fs-core>
-    <version.MockFtpServer>2.7.1</version.MockFtpServer>
-    <!-- Use version 1.7.30 to match the latest release; this will allow Snyk to warn for vulnerabilities -->
-    <version.slf4j>1.7.30</version.slf4j>
+    <version.fs-core>2.0.2</version.fs-core>
+    <version.MockFtpServer>2.8.0</version.MockFtpServer>
   </properties>
 
   <dependencies>
@@ -127,7 +125,7 @@
 
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
       <version>${version.slf4j}</version>
       <scope>test</scope>
     </dependency>
@@ -273,6 +271,53 @@
       <properties>
         <version.commons-net>3.6</version.commons-net>
       </properties>
+    </profile>
+
+    <profile>
+      <id>native-module</id>
+      <properties>
+        <version.java>11</version.java>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- Allow JUnit to fully access the test classes -->
+              <argLine>
+                --add-opens com.github.robtimus.filesystems.ftp/com.github.robtimus.filesystems.ftp=ALL-UNNAMED
+              </argLine>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.moditect</groupId>
+            <artifactId>moditect-maven-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/moditect</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

@@ -66,7 +66,7 @@ class FTPLoggerTest {
     private static Properties resourceBundle;
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource
+    @MethodSource("methodCallArguments")
     void testMethodCall(@SuppressWarnings("unused") String testName, Method method) throws ReflectiveOperationException {
         Object[] args = getArguments(method);
 
@@ -107,7 +107,7 @@ class FTPLoggerTest {
         }
     }
 
-    static Stream<Arguments> testMethodCall() {
+    static Stream<Arguments> methodCallArguments() {
         List<Arguments> parameters = new ArrayList<>();
         collectParameters(parameters);
         return parameters.stream();

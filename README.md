@@ -61,13 +61,18 @@ The `ftp-fs` library provides subclasses for [FileSystemException](https://docs.
 
 ## Thread safety
 
-The FTP protocol is fundamentally not thread safe. To overcome this limitation, FTP file systems maintain multiple connections to FTP servers. The number of connections determines the number of concurrent operations that can be executed. If all connections are busy, a new operation will block until a connection becomes available. Class [FTPEnvironment](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html) has method [withClientConnectionCount](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withClientConnectionCount-int-) that allows you to specify the number of connections to use. If no connection count is explicitly set, the default will be `5`. It also has method [withClientConnectionWaitTimeout](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withClientConnectionWaitTimeout-long-) that can be used to control how long to wait before a connection is available. The default is `0` which means wait indefinitely.
+The FTP protocol is fundamentally not thread safe. To overcome this limitation, FTP file systems maintain multiple connections to FTP servers. The number of connections determines the number of concurrent operations that can be executed. If all connections are busy, a new operation will block until a connection becomes available. Class [FTPEnvironment](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html) has method [withPoolConfig](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withPoolConfig-com.github.robtimus.filesystems.ftp.FTPPoolConfig-) that allows you to configure the connection pool:
+
+* The initial pool size - the number of connections that are created when an FTP file system is created. The default is `1`.
+* The maximum pool size - the maximum number of concurrent operations. The default is `5`.
+* The maximum wait time - this determines how long to wait until a connection is available. The default is to wait indefinitely.
+* The maximum time that connections can be idle. The default is indefinitely.
 
 When a stream or channel is opened for reading or writing, the connection will block because it will wait for the download or upload to finish. This will not occur until the stream or channel is closed. It is therefore advised to close streams and channels as soon as possible.
 
 ## Connection management
 
-Because FTP file systems use multiple connections to an FTP server, it's possible that one or more of these connections become stale. Class [FTPFileSystemProvider](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPFileSystemProvider.html) has static method [keepAlive](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPFileSystemProvider.html#keepAlive-java.nio.file.FileSystem-) that, if given an instance of an FTP file system, will send a keep-alive signal (NOOP) over each of its idle connections. You should ensure that this method is called on a regular interval.
+Because FTP file systems use multiple connections to an FTP server, it's possible that one or more of these connections become stale. Class [FTPFileSystemProvider](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPFileSystemProvider.html) has static method [keepAlive](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPFileSystemProvider.html#keepAlive-java.nio.file.FileSystem-) that, if given an instance of an FTP file system, will send a keep-alive signal (NOOP) over each of its idle connections. You should ensure that this method is called on a regular interval. An alternative is to set a maximum idle time (see [Thread safety](#thread-safety)).
 
 ## Limitations
 

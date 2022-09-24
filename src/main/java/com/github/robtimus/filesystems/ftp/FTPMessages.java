@@ -43,23 +43,52 @@ final class FTPMessages {
         }
     }
 
-    static synchronized String getMessage(String key) {
+    private static synchronized String getMessage(String key) {
         return BUNDLE.getString(key);
     }
 
-    public static String copyOfSymbolicLinksAcrossFileSystemsNotSupported() {
+    private static String getMessage(String key, Object... args) {
+        String format = getMessage(key);
+        return String.format(format, args);
+    }
+
+    static String copyOfSymbolicLinksAcrossFileSystemsNotSupported() {
         return getMessage("copyOfSymbolicLinksAcrossFileSystemsNotSupported"); //$NON-NLS-1$
     }
 
-    public static String autoDetectFileStrategyAlreadyInitialized() {
+    static String autoDetectFileStrategyAlreadyInitialized() {
         return getMessage("autoDetectFileStrategyAlreadyInitialized"); //$NON-NLS-1$
     }
 
-    public static String autoDetectFileStrategyNotInitialized() {
+    static String autoDetectFileStrategyNotInitialized() {
         return getMessage("autoDetectFileStrategyNotInitialized"); //$NON-NLS-1$
     }
 
-    public static String clientConnectionWaitTimeoutExpired() {
+    static String clientConnectionWaitTimeoutExpired() {
         return getMessage("clientConnectionWaitTimeoutExpired"); //$NON-NLS-1$
+    }
+
+    static String createdInputStream(String path) {
+        return getMessage("log.createdInputStream", path); //$NON-NLS-1$
+    }
+
+    static String closedInputStream(String path) {
+        return getMessage("log.closedInputStream", path); //$NON-NLS-1$
+    }
+
+    static String createdOutputStream(String path) {
+        return getMessage("log.createdOutputStream", path); //$NON-NLS-1$
+    }
+
+    static String closedOutputStream(String path) {
+        return getMessage("log.closedOutputStream", path); //$NON-NLS-1$
+    }
+
+    static String ftpCommandSent(String message) {
+        return getMessage("log.ftpCommandSent", message); //$NON-NLS-1$
+    }
+
+    static String ftpReplyReceived(String message) {
+        return getMessage("log.ftpReplyReceived", message); //$NON-NLS-1$
     }
 }

@@ -28,7 +28,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 
@@ -48,8 +47,11 @@ class FTPClientPoolTest extends AbstractFTPFileSystemTest {
 
         URI uri = getURI();
         FTPEnvironment env = createEnv(NON_UNIX)
-                .withClientConnectionCount(clientCount)
-                .withClientConnectionWaitTimeout(500, TimeUnit.MILLISECONDS);
+                .withPoolConfig(FTPPoolConfig.custom()
+                        .withMaxSize(clientCount)
+                        .withMaxWaitTime(Duration.ofMillis(500))
+                        .build()
+                );
 
         FTPClientPool pool = new FTPClientPool(uri.getHost(), uri.getPort(), env);
         List<Client> clients = new ArrayList<>();

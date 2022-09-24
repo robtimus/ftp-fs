@@ -89,7 +89,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         // user info must come from the environment map
         checkURI(uri, false, false);
 
-        FTPEnvironment environment = wrapEnvironment(env);
+        FTPEnvironment environment = copy(env);
 
         String username = environment.getUsername();
         URI normalizedURI = normalizeWithUsername(uri, username);
@@ -104,8 +104,8 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         }
     }
 
-    FTPEnvironment wrapEnvironment(Map<String, ?> env) {
-        return FTPEnvironment.wrap(env);
+    FTPEnvironment copy(Map<String, ?> env) {
+        return FTPEnvironment.copy(env);
     }
 
     /**

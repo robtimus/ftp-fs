@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -96,7 +95,6 @@ class FTPEnvironmentTest {
                 arguments("withProxy", "proxy", new Proxy(Proxy.Type.HTTP, new InetSocketAddress("localhost", 21))),
                 arguments("withCharset", "charset", StandardCharsets.UTF_8),
                 arguments("withControlEncoding", "controlEncoding", "UTF-8"),
-                arguments("withStrictlyMultilineParsing", "strictMultilineParsing", true),
                 arguments("withStrictMultilineParsing", "strictMultilineParsing", true),
                 arguments("withDataTimeout", "dataTimeout", 1000),
                 arguments("withParserFactory", "parserFactory", new DefaultFTPFileEntryParserFactory()),
@@ -116,8 +114,7 @@ class FTPEnvironmentTest {
                 arguments("withPassiveNatWorkaroundStrategy", "passiveNatWorkaroundStrategy", new FTPClient.NatServerResolverImpl(new FTPClient())),
                 arguments("withAutodetectEncoding", "autodetectEncoding", true),
                 arguments("withListHiddenFiles", "listHiddenFiles", false),
-                arguments("withClientConnectionCount", "clientConnectionCount", 5),
-                arguments("withClientConnectionWaitTimeout", "clientConnectionWaitTimeout", 1000L),
+                arguments("withPoolConfig", "poolConfig", FTPPoolConfig.defaultConfig()),
                 arguments("withFileSystemExceptionFactory", "fileSystemExceptionFactory", DefaultFileSystemExceptionFactory.INSTANCE),
                 arguments("withFTPFileStrategyFactory", "ftpFileStrategyFactory", UNIX),
         };
@@ -240,19 +237,6 @@ class FTPEnvironmentTest {
 
         env.withFTPFileStrategyFactory(AUTO_DETECT);
         assertSame(FTPFileStrategy.autoDetect().getClass(), env.getFTPFileStrategy().getClass());
-    }
-
-    @Test
-    void testWithClientConnectionWaitTimeoutWithUnit() {
-        FTPEnvironment env = createFTPEnvironment();
-
-        assertEquals(Collections.emptyMap(), env);
-
-        env.withClientConnectionWaitTimeout(1, TimeUnit.MINUTES);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("clientConnectionWaitTimeout", 60_000L);
-        assertEquals(expected, env);
     }
 
     @Nested

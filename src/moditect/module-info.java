@@ -1,7 +1,7 @@
 module com.github.robtimus.filesystems.ftp {
     requires com.github.robtimus.filesystems;
     requires transitive org.apache.commons.net;
-    requires static org.slf4j;
+    requires com.github.robtimus.pool;
 
     exports com.github.robtimus.filesystems.ftp;
 

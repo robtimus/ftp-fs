@@ -35,7 +35,7 @@ public class FTPSFileSystemProvider extends FTPFileSystemProvider {
     }
 
     @Override
-    FTPSEnvironment wrapEnvironment(Map<String, ?> env) {
-        return FTPSEnvironment.wrap(env);
+    FTPSEnvironment copy(Map<String, ?> env) {
+        return FTPSEnvironment.copy(env);
     }
 }

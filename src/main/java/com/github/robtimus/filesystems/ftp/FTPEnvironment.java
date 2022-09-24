@@ -23,10 +23,13 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,7 +53,7 @@ import com.github.robtimus.filesystems.FileSystemProviderSupport;
  *
  * @author Rob Spoor
  */
-public class FTPEnvironment implements Map<String, Object>, Cloneable {
+public class FTPEnvironment implements Map<String, Object> {
 
     // connect support
 
@@ -108,14 +111,11 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
 
     // FTP file system support
 
-    private static final int DEFAULT_CLIENT_CONNECTION_COUNT = 5;
-    private static final long DEFAULT_CLIENT_CONNECTION_WAIT_TIMEOUT = 0;
-    private static final String CLIENT_CONNECTION_COUNT = "clientConnectionCount"; //$NON-NLS-1$
-    private static final String CLIENT_CONNECTION_WAIT_TIMEOUT = "clientConnectionWaitTimeout"; //$NON-NLS-1$
+    private static final String POOL_CONFIG = "poolConfig"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
     private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
 
-    private Map<String, Object> map;
+    private final Map<String, Object> map;
 
     /**
      * Creates a new FTP environment.
@@ -131,14 +131,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
      */
     public FTPEnvironment(Map<String, Object> map) {
         this.map = Objects.requireNonNull(map);
-    }
-
-    @SuppressWarnings("unchecked")
-    static FTPEnvironment wrap(Map<String, ?> map) {
-        if (map instanceof FTPEnvironment) {
-            return (FTPEnvironment) map;
-        }
-        return new FTPEnvironment((Map<String, Object>) map);
     }
 
     // connect support
@@ -333,18 +325,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     public FTPEnvironment withControlEncoding(String encoding) {
         put(CONTROL_ENCODING, encoding);
         return this;
-    }
-
-    /**
-     * Stores whether or not strict multiline parsing should be enabled, as per RFC 959, section 4.2.
-     *
-     * @param strictMultilineParsing {@code true} to enable strict multiline parsing, or {@code false} to disable it.
-     * @return This object.
-     * @deprecated This method is named incorrectly. Use {@link #withStrictMultilineParsing(boolean)} instead.
-     */
-    @Deprecated
-    public FTPEnvironment withStrictlyMultilineParsing(boolean strictMultilineParsing) {
-        return withStrictMultilineParsing(strictMultilineParsing);
     }
 
     /**
@@ -595,45 +575,20 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     // FTP file system support
 
     /**
-     * Stores the number of client connections to use. This value influences the number of concurrent threads that can access an FTP file system.
-     *
-     * @param count The number of client connection to use.
-     * @return This object.
-     */
-    public FTPEnvironment withClientConnectionCount(int count) {
-        put(CLIENT_CONNECTION_COUNT, count);
-        return this;
-    }
-
-    /**
-     * Stores the wait timeout to use for retrieving client connection from the connection pool.
+     * Stores the pool config to use.
      * <p>
-     * If the timeout is not larger than {@code 0}, the FTP file system waits indefinitely until a client connection becomes available.
+     * The {@linkplain FTPPoolConfig#maxSize() maximum pool size} influences the number of concurrent threads that can access an FTP file system.
+     * <br>
+     * If the {@linkplain FTPPoolConfig#maxWaitTime() maximum wait time} is {@linkplain Duration#isNegative() negative}, FTP file systems wait
+     * indefinitely until a client connection is available. This is the default setting if no pool config is defined.
      *
-     * @param timeout The timeout in milliseconds.
+     * @param poolConfig The pool config to use.
      * @return This object.
-     * @see #withClientConnectionWaitTimeout(long, TimeUnit)
-     * @since 1.4
+     * @since 3.0
      */
-    public FTPEnvironment withClientConnectionWaitTimeout(long timeout) {
-        put(CLIENT_CONNECTION_WAIT_TIMEOUT, timeout);
+    public FTPEnvironment withPoolConfig(FTPPoolConfig poolConfig) {
+        put(POOL_CONFIG, poolConfig);
         return this;
-    }
-
-    /**
-     * Stores the wait timeout to use for retrieving client connections from the connection pool.
-     * <p>
-     * If the timeout is not larger than {@code 0}, the FTP file system waits indefinitely until a client connection becomes available.
-     *
-     * @param duration The timeout duration.
-     * @param unit The timeout unit.
-     * @return This object.
-     * @throws NullPointerException If the timeout unit is {@code null}.
-     * @see #withClientConnectionWaitTimeout(long)
-     * @since 1.4
-     */
-    public FTPEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {
-        return withClientConnectionWaitTimeout(TimeUnit.MILLISECONDS.convert(duration, unit));
     }
 
     /**
@@ -678,14 +633,8 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return FileTransferMode.STREAM;
     }
 
-    int getClientConnectionCount() {
-        int count = FileSystemProviderSupport.getIntValue(this, CLIENT_CONNECTION_COUNT, DEFAULT_CLIENT_CONNECTION_COUNT);
-        return Math.max(1, count);
-    }
-
-    long getClientConnectionWaitTimeout() {
-        long timeout = FileSystemProviderSupport.getLongValue(this, CLIENT_CONNECTION_WAIT_TIMEOUT, DEFAULT_CLIENT_CONNECTION_WAIT_TIMEOUT);
-        return Math.max(0, timeout);
+    FTPPoolConfig getPoolConfig() {
+        return FileSystemProviderSupport.getValue(this, POOL_CONFIG, FTPPoolConfig.class, FTPPoolConfig.defaultConfig());
     }
 
     FileSystemExceptionFactory getExceptionFactory() {
@@ -714,20 +663,36 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     private void applyConnectionSettings(FTPClient client) throws IOException {
         FileSystemProviderSupport.getValue(this, CONNECTION_MODE, ConnectionMode.class, ConnectionMode.ACTIVE).apply(client);
 
+        configureACtivePortRange(client);
+
+        configureActiveExternalIPAddress(client);
+        configurePassiveLocalIPAddress(client);
+        configureReportActiveExternalIPAddress(client);
+    }
+
+    private void configureACtivePortRange(FTPClient client) {
         if (containsKey(ACTIVE_PORT_RANGE_MIN) && containsKey(ACTIVE_PORT_RANGE_MAX)) {
             int minPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MIN);
             int maxPort = FileSystemProviderSupport.getIntValue(this, ACTIVE_PORT_RANGE_MAX);
             client.setActivePortRange(minPort, maxPort);
         }
+    }
 
+    private void configureActiveExternalIPAddress(FTPClient client) throws UnknownHostException {
         if (containsKey(ACTIVE_EXTERNAL_IP_ADDRESS)) {
             String ipAddress = FileSystemProviderSupport.getValue(this, ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
             client.setActiveExternalIPAddress(ipAddress);
         }
+    }
+
+    private void configurePassiveLocalIPAddress(FTPClient client) throws UnknownHostException {
         if (containsKey(PASSIVE_LOCAL_IP_ADDRESS)) {
             String ipAddress = FileSystemProviderSupport.getValue(this, PASSIVE_LOCAL_IP_ADDRESS, String.class, null);
             client.setPassiveLocalIPAddress(ipAddress);
         }
+    }
+
+    private void configureReportActiveExternalIPAddress(FTPClient client) throws UnknownHostException {
         if (containsKey(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS)) {
             String ipAddress = FileSystemProviderSupport.getValue(this, REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, String.class, null);
             client.setReportActiveExternalIPAddress(ipAddress);
@@ -735,79 +700,159 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void initializePreConnect(FTPClient client) throws IOException {
+        configureListHiddenFiles(client);
+
+        configureSendBufferSize(client);
+        configureReceiveBufferSize(client);
+
+        configureSocketFactory(client);
+        configureServerSocketFactory(client);
+
+        configureConnectTimeout(client);
+
+        configureProxy(client);
+
+        configureCharset(client);
+
+        configureControlEncoding(client);
+
+        configureStrictMultilineParsing(client);
+
+        configureDataTimeout(client);
+
+        configureParserFactory(client);
+
+        configureRemoteVerificationEnabled(client);
+
+        applyConnectionSettings(client);
+
+        configureBufferSize(client);
+        configureSendDataSocketBufferSize(client);
+        configureReceiveDataSocketBufferSize(client);
+
+        configureClientConfig(client);
+
+        configurePassiveNatWorkaroundStrategy(client);
+
+        configureUseEPSVwithIPv4(client);
+
+        configureControlKeepAliveTimeout(client);
+        configureControlKeepAliveReplyTimeout(client);
+
+        configureAutodetectEncoding(client);
+    }
+
+    private void configureListHiddenFiles(FTPClient client) {
         boolean listHiddenFiles = FileSystemProviderSupport.getBooleanValue(this, LIST_HIDDEN_FILES, true);
         client.setListHiddenFiles(listHiddenFiles);
+    }
 
+    private void configureSendBufferSize(FTPClient client) throws SocketException {
         if (containsKey(SEND_BUFFER_SIZE)) {
             int size = FileSystemProviderSupport.getIntValue(this, SEND_BUFFER_SIZE);
             client.setSendBufferSize(size);
         }
+    }
+
+    private void configureReceiveBufferSize(FTPClient client) throws SocketException {
         if (containsKey(RECEIVE_BUFFER_SIZE)) {
             int size = FileSystemProviderSupport.getIntValue(this, RECEIVE_BUFFER_SIZE);
             client.setReceiveBufferSize(size);
         }
+    }
 
+    private void configureSocketFactory(FTPClient client) {
         if (containsKey(SOCKET_FACTORY)) {
             SocketFactory factory = FileSystemProviderSupport.getValue(this, SOCKET_FACTORY, SocketFactory.class, null);
             client.setSocketFactory(factory);
         }
+    }
+
+    private void configureServerSocketFactory(FTPClient client) {
         if (containsKey(SERVER_SOCKET_FACTORY)) {
             ServerSocketFactory factory = FileSystemProviderSupport.getValue(this, SERVER_SOCKET_FACTORY, ServerSocketFactory.class, null);
             client.setServerSocketFactory(factory);
         }
+    }
 
+    private void configureConnectTimeout(FTPClient client) {
         if (containsKey(CONNECT_TIMEOUT)) {
             int connectTimeout = FileSystemProviderSupport.getIntValue(this, CONNECT_TIMEOUT);
             client.setConnectTimeout(connectTimeout);
         }
+    }
 
+    private void configureProxy(FTPClient client) {
         if (containsKey(PROXY)) {
             Proxy proxy = FileSystemProviderSupport.getValue(this, PROXY, Proxy.class, null);
             client.setProxy(proxy);
         }
+    }
+
+    private void configureCharset(FTPClient client) {
         if (containsKey(CHARSET)) {
             Charset charset = FileSystemProviderSupport.getValue(this, CHARSET, Charset.class, null);
             client.setCharset(charset);
         }
+    }
+
+    private void configureControlEncoding(FTPClient client) {
         if (containsKey(CONTROL_ENCODING)) {
             String controlEncoding = FileSystemProviderSupport.getValue(this, CONTROL_ENCODING, String.class, null);
             client.setControlEncoding(controlEncoding);
         }
+    }
 
+    private void configureStrictMultilineParsing(FTPClient client) {
         if (containsKey(STRICT_MULTILINE_PARSING)) {
             boolean strictMultilineParsing = FileSystemProviderSupport.getBooleanValue(this, STRICT_MULTILINE_PARSING);
             client.setStrictMultilineParsing(strictMultilineParsing);
         }
+    }
+
+    private void configureDataTimeout(FTPClient client) {
         if (containsKey(DATA_TIMEOUT)) {
             int timeout = FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT);
             client.setDataTimeout(timeout);
         }
+    }
 
+    private void configureParserFactory(FTPClient client) {
         if (containsKey(PARSER_FACTORY)) {
             FTPFileEntryParserFactory parserFactory = FileSystemProviderSupport.getValue(this, PARSER_FACTORY, FTPFileEntryParserFactory.class, null);
             client.setParserFactory(parserFactory);
         }
+    }
 
+    private void configureRemoteVerificationEnabled(FTPClient client) {
         if (containsKey(REMOTE_VERIFICATION_ENABLED)) {
             boolean enable = FileSystemProviderSupport.getBooleanValue(this, REMOTE_VERIFICATION_ENABLED);
             client.setRemoteVerificationEnabled(enable);
         }
+    }
 
-        applyConnectionSettings(client);
-
+    private void configureBufferSize(FTPClient client) {
         if (containsKey(BUFFER_SIZE)) {
             int bufSize = FileSystemProviderSupport.getIntValue(this, BUFFER_SIZE);
             client.setBufferSize(bufSize);
         }
+    }
+
+    private void configureSendDataSocketBufferSize(FTPClient client) {
         if (containsKey(SEND_DATA_SOCKET_BUFFER_SIZE)) {
             int bufSize = FileSystemProviderSupport.getIntValue(this, SEND_DATA_SOCKET_BUFFER_SIZE);
             client.setSendDataSocketBufferSize(bufSize);
         }
+    }
+
+    private void configureReceiveDataSocketBufferSize(FTPClient client) {
         if (containsKey(RECEIVE_DATA_SOCKET_BUFFER_SIZE)) {
             int bufSize = FileSystemProviderSupport.getIntValue(this, RECEIVE_DATA_SOCKET_BUFFER_SIZE);
             client.setReceieveDataSocketBufferSize(bufSize);
         }
+    }
 
+    private void configureClientConfig(FTPClient client) {
         if (containsKey(CLIENT_CONFIG)) {
             FTPClientConfig clientConfig = FileSystemProviderSupport.getValue(this, CLIENT_CONFIG, FTPClientConfig.class, null);
             if (clientConfig != null) {
@@ -815,26 +860,39 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
             }
             client.configure(clientConfig);
         }
+    }
 
+    private void configurePassiveNatWorkaroundStrategy(FTPClient client) {
         if (containsKey(PASSIVE_NAT_WORKAROUND_STRATEGY)) {
             HostnameResolver resolver = FileSystemProviderSupport.getValue(this, PASSIVE_NAT_WORKAROUND_STRATEGY, HostnameResolver.class, null);
             client.setPassiveNatWorkaroundStrategy(resolver);
         }
+    }
 
+    private void configureUseEPSVwithIPv4(FTPClient client) {
         if (containsKey(USE_EPSV_WITH_IPV4)) {
             boolean selected = FileSystemProviderSupport.getBooleanValue(this, USE_EPSV_WITH_IPV4);
             client.setUseEPSVwithIPv4(selected);
         }
+    }
+
+    private void configureControlKeepAliveTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_TIMEOUT)) {
             long controlIdle = FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT);
             // the value is stored as ms, but the method expects seconds
             controlIdle = TimeUnit.MILLISECONDS.toSeconds(controlIdle);
             client.setControlKeepAliveTimeout(controlIdle);
         }
+    }
+
+    private void configureControlKeepAliveReplyTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT)) {
             int timeout = FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT);
             client.setControlKeepAliveReplyTimeout(timeout);
         }
+    }
+
+    private void configureAutodetectEncoding(FTPClient client) {
         if (containsKey(AUTODETECT_ENCODING)) {
             boolean autodetect = FileSystemProviderSupport.getBooleanValue(this, AUTODETECT_ENCODING);
             client.setAutodetectUTF8(autodetect);
@@ -842,7 +900,6 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void connect(FTPClient client, String hostname, int port) throws IOException {
-
         if (port == -1) {
             port = client.getDefaultPort();
         }
@@ -857,18 +914,37 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void initializePostConnect(FTPClient client) throws IOException {
+        configureSoTimeout(client);
+
+        configureTcpNoDelay(client);
+
+        configureKeepAlive(client);
+
+        configureSoLinger(client);
+    }
+
+    private void configureSoTimeout(FTPClient client) throws SocketException {
         if (containsKey(SO_TIMEOUT)) {
             int timeout = FileSystemProviderSupport.getIntValue(this, SO_TIMEOUT);
             client.setSoTimeout(timeout);
         }
+    }
+
+    private void configureTcpNoDelay(FTPClient client) throws SocketException {
         if (containsKey(TCP_NO_DELAY)) {
             boolean on = FileSystemProviderSupport.getBooleanValue(this, TCP_NO_DELAY);
             client.setTcpNoDelay(on);
         }
+    }
+
+    private void configureKeepAlive(FTPClient client) throws SocketException {
         if (containsKey(KEEP_ALIVE)) {
             boolean keepAlive = FileSystemProviderSupport.getBooleanValue(this, KEEP_ALIVE);
             client.setKeepAlive(keepAlive);
         }
+    }
+
+    private void configureSoLinger(FTPClient client) throws SocketException {
         if (containsKey(SO_LINGER_ON) && containsKey(SO_LINGER_VALUE)) {
             boolean on = FileSystemProviderSupport.getBooleanValue(this, SO_LINGER_ON);
             int val = FileSystemProviderSupport.getIntValue(this, SO_LINGER_VALUE);
@@ -877,21 +953,28 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
     }
 
     void login(FTPClient client) throws IOException {
-
         String username = getUsername();
         char[] passwordChars = FileSystemProviderSupport.getValue(this, PASSWORD, char[].class, null);
         String password = passwordChars != null ? new String(passwordChars) : null;
         String account = FileSystemProviderSupport.getValue(this, ACCOUNT, String.class, null);
         if (account != null) {
-            if (!client.login(username, password, account)) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
-            }
+            login(client, username, password, account);
         } else if (username != null || password != null) {
-            if (!client.login(username, password)) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
-            }
+            login(client, username, password);
         }
         // else no account or username/password - don't log in
+    }
+
+    private void login(FTPClient client, String username, String password, String account) throws IOException {
+        if (!client.login(username, password, account)) {
+            throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+        }
+    }
+
+    private void login(FTPClient client, String username, String password) throws IOException {
+        if (!client.login(username, password)) {
+            throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+        }
     }
 
     void initializePostLogin(FTPClient client) throws IOException {
@@ -900,6 +983,10 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         // default to binary
         client.setFileType(FTP.BINARY_FILE_TYPE);
 
+        configureDefaultDir(client);
+    }
+
+    private void configureDefaultDir(FTPClient client) throws IOException {
         String defaultDir = FileSystemProviderSupport.getValue(this, DEFAULT_DIR, String.class, null);
         if (defaultDir != null && !client.changeWorkingDirectory(defaultDir)) {
             throw getExceptionFactory().createChangeWorkingDirectoryException(defaultDir, client.getReplyCode(), client.getReplyString());
@@ -989,14 +1076,18 @@ public class FTPEnvironment implements Map<String, Object>, Cloneable {
         return map.toString();
     }
 
-    @Override
-    public FTPEnvironment clone() {
-        try {
-            FTPEnvironment clone = (FTPEnvironment) super.clone();
-            clone.map = new HashMap<>(map);
-            return clone;
-        } catch (CloneNotSupportedException e) {
-            throw new IllegalStateException(e);
+    /**
+     * Copies a map to create a new {@link FTPEnvironment} instance.
+     * If the given map is an instance of {@link FTPSEnvironment}, this method will return a new {@link FTPSEnvironment} instance.
+     *
+     * @param env The map to copy. It can be an {@link FTPEnvironment} instance, but does not have to be.
+     * @return A new {@link FTPEnvironment} instance that is a copy of the given map.
+     * @since 3.0
+     */
+    public static FTPEnvironment copy(Map<String, ?> env) {
+        if (env instanceof FTPSEnvironment) {
+            return new FTPSEnvironment(new HashMap<>(env));
         }
+        return new FTPEnvironment(new HashMap<>(env));
     }
 }

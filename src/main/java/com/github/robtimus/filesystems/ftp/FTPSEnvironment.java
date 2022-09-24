@@ -25,13 +25,14 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -79,14 +80,6 @@ public class FTPSEnvironment extends FTPEnvironment {
      */
     public FTPSEnvironment(Map<String, Object> map) {
         super(map);
-    }
-
-    @SuppressWarnings("unchecked")
-    static FTPSEnvironment wrap(Map<String, ?> map) {
-        if (map instanceof FTPSEnvironment) {
-            return (FTPSEnvironment) map;
-        }
-        return new FTPSEnvironment((Map<String, Object>) map);
     }
 
     @Override
@@ -176,18 +169,6 @@ public class FTPSEnvironment extends FTPEnvironment {
     @Override
     public FTPSEnvironment withControlEncoding(String encoding) {
         super.withControlEncoding(encoding);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @deprecated This method is named incorrectly. Use {@link #withStrictMultilineParsing(boolean)} instead.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withStrictlyMultilineParsing(boolean strictMultilineParsing) {
-        super.withStrictlyMultilineParsing(strictMultilineParsing);
         return this;
     }
 
@@ -326,21 +307,14 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @since 3.0
+     */
     @Override
-    public FTPSEnvironment withClientConnectionCount(int count) {
-        super.withClientConnectionCount(count);
-        return this;
-    }
-
-    @Override
-    public FTPSEnvironment withClientConnectionWaitTimeout(long timeout) {
-        super.withClientConnectionWaitTimeout(timeout);
-        return this;
-    }
-
-    @Override
-    public FTPSEnvironment withClientConnectionWaitTimeout(long duration, TimeUnit unit) {
-        super.withClientConnectionWaitTimeout(duration, unit);
+    public FTPSEnvironment withPoolConfig(FTPPoolConfig poolConfig) {
+        super.withPoolConfig(poolConfig);
         return this;
     }
 
@@ -546,17 +520,7 @@ public class FTPSEnvironment extends FTPEnvironment {
         boolean isImplicit = securityMode.isImplicit;
         SSLContext context = FileSystemProviderSupport.getValue(this, SSL_CONTEXT, SSLContext.class, null);
 
-        FTPSClient client;
-        if (context == null) {
-            String protocol = FileSystemProviderSupport.getValue(this, PROTOCOL, String.class, null);
-            if (protocol == null) {
-                client = new FTPSClient(isImplicit);
-            } else {
-                client = new FTPSClient(protocol, isImplicit);
-            }
-        } else {
-            client = new FTPSClient(isImplicit, context);
-        }
+        FTPSClient client = createClient(isImplicit, context);
         initializePreConnect(client);
         connect(client, hostname, port);
         initializePostConnect(client);
@@ -566,52 +530,109 @@ public class FTPSEnvironment extends FTPEnvironment {
         return client;
     }
 
+    private FTPSClient createClient(boolean isImplicit, SSLContext context) {
+        if (context == null) {
+            String protocol = FileSystemProviderSupport.getValue(this, PROTOCOL, String.class, null);
+            return protocol == null
+                    ? new FTPSClient(isImplicit)
+                    : new FTPSClient(protocol, isImplicit);
+        }
+        return new FTPSClient(isImplicit, context);
+    }
+
     void initializePreConnect(FTPSClient client) throws IOException {
         super.initializePreConnect(client);
 
+        configureAuthCommand(client);
+
+        configureKeyManager(client);
+        configureTrustManager(client);
+        configureHostnameVerifier(client);
+
+        configureEndpointCheckingEnabled(client);
+
+        configureEnabledSessionCreation(client);
+
+        configureNeedClientAuth(client);
+        configureWantClientAuth(client);
+        configureUseClientMode(client);
+
+        configureEnabledCipherSuites(client);
+
+        configureEnabledProtocols(client);
+    }
+
+    private void configureAuthCommand(FTPSClient client) {
         if (containsKey(AUTH_COMMAND)) {
             String auth = FileSystemProviderSupport.getValue(this, AUTH_COMMAND, String.class, null);
             client.setAuthValue(auth);
         }
+    }
+
+    private void configureKeyManager(FTPSClient client) {
         if (containsKey(KEY_MANAGER)) {
             KeyManager keyManager = FileSystemProviderSupport.getValue(this, KEY_MANAGER, KeyManager.class, null);
             client.setKeyManager(keyManager);
         }
+    }
+
+    private void configureTrustManager(FTPSClient client) {
         if (containsKey(TRUST_MANAGER)) {
             TrustManager trustManager = FileSystemProviderSupport.getValue(this, TRUST_MANAGER, TrustManager.class, null);
             client.setTrustManager(trustManager);
         }
+    }
+
+    private void configureHostnameVerifier(FTPSClient client) {
         if (containsKey(HOSTNAME_VERIFIER)) {
             HostnameVerifier hostnameVerifier = FileSystemProviderSupport.getValue(this, HOSTNAME_VERIFIER, HostnameVerifier.class, null);
             client.setHostnameVerifier(hostnameVerifier);
         }
+    }
 
+    private void configureEndpointCheckingEnabled(FTPSClient client) {
         if (containsKey(ENDPOINT_CHECKING_ENABLED)) {
             boolean enable = FileSystemProviderSupport.getBooleanValue(this, ENDPOINT_CHECKING_ENABLED);
             client.setEndpointCheckingEnabled(enable);
         }
+    }
+
+    private void configureEnabledSessionCreation(FTPSClient client) {
         if (containsKey(ENABLED_SESSION_CREATION)) {
             boolean isCreation = FileSystemProviderSupport.getBooleanValue(this, ENABLED_SESSION_CREATION);
             client.setEnabledSessionCreation(isCreation);
         }
+    }
+
+    private void configureNeedClientAuth(FTPSClient client) {
         if (containsKey(NEED_CLIENT_AUTH)) {
             boolean isNeedClientAuth = FileSystemProviderSupport.getBooleanValue(this, NEED_CLIENT_AUTH);
             client.setNeedClientAuth(isNeedClientAuth);
         }
+    }
+
+    private void configureWantClientAuth(FTPSClient client) {
         if (containsKey(WANT_CLIENT_AUTH)) {
             boolean isWantClientAuth = FileSystemProviderSupport.getBooleanValue(this, WANT_CLIENT_AUTH);
             client.setWantClientAuth(isWantClientAuth);
         }
+    }
+
+    private void configureUseClientMode(FTPSClient client) {
         if (containsKey(USE_CLIENT_MODE)) {
             boolean isClientMode = FileSystemProviderSupport.getBooleanValue(this, USE_CLIENT_MODE);
             client.setUseClientMode(isClientMode);
         }
+    }
 
+    private void configureEnabledCipherSuites(FTPSClient client) {
         if (containsKey(ENABLED_CIPHER_SUITES)) {
             String[] cipherSuites = FileSystemProviderSupport.getValue(this, ENABLED_CIPHER_SUITES, String[].class, null);
             client.setEnabledCipherSuites(cipherSuites);
         }
+    }
 
+    private void configureEnabledProtocols(FTPSClient client) {
         if (containsKey(ENABLED_PROTOCOLS)) {
             String[] protocolVersions = FileSystemProviderSupport.getValue(this, ENABLED_PROTOCOLS, String[].class, null);
             client.setEnabledProtocols(protocolVersions);
@@ -621,6 +642,10 @@ public class FTPSEnvironment extends FTPEnvironment {
     void initializePostConnect(FTPSClient client) throws IOException {
         super.initializePostConnect(client);
 
+        configureDataChannelProtectionLevel(client);
+    }
+
+    private void configureDataChannelProtectionLevel(FTPSClient client) throws SSLException, IOException {
         if (containsKey(DATA_CHANNEL_PROTECTION_LEVEL)) {
             DataChannelProtectionLevel dataChannelProtectionLevel
                     = FileSystemProviderSupport.getValue(this, DATA_CHANNEL_PROTECTION_LEVEL, DataChannelProtectionLevel.class);
@@ -630,8 +655,14 @@ public class FTPSEnvironment extends FTPEnvironment {
         }
     }
 
-    @Override
-    public FTPSEnvironment clone() {
-        return (FTPSEnvironment) super.clone();
+    /**
+     * Copies a map to create a new {@link FTPSEnvironment} instance.
+     *
+     * @param env The map to copy. It can be an {@link FTPSEnvironment} instance, but does not have to be.
+     * @return A new {@link FTPSEnvironment} instance that is a copy of the given map.
+     * @since 3.0
+     */
+    public static FTPSEnvironment copy(Map<String, ?> env) {
+        return new FTPSEnvironment(new HashMap<>(env));
     }
 }

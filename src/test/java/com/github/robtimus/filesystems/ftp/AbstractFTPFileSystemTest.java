@@ -140,17 +140,16 @@ abstract class AbstractFTPFileSystemTest {
         }
     }
 
-    private static FTPFileSystem createFileSystem(int port, int clientConnectionCount, FTPFileStrategyFactory ftpFileStrategyFactory)
-            throws IOException {
+    private static FTPFileSystem createFileSystem(int port, int maxSize, FTPFileStrategyFactory ftpFileStrategyFactory) throws IOException {
 
-        Map<String, ?> env = createEnv(ftpFileStrategyFactory).withClientConnectionCount(clientConnectionCount);
+        Map<String, ?> env = createEnv(ftpFileStrategyFactory).withPoolConfig(FTPPoolConfig.custom().withMaxSize(maxSize).build());
         return (FTPFileSystem) new FTPFileSystemProvider().newFileSystem(URI.create("ftp://localhost:" + port), env);
     }
 
     protected static FTPEnvironment createEnv(FTPFileStrategyFactory ftpFileStrategyFactory) {
         return new FTPEnvironment()
                 .withCredentials(USERNAME, PASSWORD.toCharArray())
-                .withClientConnectionCount(1)
+                .withPoolConfig(FTPPoolConfig.custom().withMaxSize(1).build())
                 .withFTPFileStrategyFactory(ftpFileStrategyFactory)
                 .withFileSystemExceptionFactory(exceptionFactory);
     }

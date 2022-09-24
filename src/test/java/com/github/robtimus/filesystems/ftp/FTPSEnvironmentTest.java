@@ -29,10 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Stream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
@@ -40,14 +37,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import org.apache.commons.net.ftp.FTPSClient;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import com.github.robtimus.filesystems.Messages;
+import com.github.robtimus.junit.support.test.CovariantReturnTests;
 
 @SuppressWarnings("nls")
 @TestInstance(Lifecycle.PER_CLASS)
@@ -101,21 +98,14 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
         }
     }
 
-    static Stream<Arguments> findMethodsToOverride() {
-        List<Arguments> arguments = new ArrayList<>();
-        for (Method method : FTPEnvironment.class.getMethods()) {
-            if (method.getReturnType() == FTPEnvironment.class) {
-                arguments.add(arguments(method));
-            }
-        }
-        return arguments.stream();
-    }
+    @Nested
+    @DisplayName("overrides all setters")
+    class OverridesAllSetters implements CovariantReturnTests<FTPSEnvironment> {
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("findMethodsToOverride")
-    void testMethodOverride(Method parentMethod) throws NoSuchMethodException {
-        Method method = FTPSEnvironment.class.getMethod(parentMethod.getName(), parentMethod.getParameterTypes());
-        assertEquals(FTPSEnvironment.class, method.getReturnType());
+        @Override
+        public Class<FTPSEnvironment> objectType() {
+            return FTPSEnvironment.class;
+        }
     }
 
     @Nested

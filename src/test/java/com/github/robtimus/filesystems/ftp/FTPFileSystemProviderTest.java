@@ -17,6 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.ftp.FTPFileSystemProvider.normalizeWithUsername;
+import static com.github.robtimus.filesystems.ftp.FTPFileSystemProvider.normalizeWithoutPassword;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -101,7 +103,8 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     void testPathsAndFilesSupportFileSystemNotFound() {
         URI uri = URI.create("ftp://ftp.github.com/");
         FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> Paths.get(uri));
-        assertEquals(uri.toString(), exception.getMessage());
+        assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
+        assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
     }
 
     // FTPFileSystemProvider.removeFileSystem
@@ -111,8 +114,9 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         addDirectory("/foo/bar");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
+        FTPEnvironment environment = createEnv(UNIX);
         URI uri;
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+        try (FTPFileSystem fs = newFileSystem(provider, environment)) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
 
             uri = path.toUri();
@@ -120,7 +124,8 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             assertFalse(provider.isHidden(path));
         }
         FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
-        assertEquals(uri.toString(), exception.getMessage());
+        assertEquals(normalizeWithUsername(uri, environment.getUsername()).toString(), exception.getMessage());
+        assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
     }
 
     // FTPFileSystemProvider.getPath
@@ -173,7 +178,8 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         URI uri = URI.create("ftp://ftp.github.com/");
         FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
-        assertEquals(uri.toString(), exception.getMessage());
+        assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
+        assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
     }
 
     // FTPFileSystemProvider.isSameFile

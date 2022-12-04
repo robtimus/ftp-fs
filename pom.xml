@@ -279,7 +279,7 @@
     <profile>
       <id>min-versions</id>
       <properties>
-        <version.commons-net>3.6</version.commons-net>
+        <version.commons-net>3.9.0</version.commons-net>
       </properties>
     </profile>
 

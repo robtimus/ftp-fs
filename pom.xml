@@ -22,7 +22,7 @@
   <parent>
     <groupId>com.github.robtimus</groupId>
     <artifactId>robtimus-parent</artifactId>
-    <version>1.5</version>
+    <version>1.6</version>
     <relativePath />
   </parent>
 
@@ -74,11 +74,12 @@
   </issueManagement>
 
   <properties>
-    <version.commons-net>3.8.0</version.commons-net>
+    <version.commons-net>3.9.0</version.commons-net>
     <version.fs-core>2.1</version.fs-core>
     <version.junit-support>2.0</version.junit-support>
     <version.MockFtpServer>3.0.0</version.MockFtpServer>
     <version.simple-pool>1.0</version.simple-pool>
+    <version.slf4j>1.7.36</version.slf4j>
   </properties>
 
   <dependencies>
@@ -135,6 +136,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-reload4j</artifactId>
+      <version>${version.slf4j}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import org.apache.commons.net.ftp.FTP;
@@ -90,6 +89,7 @@ public class FTPEnvironment implements Map<String, Object> {
 
     private static final String DATA_TIMEOUT = "dataTimeout"; //$NON-NLS-1$
     private static final String PARSER_FACTORY = "parserFactory"; //$NON-NLS-1$
+    private static final String IP_ADDRESS_FROM_PASV_RESPONSE = "ipAddressFromPasvResponse"; //$NON-NLS-1$
     private static final String REMOTE_VERIFICATION_ENABLED = "remoteVerificationEnabled"; //$NON-NLS-1$
     private static final String DEFAULT_DIR = "defaultDir"; //$NON-NLS-1$
     private static final String CONNECTION_MODE = "connectionMode"; //$NON-NLS-1$
@@ -346,8 +346,22 @@ public class FTPEnvironment implements Map<String, Object> {
      *
      * @param timeout The timeout in milliseconds that is used when opening data connection sockets.
      * @return This object.
+     * @deprecated Use {@link #withDataTimeout(Duration)} instead.
      */
+    @Deprecated
     public FTPEnvironment withDataTimeout(int timeout) {
+        put(DATA_TIMEOUT, timeout);
+        return this;
+    }
+
+    /**
+     * Stores the timeout to use when reading from data connections.
+     *
+     * @param timeout The timeout in milliseconds that is used when opening data connection sockets.
+     * @return This object.
+     * @since 3.1
+     */
+    public FTPEnvironment withDataTimeout(Duration timeout) {
         put(DATA_TIMEOUT, timeout);
         return this;
     }
@@ -360,6 +374,22 @@ public class FTPEnvironment implements Map<String, Object> {
      */
     public FTPEnvironment withParserFactory(FTPFileEntryParserFactory parserFactory) {
         put(PARSER_FACTORY, parserFactory);
+        return this;
+    }
+
+    /**
+     * Sets whether or not the IP address from the server's response should be used. Before version 3.1 (and version 3.9.0 of Apache Commons Net),
+     * this has always been the case. Beginning with version 3.1, that IP address will be silently ignored, and replaced with the remote IP address of
+     * the control connection, unless this configuration option is given, which restores the old behavior.
+     * To enable this by default, use the system property {@link FTPClient#FTP_IP_ADDRESS_FROM_PASV_RESPONSE}.
+     *
+     * @param usingIpAddressFromPasvResponse {@code true} if the IP address from the server's response should be used,
+     *                                           or {@code false} to ignore that IP address.
+     * @return This object.
+     * @since 3.1
+     */
+    public FTPEnvironment withIpAddressFromPasvResponse(boolean usingIpAddressFromPasvResponse) {
+        put(IP_ADDRESS_FROM_PASV_RESPONSE, usingIpAddressFromPasvResponse);
         return this;
     }
 
@@ -509,8 +539,22 @@ public class FTPEnvironment implements Map<String, Object> {
      *
      * @param timeout The keep-alive timeout to use, in milliseconds.
      * @return This object.
+     * @deprecated Use {@link #withControlKeepAliveTimeout(Duration)} instead.
      */
+    @Deprecated
     public FTPEnvironment withControlKeepAliveTimeout(long timeout) {
+        put(CONTROL_KEEP_ALIVE_TIMEOUT, timeout);
+        return this;
+    }
+
+    /**
+     * Stores the time to wait between sending control connection keep-alive messages when processing file upload or download.
+     *
+     * @param timeout The keep-alive timeout to use.
+     * @return This object.
+     * @since 3.1
+     */
+    public FTPEnvironment withControlKeepAliveTimeout(Duration timeout) {
         put(CONTROL_KEEP_ALIVE_TIMEOUT, timeout);
         return this;
     }
@@ -520,8 +564,22 @@ public class FTPEnvironment implements Map<String, Object> {
      *
      * @param timeout The keep-alive reply timeout to use, in milliseconds.
      * @return This object.
+     * @deprecated Use {@link #withControlKeepAliveReplyTimeout(Duration)} instead.
      */
+    @Deprecated
     public FTPEnvironment withControlKeepAliveReplyTimeout(int timeout) {
+        put(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, timeout);
+        return this;
+    }
+
+    /**
+     * Stores how long to wait for control keep-alive message replies.
+     *
+     * @param timeout The keep-alive reply timeout to use.
+     * @return This object.
+     * @since 3.1
+     */
+    public FTPEnvironment withControlKeepAliveReplyTimeout(Duration timeout) {
         put(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, timeout);
         return this;
     }
@@ -722,6 +780,8 @@ public class FTPEnvironment implements Map<String, Object> {
 
         configureParserFactory(client);
 
+        configureIpAddressFromPasvResponse(client);
+
         configureRemoteVerificationEnabled(client);
 
         applyConnectionSettings(client);
@@ -812,7 +872,12 @@ public class FTPEnvironment implements Map<String, Object> {
 
     private void configureDataTimeout(FTPClient client) {
         if (containsKey(DATA_TIMEOUT)) {
-            int timeout = FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT);
+            Duration timeout;
+            try {
+                timeout = FileSystemProviderSupport.getValue(this, DATA_TIMEOUT, Duration.class);
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                timeout = Duration.ofMillis(FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT));
+            }
             client.setDataTimeout(timeout);
         }
     }
@@ -821,6 +886,13 @@ public class FTPEnvironment implements Map<String, Object> {
         if (containsKey(PARSER_FACTORY)) {
             FTPFileEntryParserFactory parserFactory = FileSystemProviderSupport.getValue(this, PARSER_FACTORY, FTPFileEntryParserFactory.class, null);
             client.setParserFactory(parserFactory);
+        }
+    }
+
+    private void configureIpAddressFromPasvResponse(FTPClient client) {
+        if (containsKey(IP_ADDRESS_FROM_PASV_RESPONSE)) {
+            boolean usingIpAddressFromPasvResponse = FileSystemProviderSupport.getBooleanValue(this, IP_ADDRESS_FROM_PASV_RESPONSE);
+            client.setIpAddressFromPasvResponse(usingIpAddressFromPasvResponse);
         }
     }
 
@@ -878,16 +950,25 @@ public class FTPEnvironment implements Map<String, Object> {
 
     private void configureControlKeepAliveTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_TIMEOUT)) {
-            long controlIdle = FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT);
-            // the value is stored as ms, but the method expects seconds
-            controlIdle = TimeUnit.MILLISECONDS.toSeconds(controlIdle);
+            Duration controlIdle;
+            try {
+                controlIdle = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_TIMEOUT, Duration.class);
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // the value is stored as ms
+                controlIdle = Duration.ofMillis(FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT));
+            }
             client.setControlKeepAliveTimeout(controlIdle);
         }
     }
 
     private void configureControlKeepAliveReplyTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT)) {
-            int timeout = FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT);
+            Duration timeout;
+            try {
+                timeout = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, Duration.class);
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                timeout = Duration.ofMillis(FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT));
+            }
             client.setControlKeepAliveReplyTimeout(timeout);
         }
     }

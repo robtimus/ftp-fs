@@ -22,6 +22,7 @@ import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -40,9 +41,12 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -74,12 +78,23 @@ class FTPEnvironmentTest {
     }
 
     private Method findMethod(String methodName) {
-        for (Method method : environmentClass().getMethods()) {
-            if (method.getName().equals(methodName) && method.getParameterTypes().length == 1) {
-                return method;
+        List<Method> methods = new ArrayList<>();
+        Class<? extends FTPEnvironment> environmentClass = environmentClass();
+        for (Method method : environmentClass.getMethods()) {
+            if (method.getName().equals(methodName) && method.getParameterTypes().length == 1
+                    && environmentClass.equals(method.getReturnType())
+                    && !method.isAnnotationPresent(Deprecated.class)) {
+
+                methods.add(method);
             }
         }
-        throw new AssertionError("Could not find method " + methodName);
+        if (methods.size() == 1) {
+            return methods.get(0);
+        }
+        if (methods.isEmpty()) {
+            return fail("Could not find non-deprecated method " + methodName);
+        }
+        return fail("Found multiple non-deprecated methods called " + methodName);
     }
 
     Stream<Arguments> findSetters() {
@@ -96,8 +111,9 @@ class FTPEnvironmentTest {
                 arguments("withCharset", "charset", StandardCharsets.UTF_8),
                 arguments("withControlEncoding", "controlEncoding", "UTF-8"),
                 arguments("withStrictMultilineParsing", "strictMultilineParsing", true),
-                arguments("withDataTimeout", "dataTimeout", 1000),
+                arguments("withDataTimeout", "dataTimeout", Duration.ofSeconds(1)),
                 arguments("withParserFactory", "parserFactory", new DefaultFTPFileEntryParserFactory()),
+                arguments("withIpAddressFromPasvResponse", "ipAddressFromPasvResponse", true),
                 arguments("withRemoteVerificationEnabled", "remoteVerificationEnabled", true),
                 arguments("withDefaultDirectory", "defaultDir", "/"),
                 arguments("withConnectionMode", "connectionMode", ConnectionMode.PASSIVE),
@@ -109,8 +125,8 @@ class FTPEnvironmentTest {
                 arguments("withReceiveDataSocketBufferSize", "receiveDataSocketBufferSize", 2048),
                 arguments("withClientConfig", "clientConfig", new FTPClientConfig()),
                 arguments("withUseEPSVwithIPv4", "useEPSVwithIPv4", true),
-                arguments("withControlKeepAliveTimeout", "controlKeepAliveTimeout", 1000L),
-                arguments("withControlKeepAliveReplyTimeout", "controlKeepAliveReplyTimeout", 1000),
+                arguments("withControlKeepAliveTimeout", "controlKeepAliveTimeout", Duration.ofSeconds(1)),
+                arguments("withControlKeepAliveReplyTimeout", "controlKeepAliveReplyTimeout", Duration.ofSeconds(1)),
                 arguments("withPassiveNatWorkaroundStrategy", "passiveNatWorkaroundStrategy", new FTPClient.NatServerResolverImpl(new FTPClient())),
                 arguments("withAutodetectEncoding", "autodetectEncoding", true),
                 arguments("withListHiddenFiles", "listHiddenFiles", false),
@@ -206,6 +222,22 @@ class FTPEnvironmentTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
+    void testWithDataTimeoutWithInteger() {
+        FTPEnvironment env = createFTPEnvironment();
+
+        assertEquals(Collections.emptyMap(), env);
+
+        int timeout = 1000;
+
+        env.withDataTimeout(timeout);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("dataTimeout", timeout);
+        assertEquals(expected, env);
+    }
+
+    @Test
     void testWithActivePortRange() {
         FTPEnvironment env = createFTPEnvironment();
 
@@ -219,6 +251,38 @@ class FTPEnvironmentTest {
         Map<String, Object> expected = new HashMap<>();
         expected.put("activePortRange.min", minPort);
         expected.put("activePortRange.max", maxPort);
+        assertEquals(expected, env);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void testWithControlKeepAliveTimeoutWithInteger() {
+        FTPEnvironment env = createFTPEnvironment();
+
+        assertEquals(Collections.emptyMap(), env);
+
+        long timeout = 1000;
+
+        env.withControlKeepAliveTimeout(timeout);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("controlKeepAliveTimeout", timeout);
+        assertEquals(expected, env);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void testWithControlKeepAliveReplyTimeoutWithInteger() {
+        FTPEnvironment env = createFTPEnvironment();
+
+        assertEquals(Collections.emptyMap(), env);
+
+        int timeout = 1000;
+
+        env.withControlKeepAliveReplyTimeout(timeout);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("controlKeepAliveReplyTimeout", timeout);
         assertEquals(expected, env);
     }
 
@@ -528,23 +592,36 @@ class FTPEnvironmentTest {
         class DataTimeout {
 
             @Test
+            @SuppressWarnings("deprecation")
             void testDataTimeoutNotSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.initializePreConnect(client);
 
+                verify(client, never()).setDataTimeout(any());
                 verify(client, never()).setDataTimeout(anyInt());
             }
 
             @Test
-            void testDataTimeoutSet() throws IOException {
+            void testDataTimeoutSetAsDuration() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment().withDataTimeout(Duration.ofSeconds(1));
+                env.initializePreConnect(client);
+
+                verify(client).setDataTimeout(Duration.ofSeconds(1));
+            }
+
+            @Test
+            @SuppressWarnings("deprecation")
+            void testDataTimeoutSetAsMillis() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withDataTimeout(100);
                 env.initializePreConnect(client);
 
-                verify(client).setDataTimeout(100);
+                verify(client).setDataTimeout(Duration.ofMillis(100));
             }
         }
 
@@ -581,6 +658,40 @@ class FTPEnvironmentTest {
                 env.initializePreConnect(client);
 
                 verify(client).setParserFactory(null);
+            }
+        }
+
+        @Nested
+        class IpAddressFromPasvResponseTest {
+
+            @Test
+            void testIpAddressFromPasvResponseNotSet() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment();
+                env.initializePreConnect(client);
+
+                verify(client, never()).setIpAddressFromPasvResponse(anyBoolean());
+            }
+
+            @Test
+            void testIpAddressFromPasvResponseSetToTrue() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment().withIpAddressFromPasvResponse(true);
+                env.initializePreConnect(client);
+
+                verify(client).setIpAddressFromPasvResponse(true);
+            }
+
+            @Test
+            void testIpAddressFromPasvResponseSetToFalse() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment().withIpAddressFromPasvResponse(false);
+                env.initializePreConnect(client);
+
+                verify(client).setIpAddressFromPasvResponse(false);
             }
         }
 
@@ -971,24 +1082,36 @@ class FTPEnvironmentTest {
         class ControlKeepAliveTimeoutTest {
 
             @Test
+            @SuppressWarnings("deprecation")
             void testControlKeepAliveTimeoutNotSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.initializePreConnect(client);
 
+                verify(client, never()).setControlKeepAliveTimeout(any());
                 verify(client, never()).setControlKeepAliveTimeout(anyLong());
             }
 
             @Test
-            void testControlKeepAliveTimeoutSet() throws IOException {
+            void testControlKeepAliveTimeoutSetAsDuration() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment().withControlKeepAliveTimeout(Duration.ofSeconds(1));
+                env.initializePreConnect(client);
+
+                verify(client).setControlKeepAliveTimeout(Duration.ofSeconds(1));
+            }
+
+            @Test
+            @SuppressWarnings("deprecation")
+            void testControlKeepAliveTimeoutSetAsMillis() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withControlKeepAliveTimeout(1000);
                 env.initializePreConnect(client);
 
-                // the environment accepts millis, and converts to seconds
-                verify(client).setControlKeepAliveTimeout(1);
+                verify(client).setControlKeepAliveTimeout(Duration.ofMillis(1000));
             }
         }
 
@@ -996,23 +1119,36 @@ class FTPEnvironmentTest {
         class ControlKeepAliveReplyTimeoutTest {
 
             @Test
+            @SuppressWarnings("deprecation")
             void testControlKeepAliveReplyTimeoutNotSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment();
                 env.initializePreConnect(client);
 
+                verify(client, never()).setControlKeepAliveReplyTimeout(any());
                 verify(client, never()).setControlKeepAliveReplyTimeout(anyInt());
             }
 
             @Test
-            void testControlKeepAliveReplyTimeoutSet() throws IOException {
+            void testControlKeepAliveReplyTimeoutSetAsDuration() throws IOException {
+                FTPClient client = mock(FTPClient.class);
+
+                FTPEnvironment env = new FTPEnvironment().withControlKeepAliveReplyTimeout(Duration.ofSeconds(1));
+                env.initializePreConnect(client);
+
+                verify(client).setControlKeepAliveReplyTimeout(Duration.ofSeconds(1));
+            }
+
+            @Test
+            @SuppressWarnings("deprecation")
+            void testControlKeepAliveReplyTimeoutSetAsMillis() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withControlKeepAliveReplyTimeout(1000);
                 env.initializePreConnect(client);
 
-                verify(client).setControlKeepAliveReplyTimeout(1000);
+                verify(client).setControlKeepAliveReplyTimeout(Duration.ofMillis(1000));
             }
         }
 

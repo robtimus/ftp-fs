@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import javax.net.ServerSocketFactory;
@@ -183,8 +184,25 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated Use {@link #withDataTimeout(Duration)} instead.
+     */
     @Override
+    @Deprecated
     public FTPSEnvironment withDataTimeout(int timeout) {
+        super.withDataTimeout(timeout);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 3.1
+     */
+    @Override
+    public FTPSEnvironment withDataTimeout(Duration timeout) {
         super.withDataTimeout(timeout);
         return this;
     }
@@ -192,6 +210,17 @@ public class FTPSEnvironment extends FTPEnvironment {
     @Override
     public FTPSEnvironment withParserFactory(FTPFileEntryParserFactory parserFactory) {
         super.withParserFactory(parserFactory);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 3.1
+     */
+    @Override
+    public FTPSEnvironment withIpAddressFromPasvResponse(boolean usingIpAddressFromPasvResponse) {
+        super.withIpAddressFromPasvResponse(usingIpAddressFromPasvResponse);
         return this;
     }
 
@@ -267,14 +296,48 @@ public class FTPSEnvironment extends FTPEnvironment {
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated Use {@link #withControlKeepAliveTimeout(Duration)} instead.
+     */
     @Override
+    @Deprecated
     public FTPSEnvironment withControlKeepAliveTimeout(long timeout) {
         super.withControlKeepAliveTimeout(timeout);
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @since 3.1
+     */
     @Override
+    public FTPSEnvironment withControlKeepAliveTimeout(Duration timeout) {
+        super.withControlKeepAliveTimeout(timeout);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated Use {@link #withControlKeepAliveReplyTimeout(Duration)} instead.
+     */
+    @Override
+    @Deprecated
     public FTPSEnvironment withControlKeepAliveReplyTimeout(int timeout) {
+        super.withControlKeepAliveReplyTimeout(timeout);
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @since 3.1
+     */
+    @Override
+    public FTPSEnvironment withControlKeepAliveReplyTimeout(Duration timeout) {
         super.withControlKeepAliveReplyTimeout(timeout);
         return this;
     }

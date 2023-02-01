@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -27,10 +28,17 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import com.github.robtimus.filesystems.ftp.FileType.Format;
 
 @SuppressWarnings("nls")
+@TestInstance(Lifecycle.PER_CLASS)
 class FileTypeTest {
 
     @Test
@@ -115,81 +123,110 @@ class FileTypeTest {
         assertThrows(FTPFileSystemException.class, () -> FileType.ascii().apply(client));
     }
 
-    @Test
-    void testEquals() {
-        assertEquals(FileType.ascii(), FileType.ascii());
-        assertEquals(FileType.ascii(), FileType.ascii(null));
-        assertEquals(FileType.ascii(Format.NON_PRINT), FileType.ascii(Format.NON_PRINT));
-        assertEquals(FileType.ascii(Format.TELNET), FileType.ascii(Format.TELNET));
-        assertEquals(FileType.ascii(Format.CARRIAGE_CONTROL), FileType.ascii(Format.CARRIAGE_CONTROL));
-        assertEquals(FileType.ebcdic(), FileType.ebcdic());
-        assertEquals(FileType.ebcdic(), FileType.ebcdic(null));
-        assertEquals(FileType.ebcdic(Format.NON_PRINT), FileType.ebcdic(Format.NON_PRINT));
-        assertEquals(FileType.ebcdic(Format.TELNET), FileType.ebcdic(Format.TELNET));
-        assertEquals(FileType.ebcdic(Format.CARRIAGE_CONTROL), FileType.ebcdic(Format.CARRIAGE_CONTROL));
-        assertEquals(FileType.binary(), FileType.binary());
-        assertEquals(FileType.local(), FileType.local());
-        assertEquals(FileType.local(0), FileType.local(0));
-        assertEquals(FileType.local(), FileType.local(0));
-        assertEquals(FileType.local(1024), FileType.local(1024));
+    @Nested
+    @TestInstance(Lifecycle.PER_CLASS)
+    class Equals {
 
-        assertNotEquals(FileType.ascii(), FileType.ascii(Format.NON_PRINT));
-        assertNotEquals(FileType.ascii(), FileType.ascii(Format.TELNET));
-        assertNotEquals(FileType.ascii(), FileType.ascii(Format.CARRIAGE_CONTROL));
-        assertNotEquals(FileType.ebcdic(), FileType.ebcdic(Format.NON_PRINT));
-        assertNotEquals(FileType.ebcdic(), FileType.ebcdic(Format.TELNET));
-        assertNotEquals(FileType.ebcdic(), FileType.ebcdic(Format.CARRIAGE_CONTROL));
-        assertNotEquals(FileType.local(), FileType.local(1024));
-        assertNotEquals(FileType.local(1024), FileType.local(2048));
+        @ParameterizedTest(name = "{0} - {1}")
+        @MethodSource("equalsArguments")
+        void testEquals(FileType fileType, FileType expected) {
+            assertEquals(expected, fileType);
+        }
 
-        assertNotEquals(FileType.ascii(), FileType.ebcdic());
+        Arguments[] equalsArguments() {
+            return new Arguments[] {
+                    arguments(FileType.ascii(), FileType.ascii()),
+                    arguments(FileType.ascii(null), FileType.ascii()),
+                    arguments(FileType.ascii(Format.NON_PRINT), FileType.ascii(Format.NON_PRINT)),
+                    arguments(FileType.ascii(Format.TELNET), FileType.ascii(Format.TELNET)),
+                    arguments(FileType.ascii(Format.CARRIAGE_CONTROL), FileType.ascii(Format.CARRIAGE_CONTROL)),
+                    arguments(FileType.ebcdic(), FileType.ebcdic()),
+                    arguments(FileType.ebcdic(null), FileType.ebcdic()),
+                    arguments(FileType.ebcdic(Format.NON_PRINT), FileType.ebcdic(Format.NON_PRINT)),
+                    arguments(FileType.ebcdic(Format.TELNET), FileType.ebcdic(Format.TELNET)),
+                    arguments(FileType.ebcdic(Format.CARRIAGE_CONTROL), FileType.ebcdic(Format.CARRIAGE_CONTROL)),
+                    arguments(FileType.binary(), FileType.binary()),
+                    arguments(FileType.local(), FileType.local()),
+                    arguments(FileType.local(0), FileType.local(0)),
+                    arguments(FileType.local(0), FileType.local()),
+                    arguments(FileType.local(1024), FileType.local(1024)),
+            };
+        }
 
-        assertNotEquals(null, FileType.ascii());
-        assertNotEquals(null, FileType.ascii(null));
-        assertNotEquals(null, FileType.ascii(Format.NON_PRINT));
-        assertNotEquals(null, FileType.ascii(Format.TELNET));
-        assertNotEquals(null, FileType.ascii(Format.CARRIAGE_CONTROL));
-        assertNotEquals(null, FileType.ebcdic());
-        assertNotEquals(null, FileType.ebcdic(null));
-        assertNotEquals(null, FileType.ebcdic(Format.NON_PRINT));
-        assertNotEquals(null, FileType.ebcdic(Format.TELNET));
-        assertNotEquals(null, FileType.ebcdic(Format.CARRIAGE_CONTROL));
-        assertNotEquals(null, FileType.binary());
-        assertNotEquals(null, FileType.local());
-        assertNotEquals(null, FileType.local(0));
-        assertNotEquals(null, FileType.local(1024));
+        @ParameterizedTest(name = "{0} - {1}")
+        @MethodSource("notEqualsArguments")
+        void testNotEquals(FileType fileType, Object unexpected) {
+            assertNotEquals(unexpected, fileType);
+        }
 
-        assertNotEquals("foo", FileType.ascii());
-        assertNotEquals("foo", FileType.ascii(null));
-        assertNotEquals("foo", FileType.ascii(Format.NON_PRINT));
-        assertNotEquals("foo", FileType.ascii(Format.TELNET));
-        assertNotEquals("foo", FileType.ascii(Format.CARRIAGE_CONTROL));
-        assertNotEquals("foo", FileType.ebcdic());
-        assertNotEquals("foo", FileType.ebcdic(null));
-        assertNotEquals("foo", FileType.ebcdic(Format.NON_PRINT));
-        assertNotEquals("foo", FileType.ebcdic(Format.TELNET));
-        assertNotEquals("foo", FileType.ebcdic(Format.CARRIAGE_CONTROL));
-        assertNotEquals("foo", FileType.binary());
-        assertNotEquals("foo", FileType.local());
-        assertNotEquals("foo", FileType.local(0));
-        assertNotEquals("foo", FileType.local(1024));
+        Arguments[] notEqualsArguments() {
+            return new Arguments[] {
+                    arguments(FileType.ascii(Format.NON_PRINT), FileType.ascii()),
+                    arguments(FileType.ascii(Format.TELNET), FileType.ascii()),
+                    arguments(FileType.ascii(Format.CARRIAGE_CONTROL), FileType.ascii()),
+                    arguments(FileType.ebcdic(Format.NON_PRINT), FileType.ebcdic()),
+                    arguments(FileType.ebcdic(Format.TELNET), FileType.ebcdic()),
+                    arguments(FileType.ebcdic(Format.CARRIAGE_CONTROL), FileType.ebcdic()),
+                    arguments(FileType.local(1024), FileType.local()),
+                    arguments(FileType.local(2048), FileType.local(1024)),
+
+                    arguments(FileType.ebcdic(), FileType.ascii()),
+
+                    arguments(FileType.ascii(), null),
+                    arguments(FileType.ascii(null), null),
+                    arguments(FileType.ascii(Format.NON_PRINT), null),
+                    arguments(FileType.ascii(Format.TELNET), null),
+                    arguments(FileType.ascii(Format.CARRIAGE_CONTROL), null),
+                    arguments(FileType.ebcdic(), null),
+                    arguments(FileType.ebcdic(null), null),
+                    arguments(FileType.ebcdic(Format.NON_PRINT), null),
+                    arguments(FileType.ebcdic(Format.TELNET), null),
+                    arguments(FileType.ebcdic(Format.CARRIAGE_CONTROL), null),
+                    arguments(FileType.binary(), null),
+                    arguments(FileType.local(), null),
+                    arguments(FileType.local(0), null),
+                    arguments(FileType.local(1024), null),
+
+                    arguments(FileType.ascii(), "foo"),
+                    arguments(FileType.ascii(null), "foo"),
+                    arguments(FileType.ascii(Format.NON_PRINT), "foo"),
+                    arguments(FileType.ascii(Format.TELNET), "foo"),
+                    arguments(FileType.ascii(Format.CARRIAGE_CONTROL), "foo"),
+                    arguments(FileType.ebcdic(), "foo"),
+                    arguments(FileType.ebcdic(null), "foo"),
+                    arguments(FileType.ebcdic(Format.NON_PRINT), "foo"),
+                    arguments(FileType.ebcdic(Format.TELNET), "foo"),
+                    arguments(FileType.ebcdic(Format.CARRIAGE_CONTROL), "foo"),
+                    arguments(FileType.binary(), "foo"),
+                    arguments(FileType.local(), "foo"),
+                    arguments(FileType.local(0), "foo"),
+                    arguments(FileType.local(1024), "foo"),
+            };
+        }
     }
 
-    @Test
-    void testToString() {
-        assertEquals("FileType.ascii", FileType.ascii().toString());
-        assertEquals("FileType.ascii", FileType.ascii(null).toString());
-        assertEquals("FileType.ascii(NON_PRINT)", FileType.ascii(Format.NON_PRINT).toString());
-        assertEquals("FileType.ascii(TELNET)", FileType.ascii(Format.TELNET).toString());
-        assertEquals("FileType.ascii(CARRIAGE_CONTROL)", FileType.ascii(Format.CARRIAGE_CONTROL).toString());
-        assertEquals("FileType.ebcdic", FileType.ebcdic().toString());
-        assertEquals("FileType.ebcdic", FileType.ebcdic(null).toString());
-        assertEquals("FileType.ebcdic(NON_PRINT)", FileType.ebcdic(Format.NON_PRINT).toString());
-        assertEquals("FileType.ebcdic(TELNET)", FileType.ebcdic(Format.TELNET).toString());
-        assertEquals("FileType.ebcdic(CARRIAGE_CONTROL)", FileType.ebcdic(Format.CARRIAGE_CONTROL).toString());
-        assertEquals("FileType.binary", FileType.binary().toString());
-        assertEquals("FileType.local", FileType.local().toString());
-        assertEquals("FileType.local", FileType.local(0).toString());
-        assertEquals("FileType.local(1024)", FileType.local(1024).toString());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("toStringArguments")
+    void testToString(FileType fileType, String expected) {
+        assertEquals(expected, fileType.toString());
+    }
+
+    Arguments[] toStringArguments() {
+        return new Arguments[] {
+                arguments(FileType.ascii(), "FileType.ascii"),
+                arguments(FileType.ascii(null), "FileType.ascii"),
+                arguments(FileType.ascii(Format.NON_PRINT), "FileType.ascii(NON_PRINT)"),
+                arguments(FileType.ascii(Format.TELNET), "FileType.ascii(TELNET)"),
+                arguments(FileType.ascii(Format.CARRIAGE_CONTROL), "FileType.ascii(CARRIAGE_CONTROL)"),
+                arguments(FileType.ebcdic(), "FileType.ebcdic"),
+                arguments(FileType.ebcdic(null), "FileType.ebcdic"),
+                arguments(FileType.ebcdic(Format.NON_PRINT), "FileType.ebcdic(NON_PRINT)"),
+                arguments(FileType.ebcdic(Format.TELNET), "FileType.ebcdic(TELNET)"),
+                arguments(FileType.ebcdic(Format.CARRIAGE_CONTROL), "FileType.ebcdic(CARRIAGE_CONTROL)"),
+                arguments(FileType.binary(), "FileType.binary"),
+                arguments(FileType.local(), "FileType.local"),
+                arguments(FileType.local(0), "FileType.local"),
+                arguments(FileType.local(1024), "FileType.local(1024)"),
+        };
     }
 }

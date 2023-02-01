@@ -74,6 +74,7 @@
   </issueManagement>
 
   <properties>
+    <version.awaitility>4.2.0</version.awaitility>
     <version.commons-net>3.9.0</version.commons-net>
     <version.fs-core>2.1</version.fs-core>
     <version.junit-support>2.1</version.junit-support>
@@ -137,6 +138,13 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-reload4j</artifactId>
       <version>${version.slf4j}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>${version.awaitility}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

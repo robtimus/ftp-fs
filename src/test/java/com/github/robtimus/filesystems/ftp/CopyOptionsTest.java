@@ -29,6 +29,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collection;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import com.github.robtimus.filesystems.Messages;
 
@@ -41,45 +42,69 @@ class CopyOptionsTest {
         assertEquals(Arrays.asList(LinkOption.NOFOLLOW_LINKS, StandardOpenOption.READ), openOptions);
     }
 
-    @Test
-    void testForCopy() {
-        CopyOptions options = CopyOptions.forCopy();
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+    @Nested
+    class ForCopy {
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+        @Test
+        void testWithNoOptions() {
+            CopyOptions options = CopyOptions.forCopy();
+            assertFalse(options.replaceExisting);
+            assertNull(options.fileType);
+            assertNull(options.fileStructure);
+            assertNull(options.fileTransferMode);
+        }
 
-        options = CopyOptions.forCopy(LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+        @Test
+        void testWithReplaceExisting() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING);
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            assertTrue(options.replaceExisting);
+            assertNull(options.fileType);
+            assertNull(options.fileStructure);
+            assertNull(options.fileTransferMode);
+        }
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS, FileType.ascii(), FileStructure.FILE,
-                FileTransferMode.STREAM);
-        assertTrue(options.replaceExisting);
-        assertEquals(FileType.ascii(), options.fileType);
-        assertEquals(FileStructure.FILE, options.fileStructure);
-        assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+        @Test
+        void testWithNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(LinkOption.NOFOLLOW_LINKS);
 
-        options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS, FileType.ascii(), FileType.ascii(),
-                FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
-        assertTrue(options.replaceExisting);
-        assertEquals(FileType.ascii(), options.fileType);
-        assertEquals(FileStructure.FILE, options.fileStructure);
-        assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+            assertFalse(options.replaceExisting);
+            assertNull(options.fileType);
+            assertNull(options.fileStructure);
+            assertNull(options.fileTransferMode);
+        }
+
+        @Test
+        void testWithReplaceExistingAndNoFollowLinks() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
+
+            assertTrue(options.replaceExisting);
+            assertNull(options.fileType);
+            assertNull(options.fileStructure);
+            assertNull(options.fileTransferMode);
+        }
+
+        @Test
+        void testWithFileTypeAndFileStructureAndFileTransferMode() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS,
+                    FileType.ascii(), FileStructure.FILE, FileTransferMode.STREAM);
+
+            assertTrue(options.replaceExisting);
+            assertEquals(FileType.ascii(), options.fileType);
+            assertEquals(FileStructure.FILE, options.fileStructure);
+            assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+        }
+
+        @Test
+        void testWithDuplicateFileTypeAndFileStructureAndFileTransferMode() {
+            CopyOptions options = CopyOptions.forCopy(StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS,
+                    FileType.ascii(), FileType.ascii(), FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
+
+            assertTrue(options.replaceExisting);
+            assertEquals(FileType.ascii(), options.fileType);
+            assertEquals(FileStructure.FILE, options.fileStructure);
+            assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+        }
     }
 
     @Test
@@ -105,93 +130,158 @@ class CopyOptionsTest {
         assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
     }
 
-    @Test
-    void testForMove() {
-        CopyOptions options = CopyOptions.forMove(true);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+    @Nested
+    class ForMove {
 
-        options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+        @Nested
+        class SameFileSystem {
 
-        options = CopyOptions.forMove(true, StandardCopyOption.ATOMIC_MOVE);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithNoOptions() {
+                CopyOptions options = CopyOptions.forMove(true);
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithReplaceExisting() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING);
 
-        options = CopyOptions.forMove(true, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithAtomicMove() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forMove(true, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithReplaceExistingAndAtomicMove() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
-        options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS, FileType.ascii(), FileType.ascii(),
-                FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
-        assertTrue(options.replaceExisting);
-        assertEquals(FileType.ascii(), options.fileType);
-        assertEquals(FileStructure.FILE, options.fileStructure);
-        assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(false);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(true, LinkOption.NOFOLLOW_LINKS);
 
-        options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(false, LinkOption.NOFOLLOW_LINKS);
-        assertFalse(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+            @Test
+            void testWithReplaceExistingAndNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
 
-        options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
-        assertTrue(options.replaceExisting);
-        assertNull(options.fileType);
-        assertNull(options.fileStructure);
-        assertNull(options.fileTransferMode);
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
 
-        options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS, FileType.ascii(), FileType.ascii(),
-                FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
-        assertTrue(options.replaceExisting);
-        assertEquals(FileType.ascii(), options.fileType);
-        assertEquals(FileStructure.FILE, options.fileStructure);
-        assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+            @Test
+            void testWithAtomicMoveAndNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.ATOMIC_MOVE, LinkOption.NOFOLLOW_LINKS);
+
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithReplaceExistingAndAtomicMoveAndNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE,
+                        LinkOption.NOFOLLOW_LINKS);
+
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithDuplicateFileTypeAndFileStructureAndFileTransferMode() {
+                CopyOptions options = CopyOptions.forMove(true, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS,
+                        FileType.ascii(), FileType.ascii(), FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
+
+                assertTrue(options.replaceExisting);
+                assertEquals(FileType.ascii(), options.fileType);
+                assertEquals(FileStructure.FILE, options.fileStructure);
+                assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+            }
+        }
+
+        @Nested
+        class DifferentFileSystem {
+
+            @Test
+            void testWithNoOptions() {
+                CopyOptions options = CopyOptions.forMove(false);
+
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithReplaceExisting() {
+                CopyOptions options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING);
+
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(false, LinkOption.NOFOLLOW_LINKS);
+
+                assertFalse(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithReplaceExistingAndNoFollowLinks() {
+                CopyOptions options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
+
+                assertTrue(options.replaceExisting);
+                assertNull(options.fileType);
+                assertNull(options.fileStructure);
+                assertNull(options.fileTransferMode);
+            }
+
+            @Test
+            void testWithDuplicateFileTypeAndFileStructureAndFileTransferMode() {
+                CopyOptions options = CopyOptions.forMove(false, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS,
+                        FileType.ascii(), FileType.ascii(), FileStructure.FILE, FileStructure.FILE, FileTransferMode.STREAM, FileTransferMode.STREAM);
+
+                assertTrue(options.replaceExisting);
+                assertEquals(FileType.ascii(), options.fileType);
+                assertEquals(FileStructure.FILE, options.fileStructure);
+                assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
+            }
+        }
     }
 
     @Test

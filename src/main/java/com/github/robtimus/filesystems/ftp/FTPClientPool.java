@@ -101,7 +101,7 @@ final class FTPClientPool {
 
     final class Client extends PoolableObject<IOException> implements Closeable {
 
-        private final FTPClient client;
+        private final FTPClient ftpClient;
 
         private FileType fileType;
         private FileStructure fileStructure;
@@ -110,7 +110,7 @@ final class FTPClientPool {
         private ProtocolCommandListener listener;
 
         private Client() throws IOException {
-            this.client = env.createClient(hostname, port);
+            this.ftpClient = env.createClient(hostname, port);
 
             this.fileType = env.getDefaultFileType();
             this.fileStructure = env.getDefaultFileStructure();
@@ -133,10 +133,10 @@ final class FTPClientPool {
             boolean canLog = logger.isEnabled(LogLevel.TRACE);
             if (canLog && listener == null) {
                 listener = new FTPCommandLogger();
-                client.addProtocolCommandListener(listener);
+                ftpClient.addProtocolCommandListener(listener);
 
             } else if (!canLog && listener != null) {
-                client.removeProtocolCommandListener(listener);
+                ftpClient.removeProtocolCommandListener(listener);
                 listener = null;
             }
         }
@@ -175,10 +175,10 @@ final class FTPClientPool {
 
         @Override
         protected boolean validate() {
-            if (client.isConnected()) {
+            if (ftpClient.isConnected()) {
                 configureListener();
                 try {
-                    client.sendNoOp();
+                    ftpClient.sendNoOp();
                     return true;
                 } catch (@SuppressWarnings("unused") IOException e) {
                     // the keep alive failed - let the pool call releaseResources
@@ -189,7 +189,7 @@ final class FTPClientPool {
 
         @Override
         protected void releaseResources() throws IOException {
-            client.disconnect();
+            ftpClient.disconnect();
         }
 
         @Override
@@ -198,7 +198,7 @@ final class FTPClientPool {
         }
 
         FTPClient ftpClient() {
-            return client;
+            return ftpClient;
         }
 
         FileSystemExceptionFactory exceptionFactory() {
@@ -206,24 +206,24 @@ final class FTPClientPool {
         }
 
         String pwd() throws IOException {
-            String pwd = client.printWorkingDirectory();
+            String pwd = ftpClient.printWorkingDirectory();
             if (pwd == null) {
-                throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+                throw new FTPFileSystemException(ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
             return pwd;
         }
 
         private void applyTransferOptions(TransferOptions options) throws IOException {
             if (options.fileType != null && options.fileType != fileType) {
-                options.fileType.apply(client);
+                options.fileType.apply(ftpClient);
                 fileType = options.fileType;
             }
             if (options.fileStructure != null && options.fileStructure != fileStructure) {
-                options.fileStructure.apply(client);
+                options.fileStructure.apply(ftpClient);
                 fileStructure = options.fileStructure;
             }
             if (options.fileTransferMode != null && options.fileTransferMode != fileTransferMode) {
-                options.fileTransferMode.apply(client);
+                options.fileTransferMode.apply(ftpClient);
                 fileTransferMode = options.fileTransferMode;
             }
         }
@@ -233,9 +233,9 @@ final class FTPClientPool {
 
             applyTransferOptions(options);
 
-            InputStream in = client.retrieveFileStream(path.path());
+            InputStream in = ftpClient.retrieveFileStream(path.path());
             if (in == null) {
-                throw exceptionFactory.createNewInputStreamException(path.path(), client.getReplyCode(), client.getReplyString());
+                throw exceptionFactory.createNewInputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
             in = new FTPInputStream(path, in, options.deleteOnClose);
             addReference(in);
@@ -322,9 +322,10 @@ final class FTPClientPool {
 
             applyTransferOptions(options);
 
-            OutputStream out = options.append ? client.appendFileStream(path.path()) : client.storeFileStream(path.path());
+            OutputStream out = options.append ? ftpClient.appendFileStream(path.path()) : ftpClient.storeFileStream(path.path());
             if (out == null) {
-                throw exceptionFactory.createNewOutputStreamException(path.path(), client.getReplyCode(), client.getReplyString(), options.options);
+                throw exceptionFactory.createNewOutputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(),
+                        options.options);
             }
             out = new FTPOutputStream(path, out, options.deleteOnClose);
             addReference(out);
@@ -387,8 +388,8 @@ final class FTPClientPool {
 
         private void finalizeStream(Object stream) throws IOException {
             try {
-                if (!client.completePendingCommand()) {
-                    throw new FTPFileSystemException(client.getReplyCode(), client.getReplyString());
+                if (!ftpClient.completePendingCommand()) {
+                    throw new FTPFileSystemException(ftpClient.getReplyCode(), ftpClient.getReplyString());
                 }
             } finally {
                 removeReference(stream);
@@ -398,15 +399,15 @@ final class FTPClientPool {
         void storeFile(FTPPath path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
             applyTransferOptions(options);
 
-            if (!client.storeFile(path.path(), local)) {
-                throw exceptionFactory.createNewOutputStreamException(path.path(), client.getReplyCode(), client.getReplyString(), openOptions);
+            if (!ftpClient.storeFile(path.path(), local)) {
+                throw exceptionFactory.createNewOutputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(), openOptions);
             }
         }
 
         void mkdir(FTPPath path, FTPFileStrategy ftpFileStrategy) throws IOException {
-            if (!client.makeDirectory(path.path())) {
-                int replyCode = client.getReplyCode();
-                String replyString = client.getReplyString();
+            if (!ftpClient.makeDirectory(path.path())) {
+                int replyCode = ftpClient.getReplyCode();
+                String replyString = ftpClient.getReplyString();
                 if (fileExists(path, ftpFileStrategy)) {
                     throw new FileAlreadyExistsException(path.path());
                 }
@@ -425,20 +426,20 @@ final class FTPClientPool {
         }
 
         void delete(FTPPath path, boolean isDirectory) throws IOException {
-            boolean success = isDirectory ? client.removeDirectory(path.path()) : client.deleteFile(path.path());
+            boolean success = isDirectory ? ftpClient.removeDirectory(path.path()) : ftpClient.deleteFile(path.path());
             if (!success) {
-                throw exceptionFactory.createDeleteException(path.path(), client.getReplyCode(), client.getReplyString(), isDirectory);
+                throw exceptionFactory.createDeleteException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(), isDirectory);
             }
         }
 
         void rename(FTPPath source, FTPPath target) throws IOException {
-            if (!client.rename(source.path(), target.path())) {
-                throw exceptionFactory.createMoveException(source.path(), target.path(), client.getReplyCode(), client.getReplyString());
+            if (!ftpClient.rename(source.path(), target.path())) {
+                throw exceptionFactory.createMoveException(source.path(), target.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
         }
 
         Calendar mdtm(FTPPath path) throws IOException {
-            FTPFile file = client.mdtmFile(path.path());
+            FTPFile file = ftpClient.mdtmFile(path.path());
             return file == null ? null : file.getTimestamp();
         }
     }

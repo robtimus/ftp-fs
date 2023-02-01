@@ -33,7 +33,6 @@ import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -708,7 +707,7 @@ public class FTPSEnvironment extends FTPEnvironment {
         configureDataChannelProtectionLevel(client);
     }
 
-    private void configureDataChannelProtectionLevel(FTPSClient client) throws SSLException, IOException {
+    private void configureDataChannelProtectionLevel(FTPSClient client) throws IOException {
         if (containsKey(DATA_CHANNEL_PROTECTION_LEVEL)) {
             DataChannelProtectionLevel dataChannelProtectionLevel
                     = FileSystemProviderSupport.getValue(this, DATA_CHANNEL_PROTECTION_LEVEL, DataChannelProtectionLevel.class);

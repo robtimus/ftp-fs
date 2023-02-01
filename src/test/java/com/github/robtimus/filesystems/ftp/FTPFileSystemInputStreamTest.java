@@ -19,11 +19,13 @@ package com.github.robtimus.filesystems.ftp;
 
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -144,7 +146,7 @@ class FTPFileSystemInputStreamTest {
         }
 
         @Test
-        void testAvailable() throws IOException, InterruptedException {
+        void testAvailable() throws IOException {
             final String content = "Hello World";
 
             FileEntry file = addFile("/foo");
@@ -152,7 +154,7 @@ class FTPFileSystemInputStreamTest {
 
             try (InputStream input = fileSystem.newInputStream(createPath("/foo"))) {
                 // there is a timing issue here that may cause a different result for different instances each time
-                Thread.sleep(100);
+                await().atMost(Duration.ofMillis(100)).pollDelay(Duration.ofMillis(10)).until(() -> input.available() == content.length());
 
                 assertEquals(content.length(), input.available());
 

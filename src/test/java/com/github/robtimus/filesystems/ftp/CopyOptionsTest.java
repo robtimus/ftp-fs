@@ -105,29 +105,41 @@ class CopyOptionsTest {
             assertEquals(FileStructure.FILE, options.fileStructure);
             assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
         }
-    }
 
-    @Test
-    void testForCopyWithInvalid() {
-        testForCopyWithInvalid(StandardCopyOption.COPY_ATTRIBUTES);
-        testForCopyWithInvalid(StandardCopyOption.ATOMIC_MOVE);
-    }
+        @Test
+        void testWithCopyAttributes() {
+            testWithInvalid(StandardCopyOption.COPY_ATTRIBUTES);
+        }
 
-    private void testForCopyWithInvalid(CopyOption option) {
-        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
-        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
-    }
+        @Test
+        void testWithAtomicMove() {
+            testWithInvalid(StandardCopyOption.ATOMIC_MOVE);
+        }
 
-    @Test
-    void testForCopyWithDuplicates() {
-        testForCopyWithDuplicates(FileType.ascii(), FileType.binary());
-        testForCopyWithDuplicates(FileStructure.FILE, FileStructure.PAGE);
-        testForCopyWithDuplicates(FileTransferMode.STREAM, FileTransferMode.BLOCK);
-    }
+        private void testWithInvalid(CopyOption option) {
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
+            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+        }
 
-    private void testForCopyWithDuplicates(CopyOption... options) {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forCopy(options));
-        assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+        @Test
+        void testWithMultipleFileTypes() {
+            testWithMultiples(FileType.ascii(), FileType.binary());
+        }
+
+        @Test
+        void testWithDifferentMultipleFileStructures() {
+            testWithMultiples(FileStructure.FILE, FileStructure.PAGE);
+        }
+
+        @Test
+        void testWithDifferentMultipleFileTransferModes() {
+            testWithMultiples(FileTransferMode.STREAM, FileTransferMode.BLOCK);
+        }
+
+        private void testWithMultiples(CopyOption... options) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forCopy(options));
+            assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+        }
     }
 
     @Nested
@@ -226,6 +238,26 @@ class CopyOptionsTest {
                 assertEquals(FileStructure.FILE, options.fileStructure);
                 assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
             }
+
+            @Test
+            void testWithCopyAttributes() {
+                testWithInvalid(true, StandardCopyOption.COPY_ATTRIBUTES);
+            }
+
+            @Test
+            void testWithMultipleFileTypes() {
+                testWithMultiples(true, FileType.ascii(), FileType.binary());
+            }
+
+            @Test
+            void testWithMultipleFileStructures() {
+                testWithMultiples(true, FileStructure.FILE, FileStructure.PAGE);
+            }
+
+            @Test
+            void testWithMultipleFileTransferModes() {
+                testWithMultiples(true, FileTransferMode.STREAM, FileTransferMode.BLOCK);
+            }
         }
 
         @Nested
@@ -281,34 +313,42 @@ class CopyOptionsTest {
                 assertEquals(FileStructure.FILE, options.fileStructure);
                 assertEquals(FileTransferMode.STREAM, options.fileTransferMode);
             }
+
+            @Test
+            void testWithCopyAttributes() {
+                testWithInvalid(false, StandardCopyOption.COPY_ATTRIBUTES);
+            }
+
+            @Test
+            void testWithAtomicMove() {
+                testWithInvalid(false, StandardCopyOption.ATOMIC_MOVE);
+            }
+
+            @Test
+            void testWithMultipleFileTypes() {
+                testWithMultiples(false, FileType.ascii(), FileType.binary());
+            }
+
+            @Test
+            void testWithMultipleFileStructures() {
+                testWithMultiples(false, FileStructure.FILE, FileStructure.PAGE);
+            }
+
+            @Test
+            void testWithMultipleFileTransferModes() {
+                testWithMultiples(false, FileTransferMode.STREAM, FileTransferMode.BLOCK);
+            }
         }
-    }
 
-    @Test
-    void testForMoveWithInvalid() {
-        testForMoveWithInvalid(true, StandardCopyOption.COPY_ATTRIBUTES);
-        testForMoveWithInvalid(false, StandardCopyOption.COPY_ATTRIBUTES);
-        testForMoveWithInvalid(false, StandardCopyOption.ATOMIC_MOVE);
-    }
+        private void testWithInvalid(boolean sameFileSystem, CopyOption option) {
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                    () -> CopyOptions.forMove(sameFileSystem, option));
+            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+        }
 
-    private void testForMoveWithInvalid(boolean sameFileSystem, CopyOption option) {
-        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-                () -> CopyOptions.forMove(sameFileSystem, option));
-        assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
-    }
-
-    @Test
-    void testForMoveWithDuplicates() {
-        testForMoveWithDuplicates(true, FileType.ascii(), FileType.binary());
-        testForMoveWithDuplicates(false, FileType.ascii(), FileType.binary());
-        testForMoveWithDuplicates(true, FileStructure.FILE, FileStructure.PAGE);
-        testForMoveWithDuplicates(false, FileStructure.FILE, FileStructure.PAGE);
-        testForMoveWithDuplicates(true, FileTransferMode.STREAM, FileTransferMode.BLOCK);
-        testForMoveWithDuplicates(false, FileTransferMode.STREAM, FileTransferMode.BLOCK);
-    }
-
-    private void testForMoveWithDuplicates(boolean sameFileSystem, CopyOption... options) {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forMove(sameFileSystem, options));
-        assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+        private void testWithMultiples(boolean sameFileSystem, CopyOption... options) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forMove(sameFileSystem, options));
+            assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+        }
     }
 }

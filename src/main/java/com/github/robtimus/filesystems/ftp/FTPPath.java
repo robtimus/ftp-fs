@@ -39,6 +39,7 @@ import java.nio.file.attribute.PosixFileAttributes;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.SimpleAbstractPath;
 
@@ -138,7 +139,8 @@ class FTPPath extends SimpleAbstractPath {
 
     @Override
     public FTPPath toRealPath(LinkOption... options) throws IOException {
-        return fs.toRealPath(this, options);
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return fs.toRealPath(this, followLinks);
     }
 
     @Override
@@ -210,11 +212,11 @@ class FTPPath extends SimpleAbstractPath {
         fs.checkAccess(this, modes);
     }
 
-    PosixFileAttributes readAttributes(LinkOption... options) throws IOException {
-        return fs.readAttributes(this, options);
+    PosixFileAttributes readAttributes(boolean followLinks) throws IOException {
+        return fs.readAttributes(this, followLinks);
     }
 
-    Map<String, Object> readAttributes(String attributes, LinkOption... options) throws IOException {
-        return fs.readAttributes(this, attributes, options);
+    Map<String, Object> readAttributes(String attributes, boolean followLinks) throws IOException {
+        return fs.readAttributes(this, attributes, followLinks);
     }
 }

@@ -31,7 +31,6 @@ import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
-import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotLinkException;
 import java.nio.file.OpenOption;
@@ -62,7 +61,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.net.ftp.FTPFile;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.FileSystemProviderSupport;
-import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.PathMatcherSupport;
 import com.github.robtimus.filesystems.URISupport;
@@ -206,8 +204,7 @@ class FTPFileSystem extends FileSystem {
         return new FTPPath(this, defaultDirectory + "/" + path.path()); //$NON-NLS-1$
     }
 
-    FTPPath toRealPath(FTPPath path, LinkOption... options) throws IOException {
-        boolean followLinks = LinkOptionSupport.followLinks(options);
+    FTPPath toRealPath(FTPPath path, boolean followLinks) throws IOException {
         try (Client client = clientPool.get()) {
             return toRealPath(client, path, followLinks).ftpPath;
         }
@@ -573,8 +570,7 @@ class FTPFileSystem extends FileSystem {
         }
     }
 
-    PosixFileAttributes readAttributes(FTPPath path, LinkOption... options) throws IOException {
-        boolean followLinks = LinkOptionSupport.followLinks(options);
+    PosixFileAttributes readAttributes(FTPPath path, boolean followLinks) throws IOException {
         try (Client client = clientPool.get()) {
             FTPPathAndFilePair pair = toRealPath(client, path, followLinks);
 
@@ -703,8 +699,7 @@ class FTPFileSystem extends FileSystem {
             "posix:isRegularFile", "posix:isDirectory", "posix:isSymbolicLink", "posix:isOther", "posix:fileKey",
             "posix:owner", "posix:group", "posix:permissions")));
 
-    Map<String, Object> readAttributes(FTPPath path, String attributes, LinkOption... options) throws IOException {
-
+    Map<String, Object> readAttributes(FTPPath path, String attributes, boolean followLinks) throws IOException {
         String view;
         int pos = attributes.indexOf(':');
         if (pos == -1) {
@@ -731,7 +726,7 @@ class FTPFileSystem extends FileSystem {
 
         Map<String, Object> result = getAttributeMap(attributes, allowedAttributes);
 
-        PosixFileAttributes posixAttributes = readAttributes(path, options);
+        PosixFileAttributes posixAttributes = readAttributes(path, followLinks);
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
             switch (entry.getKey()) {

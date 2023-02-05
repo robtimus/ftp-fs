@@ -74,8 +74,7 @@ class FTPFileSystemOutputStreamTest {
 
         @Test
         void testWriteSingle() throws IOException {
-
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo"))) {
                 output.write('H');
                 output.write('e');
                 output.write('l');
@@ -88,8 +87,7 @@ class FTPFileSystemOutputStreamTest {
 
         @Test
         void testWriteBulk() throws IOException {
-
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo"))) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo"))) {
                 output.write("Hello".getBytes());
             }
             FileEntry file = getFile("/foo");

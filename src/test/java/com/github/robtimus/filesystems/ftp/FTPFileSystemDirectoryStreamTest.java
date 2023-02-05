@@ -100,7 +100,7 @@ class FTPFileSystemDirectoryStreamTest {
             }
 
             List<String> names = new ArrayList<>();
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), entry -> true)) {
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                     names.add(iterator.next().getFileName().toString());
                 }
@@ -122,7 +122,7 @@ class FTPFileSystemDirectoryStreamTest {
 
             List<String> names = new ArrayList<>();
             Filter<Path> filter = new PatternFilter("file\\d*[13579]");
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), filter)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), filter)) {
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
                     names.add(iterator.next().getFileName().toString());
                 }
@@ -142,7 +142,7 @@ class FTPFileSystemDirectoryStreamTest {
             int expectedCount = count / 2;
 
             List<String> names = new ArrayList<>();
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), entry -> true)) {
 
                 int index = 0;
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -158,7 +158,7 @@ class FTPFileSystemDirectoryStreamTest {
 
         @Test
         void testIteratorAfterClose() throws IOException {
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
                 stream.close();
                 IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
                 assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
@@ -167,7 +167,7 @@ class FTPFileSystemDirectoryStreamTest {
 
         @Test
         void testIteratorAfterIterator() throws IOException {
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
                 stream.iterator();
                 IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
                 assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
@@ -186,7 +186,7 @@ class FTPFileSystemDirectoryStreamTest {
             }
 
             List<String> names = new ArrayList<>();
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), entry -> true)) {
 
                 int index = 0;
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -211,7 +211,7 @@ class FTPFileSystemDirectoryStreamTest {
             }
 
             List<String> names = new ArrayList<>();
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), entry -> true)) {
 
                 int index = 0;
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -240,7 +240,7 @@ class FTPFileSystemDirectoryStreamTest {
             }
 
             List<String> names = new ArrayList<>();
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/foo"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/foo"), entry -> true)) {
 
                 delete("/foo");
                 for (Iterator<Path> iterator = stream.iterator(); iterator.hasNext(); ) {
@@ -257,7 +257,7 @@ class FTPFileSystemDirectoryStreamTest {
             Filter<Path> filter = entry -> {
                 throw new IOException();
             };
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), filter)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), filter)) {
                 Iterator<Path> iterator = stream.iterator();
                 // hasNext already uses the filter, and therefore already causes the exception to be thrown
                 DirectoryIteratorException exception = assertThrows(DirectoryIteratorException.class, iterator::hasNext);

@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import com.github.robtimus.filesystems.FileSystemMap;
+import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.URISupport;
 
@@ -374,13 +375,16 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
         Objects.requireNonNull(type);
         if (type == BasicFileAttributeView.class) {
-            return type.cast(new AttributeView("basic", toFTPPath(path))); //$NON-NLS-1$
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(new AttributeView("basic", toFTPPath(path), followLinks)); //$NON-NLS-1$
         }
         if (type == FileOwnerAttributeView.class) {
-            return type.cast(new AttributeView("owner", toFTPPath(path))); //$NON-NLS-1$
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(new AttributeView("owner", toFTPPath(path), followLinks)); //$NON-NLS-1$
         }
         if (type == PosixFileAttributeView.class) {
-            return type.cast(new AttributeView("posix", toFTPPath(path))); //$NON-NLS-1$
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(new AttributeView("posix", toFTPPath(path), followLinks)); //$NON-NLS-1$
         }
         return null;
     }
@@ -389,10 +393,12 @@ public class FTPFileSystemProvider extends FileSystemProvider {
 
         private final String name;
         private final FTPPath path;
+        private final boolean followLinks;
 
-        private AttributeView(String name, FTPPath path) {
+        private AttributeView(String name, FTPPath path, boolean followLinks) {
             this.name = Objects.requireNonNull(name);
             this.path = Objects.requireNonNull(path);
+            this.followLinks = followLinks;
         }
 
         @Override
@@ -407,7 +413,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
 
         @Override
         public PosixFileAttributes readAttributes() throws IOException {
-            return path.readAttributes();
+            return path.readAttributes(followLinks);
         }
 
         @Override
@@ -441,7 +447,8 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     @Override
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options) throws IOException {
         if (type == BasicFileAttributes.class || type == PosixFileAttributes.class) {
-            return type.cast(toFTPPath(path).readAttributes(options));
+            boolean followLinks = LinkOptionSupport.followLinks(options);
+            return type.cast(toFTPPath(path).readAttributes(followLinks));
         }
         throw Messages.fileSystemProvider().unsupportedFileAttributesType(type);
     }
@@ -455,7 +462,8 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public Map<String, Object> readAttributes(Path path, String attributes, LinkOption... options) throws IOException {
-        return toFTPPath(path).readAttributes(attributes, options);
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return toFTPPath(path).readAttributes(attributes, followLinks);
     }
 
     /**

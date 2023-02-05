@@ -225,7 +225,7 @@ class FTPFileSystemTest {
 
         private void testToUri(String path, String expected) {
             URI expectedUri = URI.create(expected);
-            URI actual = fileSystem.toUri(createPath(path));
+            URI actual = createPath(path).toUri();
             assertEquals(expectedUri, actual);
         }
 
@@ -245,7 +245,7 @@ class FTPFileSystemTest {
 
         private void testToAbsolutePath(String path, String expected) {
             FTPPath expectedPath = createPath(expected);
-            Path actual = fileSystem.toAbsolutePath(createPath(path));
+            Path actual = createPath(path).toAbsolutePath();
             assertEquals(expectedPath, actual);
         }
 
@@ -282,7 +282,7 @@ class FTPFileSystemTest {
 
         private void testToRealPathNoFollowLinks(String path, String expected) throws IOException {
             FTPPath expectedPath = createPath(expected);
-            Path actual = fileSystem.toRealPath(createPath(path), LinkOption.NOFOLLOW_LINKS);
+            Path actual = createPath(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
             assertEquals(expectedPath, actual);
         }
 
@@ -317,7 +317,7 @@ class FTPFileSystemTest {
 
         private void testToRealPathFollowLinks(String path, String expected) throws IOException {
             FTPPath expectedPath = createPath(expected);
-            Path actual = fileSystem.toRealPath(createPath(path));
+            Path actual = createPath(path).toRealPath();
             assertEquals(expectedPath, actual);
         }
 
@@ -341,11 +341,11 @@ class FTPFileSystemTest {
         void testNewInputStream() throws IOException {
             addFile("/foo/bar");
 
-            try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"))) {
+            try (InputStream input = provider().newInputStream(createPath("/foo/bar"))) {
                 // don't do anything with the stream, there's a separate test for that
             }
             // verify that the file system can be used after closing the stream
-            fileSystem.checkAccess(createPath("/foo/bar"));
+            provider().checkAccess(createPath("/foo/bar"));
         }
 
         @Test
@@ -353,7 +353,7 @@ class FTPFileSystemTest {
             addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            try (InputStream input = fileSystem.newInputStream(createPath("/foo/bar"), options)) {
+            try (InputStream input = provider().newInputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
             }
             assertNull(getFileSystemEntry("/foo/bar"));
@@ -365,7 +365,8 @@ class FTPFileSystemTest {
 
             // failure: file not found
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> fileSystem.newInputStream(createPath("/foo/bar")));
+            FTPFileSystemProvider provider = provider();
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newInputStream(createPath("/foo/bar")));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
@@ -379,11 +380,11 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.WRITE };
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
             }
             // verify that the file system can be used after closing the stream
-            fileSystem.checkAccess(createPath("/foo/bar"));
+            provider().checkAccess(createPath("/foo/bar"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -395,12 +396,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
                 assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
             // verify that the file system can be used after closing the stream
-            fileSystem.checkAccess(createPath("/foo"));
+            provider().checkAccess(createPath("/foo"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/foo/bar"));
@@ -413,11 +414,11 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.CREATE };
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
             }
             // verify that the file system can be used after closing the stream
-            fileSystem.checkAccess(createPath("/foo/bar"));
+            provider().checkAccess(createPath("/foo/bar"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
@@ -429,12 +430,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
 
             OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream output = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
                 assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
             // verify that the file system can be used after closing the stream
-            fileSystem.checkAccess(createPath("/foo"));
+            provider().checkAccess(createPath("/foo"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/foo/bar"));
@@ -445,13 +446,15 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry bar = addFile("/foo/bar");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.newOutputStream(createPath("/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newOutputStream(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             // verify that the file system can be used after closing the stream
-            assertDoesNotThrow(() -> fileSystem.checkAccess(createPath("/foo/bar")));
+            assertDoesNotThrow(() -> provider().checkAccess(createPath("/foo/bar")));
             assertSame(foo, getFileSystemEntry("/foo"));
             assertSame(bar, getFileSystemEntry("/foo/bar"));
         }
@@ -464,9 +467,11 @@ class FTPFileSystemTest {
 
             // failure: no permission to write
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             OpenOption[] options = { StandardOpenOption.WRITE };
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.newOutputStream(createPath("/foo/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
@@ -482,9 +487,11 @@ class FTPFileSystemTest {
 
             // failure: no permission to write
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.newOutputStream(createPath("/foo/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
@@ -496,9 +503,11 @@ class FTPFileSystemTest {
         void testNewOutputStreamNonExistingNoCreate() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             OpenOption[] options = { StandardOpenOption.WRITE };
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.newOutputStream(createPath("/foo/bar"), options));
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -510,7 +519,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE };
-            try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
             } finally {
                 assertSame(foo, getFileSystemEntry("/foo"));
@@ -523,7 +532,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
                 // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
             } finally {
@@ -538,7 +547,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-            try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
             } finally {
                 assertSame(foo, getFileSystemEntry("/foo"));
@@ -551,7 +560,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
 
             OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream input = fileSystem.newOutputStream(createPath("/foo/bar"), options)) {
+            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
                 // don't do anything with the stream, there's a separate test for that
                 // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
             } finally {
@@ -564,8 +573,11 @@ class FTPFileSystemTest {
         void testNewOutputStreamDirectoryNoCreate() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath createPath = createPath("/foo");
             OpenOption[] options = { StandardOpenOption.WRITE };
-            FileSystemException exception = assertThrows(FileSystemException.class, () -> fileSystem.newOutputStream(createPath("/foo"), options));
+
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
             assertEquals("/foo", exception.getFile());
             assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -578,8 +590,11 @@ class FTPFileSystemTest {
         void testNewOutputStreamDirectoryDeleteOnClose() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath createPath = createPath("/foo");
             OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            FileSystemException exception = assertThrows(FileSystemException.class, () -> fileSystem.newOutputStream(createPath("/foo"), options));
+
+            FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
             assertEquals("/foo", exception.getFile());
             assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
 
@@ -597,7 +612,7 @@ class FTPFileSystemTest {
             bar.setContents(new byte[1024]);
 
             Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(bar.getSize(), channel.size());
             }
@@ -610,9 +625,11 @@ class FTPFileSystemTest {
 
             // failure: file does not exist
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.newByteChannel(createPath("/foo/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newByteChannel(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
@@ -625,7 +642,7 @@ class FTPFileSystemTest {
             addFile("/foo/bar");
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
             }
@@ -637,7 +654,7 @@ class FTPFileSystemTest {
             bar.setContents(new byte[1024]);
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(bar.getSize(), channel.size());
             }
@@ -650,7 +667,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
                 channel.write(ByteBuffer.wrap(newContents));
@@ -668,7 +685,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 long size = bar.getSize();
                 assertEquals(size, channel.size());
@@ -689,7 +706,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
                 channel.write(ByteBuffer.wrap(newContents));
@@ -708,7 +725,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
                 channel.write(ByteBuffer.wrap(newContents));
@@ -726,9 +743,11 @@ class FTPFileSystemTest {
             byte[] oldContents = "Hello World".getBytes();
             bar.setContents(oldContents);
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.newByteChannel(createPath("/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertArrayEquals(oldContents, getContents(bar));
@@ -739,9 +758,11 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             bar.setContents(new byte[1024]);
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.newByteChannel(createPath("/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertArrayEquals(new byte[1024], getContents(bar));
@@ -754,7 +775,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
                 channel.write(ByteBuffer.wrap(newContents));
@@ -773,7 +794,7 @@ class FTPFileSystemTest {
             byte[] newContents = "Lorem ipsum".getBytes();
 
             Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = fileSystem.newByteChannel(createPath("/foo/bar"), options)) {
+            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
                 // don't do anything with the channel, there's a separate test for that
                 assertEquals(0, channel.size());
                 channel.write(ByteBuffer.wrap(newContents));
@@ -789,8 +810,7 @@ class FTPFileSystemTest {
 
         @Test
         void testNewDirectoryStream() throws IOException {
-
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
                 assertNotNull(stream);
                 // don't do anything with the stream, there's a separate test for that
             }
@@ -798,8 +818,10 @@ class FTPFileSystemTest {
 
         @Test
         void testNewDirectoryStreamNotExisting() {
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -807,8 +829,10 @@ class FTPFileSystemTest {
         void testNewDirectoryStreamNotDirectory() {
             addFile("/foo");
 
-            NotDirectoryException exception = assertThrows(NotDirectoryException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -819,7 +843,7 @@ class FTPFileSystemTest {
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
             addSymLink("/baz", bar);
 
-            try (DirectoryStream<Path> stream = fileSystem.newDirectoryStream(createPath("/baz"), entry -> true)) {
+            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/baz"), entry -> true)) {
                 Iterator<Path> iterator = stream.iterator();
                 assertTrue(iterator.hasNext());
                 assertEquals("bar", iterator.next().getFileName().toString());
@@ -831,8 +855,10 @@ class FTPFileSystemTest {
             SymbolicLinkEntry bar = addSymLink("/bar", new DirectoryEntry("/foo"));
             addSymLink("/baz", bar);
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -843,8 +869,10 @@ class FTPFileSystemTest {
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
             addSymLink("/baz", bar);
 
-            NotDirectoryException exception = assertThrows(NotDirectoryException.class,
-                    () -> fileSystem.newDirectoryStream(createPath("/foo"), entry -> true));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -854,7 +882,7 @@ class FTPFileSystemTest {
         void testCreateDirectory() throws IOException {
             assertNull(getFileSystemEntry("/foo"));
 
-            fileSystem.createDirectory(createPath("/foo"));
+            provider().createDirectory(createPath("/foo"));
 
             FileSystemEntry entry = getFileSystemEntry("/foo");
             assertThat(entry, instanceOf(DirectoryEntry.class));
@@ -864,8 +892,10 @@ class FTPFileSystemTest {
         void testCreateDirectoryAlreadyExists() {
             addDirectory("/foo/bar");
 
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.createDirectory(createPath("/foo/bar")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), anyInt(), anyString());
@@ -879,7 +909,10 @@ class FTPFileSystemTest {
 
             // failure: read-only parent
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> fileSystem.createDirectory(createPath("/foo")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.createDirectory(path));
             assertEquals("/foo", exception.getFile());
 
             verify(getExceptionFactory()).createCreateDirectoryException(eq("/foo"), eq(550), anyString());
@@ -890,8 +923,10 @@ class FTPFileSystemTest {
 
         @Test
         void testDeleteNonExisting() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.delete(createPath("/foo")));
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(path));
             assertEquals("/foo", exception.getFile());
 
             verify(getExceptionFactory(), never()).createDeleteException(anyString(), anyInt(), anyString(), anyBoolean());
@@ -899,8 +934,10 @@ class FTPFileSystemTest {
 
         @Test
         void testDeleteRoot() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/");
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> fileSystem.delete(createPath("/")));
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
             assertEquals("/", exception.getFile());
 
             verify(getExceptionFactory()).createDeleteException(eq("/"), eq(550), anyString(), eq(true));
@@ -911,7 +948,7 @@ class FTPFileSystemTest {
             addFile("/foo/bar");
             FileSystemEntry foo = getFileSystemEntry("/foo");
 
-            fileSystem.delete(createPath("/foo/bar"));
+            provider().delete(createPath("/foo/bar"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/foo/bar"));
@@ -922,7 +959,7 @@ class FTPFileSystemTest {
             addDirectory("/foo/bar");
             FileSystemEntry foo = getFileSystemEntry("/foo");
 
-            fileSystem.delete(createPath("/foo/bar"));
+            provider().delete(createPath("/foo/bar"));
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/foo/bar"));
@@ -936,7 +973,10 @@ class FTPFileSystemTest {
 
             // failure: non-empty directory
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> fileSystem.delete(createPath("/foo/bar")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory()).createDeleteException(eq("/foo/bar"), eq(550), anyString(), eq(true));
@@ -951,7 +991,7 @@ class FTPFileSystemTest {
             FileEntry foo = addFile("/foo");
             addSymLink("/bar", foo);
 
-            FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
+            Path link = provider().readSymbolicLink(createPath("/bar"));
             assertEquals(createPath("/foo"), link);
         }
 
@@ -960,7 +1000,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             addSymLink("/bar", foo);
 
-            FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
+            Path link = provider().readSymbolicLink(createPath("/bar"));
             assertEquals(createPath("/foo"), link);
         }
 
@@ -968,14 +1008,16 @@ class FTPFileSystemTest {
         void testReadSymbolicLinkToNonExistingTarget() throws IOException {
             addSymLink("/bar", new FileEntry("/foo"));
 
-            FTPPath link = fileSystem.readSymbolicLink(createPath("/bar"));
+            Path link = provider().readSymbolicLink(createPath("/bar"));
             assertEquals(createPath("/foo"), link);
         }
 
         @Test
         void testReadSymbolicLinkNotExisting() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readSymbolicLink(path));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -983,7 +1025,10 @@ class FTPFileSystemTest {
         void testReadSymbolicLinkNoLinkButFile() {
             addFile("/foo");
 
-            NotLinkException exception = assertThrows(NotLinkException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -991,7 +1036,10 @@ class FTPFileSystemTest {
         void testReadSymbolicLinkNoLinkButDirectory() {
             addDirectory("/foo");
 
-            NotLinkException exception = assertThrows(NotLinkException.class, () -> fileSystem.readSymbolicLink(createPath("/foo")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -1003,9 +1051,9 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/home/test/foo/bar");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/home/test"), createPath(""), options);
-            fileSystem.copy(createPath("/home/test/foo"), createPath("foo"), options);
-            fileSystem.copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+            provider().copy(createPath("/home/test"), createPath(""), options);
+            provider().copy(createPath("/home/test/foo"), createPath("foo"), options);
+            provider().copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/home/test/foo"));
             assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
@@ -1016,9 +1064,12 @@ class FTPFileSystemTest {
         void testCopyNonExisting() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/foo/bar");
+            FTPPath target = createPath("/foo/baz");
             CopyOption[] options = {};
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.copy(createPath("/foo/bar"), createPath("/foo/baz"), options));
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1032,9 +1083,12 @@ class FTPFileSystemTest {
 
             // failure: target parent does not exist
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/foo/bar");
+            FTPPath target = createPath("/baz/bar");
             CopyOption[] options = {};
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.copy(createPath("/foo/bar"), createPath("/baz/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
             assertEquals("/baz/bar", exception.getFile());
 
             verify(getExceptionFactory()).createNewOutputStreamException(eq("/baz/bar"), eq(553), anyString(), anyCollection());
@@ -1050,7 +1104,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/"), createPath("/foo/bar"), options);
+            provider().copy(createPath("/"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
 
@@ -1066,9 +1120,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo/bar");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1083,7 +1140,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -1098,9 +1155,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath("/foo"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1114,9 +1174,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo");
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath("/foo"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
@@ -1130,9 +1193,12 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath("/foo"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1145,7 +1211,7 @@ class FTPFileSystemTest {
             DirectoryEntry baz = addDirectory("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.copy(createPath("/baz"), createPath("/foo"), options);
+            provider().copy(createPath("/baz"), createPath("/foo"), options);
 
             assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
             assertNotSame(foo, getFileSystemEntry("/foo"));
@@ -1160,7 +1226,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1194,7 +1260,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1215,7 +1281,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1233,9 +1299,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1250,7 +1319,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
@@ -1265,9 +1334,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1281,9 +1353,12 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo");
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
@@ -1297,9 +1372,12 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1312,7 +1390,7 @@ class FTPFileSystemTest {
             DirectoryEntry baz = addDirectory("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
+            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
 
             assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
             assertNotSame(foo, getFileSystemEntry("/foo"));
@@ -1327,7 +1405,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1344,7 +1422,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1365,7 +1443,7 @@ class FTPFileSystemTest {
             baz.setOwner("root");
 
             CopyOption[] options = {};
-            fileSystem.copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1383,12 +1461,12 @@ class FTPFileSystemTest {
             addDirectory("/baz");
             addFile("/baz/qux");
 
+            FTPFileSystemProvider provider = provider();
             FTPPath source = createPath("/baz");
             FTPPath target = createPath("/foo/bar");
             CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES };
 
-            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-                    () -> fileSystem.copy(source, target, options));
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.copy(source, target, options));
             assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(StandardCopyOption.COPY_ATTRIBUTES).getMessage(),
                     exception.getMessage());
         }
@@ -1402,12 +1480,12 @@ class FTPFileSystemTest {
             SymbolicLinkEntry baz = addSymLink("/baz", foo);
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/"), createPath("/"), options);
-            fileSystem.move(createPath("/home/test"), createPath(""), options);
-            fileSystem.move(createPath("/home/test/foo"), createPath("foo"), options);
-            fileSystem.move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
-            fileSystem.move(createPath("/home/test/foo"), createPath("/baz"), options);
-            fileSystem.move(createPath("/baz"), createPath("/home/test/foo"), options);
+            provider().move(createPath("/"), createPath("/"), options);
+            provider().move(createPath("/home/test"), createPath(""), options);
+            provider().move(createPath("/home/test/foo"), createPath("foo"), options);
+            provider().move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+            provider().move(createPath("/home/test/foo"), createPath("/baz"), options);
+            provider().move(createPath("/baz"), createPath("/home/test/foo"), options);
 
             assertSame(foo, getFileSystemEntry("/home/test/foo"));
             assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
@@ -1419,9 +1497,12 @@ class FTPFileSystemTest {
         void testMoveNonExisting() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/foo/bar");
+            FTPPath target = createPath("/foo/baz");
             CopyOption[] options = {};
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class,
-                    () -> fileSystem.move(createPath("/foo/bar"), createPath("/foo/baz"), options));
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.move(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1435,9 +1516,12 @@ class FTPFileSystemTest {
 
             // failure: non-existing target parent
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/foo/bar");
+            FTPPath target = createPath("/baz/bar");
             CopyOption[] options = {};
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.move(createPath("/foo/bar"), createPath("/baz/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
             assertEquals("/baz/bar", exception.getOtherFile());
 
@@ -1449,10 +1533,12 @@ class FTPFileSystemTest {
 
         @Test
         void testMoveEmptyRoot() {
-
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/");
+            FTPPath target = createPath("/baz");
             CopyOption[] options = {};
-            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                    () -> fileSystem.move(createPath("/"), createPath("/baz"), options));
+
+            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
             assertEquals("/", exception.getFile());
 
             assertNull(getFileSystemEntry("/baz"));
@@ -1462,9 +1548,12 @@ class FTPFileSystemTest {
         void testMoveNonEmptyRoot() {
             DirectoryEntry foo = addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/");
+            FTPPath target = createPath("/baz");
             CopyOption[] options = {};
-            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class,
-                    () -> fileSystem.move(createPath("/"), createPath("/baz"), options));
+
+            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
             assertEquals("/", exception.getFile());
 
             assertSame(foo, getFileSystemEntry("/foo"));
@@ -1477,9 +1566,12 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo/bar");
             CopyOption[] options = {};
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
             assertEquals("/baz", exception.getFile());
             assertEquals("/foo/bar", exception.getOtherFile());
 
@@ -1496,7 +1588,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1508,9 +1600,12 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath("/foo");
             CopyOption[] options = {};
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.move(createPath("/baz"), createPath("/foo"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
             assertEquals("/baz", exception.getFile());
             assertEquals("/foo", exception.getOtherFile());
 
@@ -1525,7 +1620,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.move(createPath("/baz"), createPath("/foo"), options);
+            provider().move(createPath("/baz"), createPath("/foo"), options);
 
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo"));
             assertNull(getFileSystemEntry("/baz"));
@@ -1537,7 +1632,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1550,7 +1645,7 @@ class FTPFileSystemTest {
             DirectoryEntry baz = addDirectory("/baz");
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1564,7 +1659,7 @@ class FTPFileSystemTest {
             FileEntry qux = addFile("/baz/qux");
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/baz"), createPath("/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
@@ -1580,7 +1675,7 @@ class FTPFileSystemTest {
 
             CopyOption[] options = {};
             try {
-                fileSystem.move(createPath("/foo"), createPath("/baz"), options);
+                provider().move(createPath("/foo"), createPath("/baz"), options);
             } finally {
                 assertNull(getFileSystemEntry("/foo"));
                 assertEqualsMinusPath(foo, getFileSystemEntry("/baz"));
@@ -1594,9 +1689,12 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/foo/bar");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
             assertEquals("/foo/bar", exception.getFile());
 
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
@@ -1612,7 +1710,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             // permissions are dropped during the copy/delete
@@ -1625,9 +1723,12 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             FileEntry baz = addFile("/baz");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo");
             CopyOption[] options = {};
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class,
-                    () -> fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options));
+
+            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
             assertEquals("/foo", exception.getFile());
 
             verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
@@ -1641,7 +1742,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
+            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
 
             // permissions are dropped during the copy/delete
             assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
@@ -1654,7 +1755,7 @@ class FTPFileSystemTest {
             FileEntry baz = addFile("/baz");
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             // permissions are dropped during the copy/delete
@@ -1668,7 +1769,7 @@ class FTPFileSystemTest {
             DirectoryEntry baz = addDirectory("/baz");
 
             CopyOption[] options = {};
-            fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
 
             assertSame(foo, getFileSystemEntry("/foo"));
             // permissions are dropped during the copy/delete
@@ -1682,9 +1783,12 @@ class FTPFileSystemTest {
             DirectoryEntry baz = addDirectory("/baz");
             addFile("/baz/qux");
 
+            FTPFileSystemProvider provider = provider();
+            FTPPath source = createPath("/baz");
+            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
             CopyOption[] options = {};
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class,
-                    () -> fileSystem.move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options));
+
+            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
             assertEquals("/baz", exception.getFile());
 
             verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
@@ -1717,16 +1821,16 @@ class FTPFileSystemTest {
         @Test
         void testIsSameFileEquals() throws IOException {
 
-            assertTrue(fileSystem.isSameFile(createPath("/"), createPath("/")));
-            assertTrue(fileSystem.isSameFile(createPath("/foo"), createPath("/foo")));
-            assertTrue(fileSystem.isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
+            assertTrue(provider().isSameFile(createPath("/"), createPath("/")));
+            assertTrue(provider().isSameFile(createPath("/foo"), createPath("/foo")));
+            assertTrue(provider().isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
 
-            assertTrue(fileSystem.isSameFile(createPath(""), createPath("")));
-            assertTrue(fileSystem.isSameFile(createPath("foo"), createPath("foo")));
-            assertTrue(fileSystem.isSameFile(createPath("foo/bar"), createPath("foo/bar")));
+            assertTrue(provider().isSameFile(createPath(""), createPath("")));
+            assertTrue(provider().isSameFile(createPath("foo"), createPath("foo")));
+            assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("foo/bar")));
 
-            assertTrue(fileSystem.isSameFile(createPath(""), createPath("/home/test")));
-            assertTrue(fileSystem.isSameFile(createPath("/home/test"), createPath("")));
+            assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
+            assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
         }
 
         @Test
@@ -1734,30 +1838,36 @@ class FTPFileSystemTest {
             FileEntry bar = addFile("/home/test/foo/bar");
             addSymLink("/bar", bar);
 
-            assertTrue(fileSystem.isSameFile(createPath("/home/test"), createPath("")));
-            assertTrue(fileSystem.isSameFile(createPath("/home/test/foo"), createPath("foo")));
-            assertTrue(fileSystem.isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
+            assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
+            assertTrue(provider().isSameFile(createPath("/home/test/foo"), createPath("foo")));
+            assertTrue(provider().isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
 
-            assertTrue(fileSystem.isSameFile(createPath(""), createPath("/home/test")));
-            assertTrue(fileSystem.isSameFile(createPath("foo"), createPath("/home/test/foo")));
-            assertTrue(fileSystem.isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
+            assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
+            assertTrue(provider().isSameFile(createPath("foo"), createPath("/home/test/foo")));
+            assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
 
-            assertFalse(fileSystem.isSameFile(createPath("foo"), createPath("foo/bar")));
+            assertFalse(provider().isSameFile(createPath("foo"), createPath("foo/bar")));
 
-            assertTrue(fileSystem.isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
+            assertTrue(provider().isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
         }
 
         @Test
         void testIsSameFileFirstNonExisting() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+            FTPPath path2 = createPath("/");
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isSameFile(createPath("/foo"), createPath("/")));
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
             assertEquals("/foo", exception.getFile());
         }
 
         @Test
         void testIsSameFileSecondNonExisting() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/");
+            FTPPath path2 = createPath("/foo");
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isSameFile(createPath("/"), createPath("/foo")));
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -1770,15 +1880,18 @@ class FTPFileSystemTest {
             addFile("/foo/bar");
             addFile("/foo/.bar");
 
-            assertFalse(fileSystem.isHidden(createPath("/foo")));
-            assertTrue(fileSystem.isHidden(createPath("/.foo")));
-            assertFalse(fileSystem.isHidden(createPath("/foo/bar")));
-            assertTrue(fileSystem.isHidden(createPath("/foo/.bar")));
+            assertFalse(provider().isHidden(createPath("/foo")));
+            assertTrue(provider().isHidden(createPath("/.foo")));
+            assertFalse(provider().isHidden(createPath("/foo/bar")));
+            assertTrue(provider().isHidden(createPath("/foo/.bar")));
         }
 
         @Test
         void testIsHiddenNonExisting() {
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.isHidden(createPath("/foo")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(path));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -1786,7 +1899,10 @@ class FTPFileSystemTest {
 
         @Test
         void testCheckAccessNonExisting() {
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.checkAccess(createPath("/foo/bar")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(path));
             assertEquals("/foo/bar", exception.getFile());
         }
 
@@ -1794,21 +1910,21 @@ class FTPFileSystemTest {
         void testCheckAccessNoModes() throws IOException {
             addDirectory("/foo/bar");
 
-            fileSystem.checkAccess(createPath("/foo/bar"));
+            provider().checkAccess(createPath("/foo/bar"));
         }
 
         @Test
         void testCheckAccessOnlyRead() throws IOException {
             addDirectory("/foo/bar");
 
-            fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.READ);
+            provider().checkAccess(createPath("/foo/bar"), AccessMode.READ);
         }
 
         @Test
         void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
             addDirectory("/foo/bar");
 
-            fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
+            provider().checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
         }
 
         @Test
@@ -1816,8 +1932,10 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("r-xr-xr-x");
 
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                    () -> fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.WRITE));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
+
+            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.WRITE));
             assertEquals("/foo/bar", exception.getFile());
         }
 
@@ -1826,8 +1944,10 @@ class FTPFileSystemTest {
             DirectoryEntry bar = addDirectory("/foo/bar");
             bar.setPermissionsFromString("rw-rw-rw-");
 
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                    () -> fileSystem.checkAccess(createPath("/foo/bar"), AccessMode.EXECUTE));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo/bar");
+
+            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.EXECUTE));
             assertEquals("/foo/bar", exception.getFile());
         }
 
@@ -1841,7 +1961,7 @@ class FTPFileSystemTest {
             foo.setOwner("user");
             foo.setGroup("group");
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"));
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
 
             assertEquals(foo.getSize(), attributes.size());
             assertEquals("user", attributes.owner().getName());
@@ -1861,7 +1981,7 @@ class FTPFileSystemTest {
             foo.setOwner("user");
             foo.setGroup("group");
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
             assertEquals(foo.getSize(), attributes.size());
             assertEquals("user", attributes.owner().getName());
@@ -1880,7 +2000,7 @@ class FTPFileSystemTest {
             foo.setOwner("user");
             foo.setGroup("group");
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"));
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
 
             assertEquals(foo.getSize(), attributes.size());
             assertEquals("user", attributes.owner().getName());
@@ -1899,7 +2019,7 @@ class FTPFileSystemTest {
             foo.setOwner("user");
             foo.setGroup("group");
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/foo"), LinkOption.NOFOLLOW_LINKS);
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
             assertEquals(foo.getSize(), attributes.size());
             assertEquals("user", attributes.owner().getName());
@@ -1920,7 +2040,7 @@ class FTPFileSystemTest {
             foo.setGroup("group");
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"));
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
 
             assertEquals(foo.getSize(), attributes.size());
             assertNotEquals(bar.getSize(), attributes.size());
@@ -1941,7 +2061,7 @@ class FTPFileSystemTest {
             foo.setGroup("group");
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
             assertEquals(bar.getSize(), attributes.size());
             assertNotEquals(foo.getSize(), attributes.size());
@@ -1962,7 +2082,7 @@ class FTPFileSystemTest {
             foo.setGroup("group");
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"));
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
 
             assertEquals(foo.getSize(), attributes.size());
             assertNotEquals(bar.getSize(), attributes.size());
@@ -1983,7 +2103,7 @@ class FTPFileSystemTest {
             foo.setGroup("group");
             SymbolicLinkEntry bar = addSymLink("/bar", foo);
 
-            PosixFileAttributes attributes = fileSystem.readAttributes(createPath("/bar"), LinkOption.NOFOLLOW_LINKS);
+            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
 
             assertEquals(bar.getSize(), attributes.size());
             assertNotEquals(foo.getSize(), attributes.size());
@@ -1998,7 +2118,10 @@ class FTPFileSystemTest {
 
         @Test
         void testReadAttributesNonExisting() {
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.readAttributes(createPath("/foo")));
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readAttributes(path, PosixFileAttributes.class));
             assertEquals("/foo", exception.getFile());
         }
 
@@ -2018,7 +2141,7 @@ class FTPFileSystemTest {
         })
         void testReadAttributesMap(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             assertEquals(Collections.singleton(expectedKey), attributes.keySet());
             assertNotNull(attributes.get(expectedKey));
         }
@@ -2032,7 +2155,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapSize(String attributeName, String expectedKey) throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getSize());
             assertEquals(expected, attributes);
         }
@@ -2046,7 +2169,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapIsRegularFile(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
             assertEquals(expected, attributes);
         }
@@ -2060,7 +2183,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapIsDirectory(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, true);
             assertEquals(expected, attributes);
         }
@@ -2074,7 +2197,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapIsSymbolicLink(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
             assertEquals(expected, attributes);
         }
@@ -2087,7 +2210,7 @@ class FTPFileSystemTest {
         })
         void testReadAttributesMapIsOther(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
             assertEquals(expected, attributes);
         }
@@ -2101,7 +2224,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapFileKey(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), attributeName);
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
             Map<String, ?> expected = Collections.singletonMap(expectedKey, null);
             assertEquals(expected, attributes);
         }
@@ -2110,7 +2233,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapNoTypeMultiple() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "size,isDirectory");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "size,isDirectory");
             Map<String, Object> expected = new HashMap<>();
             expected.put("basic:size", foo.getSize());
             expected.put("basic:isDirectory", true);
@@ -2121,7 +2244,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapNoTypeAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "*");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "*");
             Map<String, Object> expected = new HashMap<>();
             expected.put("basic:size", foo.getSize());
             expected.put("basic:isRegularFile", false);
@@ -2135,7 +2258,7 @@ class FTPFileSystemTest {
             assertNotNull(attributes.remove("basic:creationTime"));
             assertEquals(expected, attributes);
 
-            attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+            attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
             assertNotNull(attributes.remove("basic:lastModifiedTime"));
             assertNotNull(attributes.remove("basic:lastAccessTime"));
             assertNotNull(attributes.remove("basic:creationTime"));
@@ -2146,7 +2269,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapBasicMultiple() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:size,isDirectory");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:size,isDirectory");
             Map<String, Object> expected = new HashMap<>();
             expected.put("basic:size", foo.getSize());
             expected.put("basic:isDirectory", true);
@@ -2157,7 +2280,7 @@ class FTPFileSystemTest {
         void testReadAttributesMapBasicAll() throws IOException {
             DirectoryEntry foo = addDirectory("/foo");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "basic:*");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:*");
             Map<String, Object> expected = new HashMap<>();
             expected.put("basic:size", foo.getSize());
             expected.put("basic:isRegularFile", false);
@@ -2171,7 +2294,7 @@ class FTPFileSystemTest {
             assertNotNull(attributes.remove("basic:creationTime"));
             assertEquals(expected, attributes);
 
-            attributes = fileSystem.readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+            attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
             assertNotNull(attributes.remove("basic:lastModifiedTime"));
             assertNotNull(attributes.remove("basic:lastAccessTime"));
             assertNotNull(attributes.remove("basic:creationTime"));
@@ -2183,7 +2306,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "owner:owner");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:owner");
             Map<String, ?> expected = Collections.singletonMap("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
         }
@@ -2193,12 +2316,12 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "owner:*");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:*");
             Map<String, Object> expected = new HashMap<>();
             expected.put("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
 
-            attributes = fileSystem.readAttributes(createPath("/foo"), "owner:owner,*");
+            attributes = provider().readAttributes(createPath("/foo"), "owner:owner,*");
             assertEquals(expected, attributes);
         }
 
@@ -2207,7 +2330,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:owner");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:owner");
             Map<String, ?> expected = Collections.singletonMap("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
         }
@@ -2217,7 +2340,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setGroup("test");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:group");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:group");
             Map<String, ?> expected = Collections.singletonMap("posix:group", new SimpleGroupPrincipal(foo.getGroup()));
             assertEquals(expected, attributes);
         }
@@ -2227,7 +2350,7 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setPermissionsFromString("r-xr-xr-x");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:permissions");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:permissions");
             Map<String, ?> expected = Collections.singletonMap("posix:permissions",
                     PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
             assertEquals(expected, attributes);
@@ -2239,7 +2362,7 @@ class FTPFileSystemTest {
             foo.setOwner("test");
             foo.setGroup("test");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:size,owner,group");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:size,owner,group");
             Map<String, Object> expected = new HashMap<>();
             expected.put("posix:size", foo.getSize());
             expected.put("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
@@ -2254,7 +2377,7 @@ class FTPFileSystemTest {
             foo.setGroup("group");
             foo.setPermissionsFromString("r-xr-xr-x");
 
-            Map<String, Object> attributes = fileSystem.readAttributes(createPath("/foo"), "posix:*");
+            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:*");
             Map<String, Object> expected = new HashMap<>();
             expected.put("posix:size", foo.getSize());
             expected.put("posix:isRegularFile", false);
@@ -2271,7 +2394,7 @@ class FTPFileSystemTest {
             assertNotNull(attributes.remove("posix:creationTime"));
             assertEquals(expected, attributes);
 
-            attributes = fileSystem.readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
+            attributes = provider().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
             assertNotNull(attributes.remove("posix:lastModifiedTime"));
             assertNotNull(attributes.remove("posix:lastAccessTime"));
             assertNotNull(attributes.remove("posix:creationTime"));
@@ -2283,10 +2406,11 @@ class FTPFileSystemTest {
             DirectoryEntry foo = addDirectory("/foo");
             foo.setOwner("test");
 
+            FTPFileSystemProvider provider = provider();
             FTPPath path = createPath("/foo");
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                    () -> fileSystem.readAttributes(path, "posix:lastModifiedTime,owner,dummy"));
+                    () -> provider.readAttributes(path, "posix:lastModifiedTime,owner,dummy"));
             assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
         }
 
@@ -2294,10 +2418,11 @@ class FTPFileSystemTest {
         void testReadAttributesMapUnsupportedType() {
             addDirectory("/foo");
 
+            FTPFileSystemProvider provider = provider();
             FTPPath path = createPath("/foo");
 
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-                    () -> fileSystem.readAttributes(path, "zipfs:*"));
+                    () -> provider.readAttributes(path, "zipfs:*"));
             assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs").getMessage(), exception.getMessage());
         }
 
@@ -2315,8 +2440,9 @@ class FTPFileSystemTest {
 
         @Test
         void testGetFTPFileFileNotExisting() {
+            FTPPath path = createPath("/foo");
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(createPath("/foo")));
+            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(path));
             assertEquals("/foo", exception.getFile());
 
             VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();

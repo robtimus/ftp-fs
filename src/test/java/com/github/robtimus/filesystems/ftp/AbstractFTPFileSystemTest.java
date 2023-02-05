@@ -200,6 +200,10 @@ abstract class AbstractFTPFileSystemTest {
         return URI.create("ftp://localhost:" + ftpServer.getServerControlPort());
     }
 
+    protected final FTPFileSystemProvider provider() {
+        return fileSystem.provider();
+    }
+
     protected final FTPPath createPath(String path) {
         return new FTPPath(fileSystem, path);
     }

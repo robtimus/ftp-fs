@@ -17,10 +17,15 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.FILE_OWNER_VIEW;
+import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.POSIX_VIEW;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.FileAttributeView;
+import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.Objects;
@@ -41,7 +46,7 @@ class FTPFileStore extends FileStore {
 
     @Override
     public String name() {
-        return fs.toUri("/").toString(); //$NON-NLS-1$
+        return fs.toUri(ROOT_PATH).toString();
     }
 
     @Override
@@ -71,13 +76,12 @@ class FTPFileStore extends FileStore {
 
     @Override
     public boolean supportsFileAttributeView(Class<? extends FileAttributeView> type) {
-        return type == BasicFileAttributeView.class || type == PosixFileAttributeView.class;
+        return type == BasicFileAttributeView.class || type == FileOwnerAttributeView.class || type == PosixFileAttributeView.class;
     }
 
     @Override
-    @SuppressWarnings("nls")
     public boolean supportsFileAttributeView(String name) {
-        return "basic".equals(name) || "owner".equals(name) || "posix".equals(name);
+        return BASIC_VIEW.equals(name) || FILE_OWNER_VIEW.equals(name) || POSIX_VIEW.equals(name);
     }
 
     @Override

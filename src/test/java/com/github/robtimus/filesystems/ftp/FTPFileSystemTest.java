@@ -66,6 +66,8 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.DosFileAttributes;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Arrays;
@@ -86,17 +88,34 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.FileSystemEntry;
 import org.mockito.verification.VerificationMode;
 import com.github.robtimus.filesystems.Messages;
+import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
 import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
 import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
 @SuppressWarnings("nls")
 class FTPFileSystemTest {
+
+    @Test
+    void testPrefixAttributes() {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("size", 1L);
+        attributes.put("isDirectory", "false");
+        attributes.put("owner", new SimpleUserPrincipal("test"));
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("posix:size", 1L);
+        expected.put("posix:isDirectory", "false");
+        expected.put("posix:owner", new SimpleUserPrincipal("test"));
+
+        assertEquals(expected, FTPFileSystem.prefixAttributes(attributes, FileAttributeViewMetadata.POSIX));
+    }
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: UNIX")
@@ -2125,19 +2144,29 @@ class FTPFileSystemTest {
             assertEquals("/foo", exception.getFile());
         }
 
+        @Test
+        void testReadAttributesUnsupportedType() {
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+            Class<? extends BasicFileAttributes> type = DosFileAttributes.class;
+
+            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.readAttributes(path, type));
+            assertEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(type).getMessage(), exception.getMessage());
+        }
+
         // FTPFileSystem.readAttributes (map variant)
 
-        @ParameterizedTest(name = "{0} -> {1}")
+        @ParameterizedTest(name = "{0}")
         @CsvSource({
-                "lastModifiedTime, basic:lastModifiedTime",
-                "lastAccessTime, basic:lastAccessTime",
-                "creationTime, basic:creationTime",
-                "basic:lastModifiedTime, basic:lastModifiedTime",
-                "basic:lastAccessTime, basic:lastAccessTime",
-                "basic:creationTime, basic:creationTime",
-                "posix:lastModifiedTime, posix:lastModifiedTime",
-                "posix:lastAccessTime, posix:lastAccessTime",
-                "posix:creationTime, posix:creationTime"
+                "lastModifiedTime, lastModifiedTime",
+                "lastAccessTime, lastAccessTime",
+                "creationTime, creationTime",
+                "basic:lastModifiedTime, lastModifiedTime",
+                "basic:lastAccessTime, lastAccessTime",
+                "basic:creationTime, creationTime",
+                "posix:lastModifiedTime, lastModifiedTime",
+                "posix:lastAccessTime, lastAccessTime",
+                "posix:creationTime, creationTime"
         })
         void testReadAttributesMap(String attributeName, String expectedKey) throws IOException {
             addDirectory("/foo");
@@ -2146,86 +2175,62 @@ class FTPFileSystemTest {
             assertNotNull(attributes.get(expectedKey));
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "size, basic:size",
-                "basic:size, basic:size",
-                "posix:size, posix:size"
-        })
-        void testReadAttributesMapSize(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "size", "basic:size", "posix:size" })
+        void testReadAttributesMapSize(String attributeName) throws IOException {
             FileEntry foo = addFile("/foo");
             foo.setContents(new byte[1024]);
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, foo.getSize());
+            Map<String, ?> expected = Collections.singletonMap("size", foo.getSize());
             assertEquals(expected, attributes);
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "isRegularFile, basic:isRegularFile",
-                "basic:isRegularFile, basic:isRegularFile",
-                "posix:isRegularFile, posix:isRegularFile"
-        })
-        void testReadAttributesMapIsRegularFile(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "isRegularFile", "basic:isRegularFile", "posix:isRegularFile" })
+        void testReadAttributesMapIsRegularFile(String attributeName) throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
+            Map<String, ?> expected = Collections.singletonMap("isRegularFile", false);
             assertEquals(expected, attributes);
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "isDirectory, basic:isDirectory",
-                "basic:isDirectory, basic:isDirectory",
-                "posix:isDirectory, posix:isDirectory"
-        })
-        void testReadAttributesMapIsDirectory(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "isDirectory", "basic:isDirectory", "posix:isDirectory" })
+        void testReadAttributesMapIsDirectory(String attributeName) throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, true);
+            Map<String, ?> expected = Collections.singletonMap("isDirectory", true);
             assertEquals(expected, attributes);
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "isSymbolicLink, basic:isSymbolicLink",
-                "basic:isSymbolicLink, basic:isSymbolicLink",
-                "posix:isSymbolicLink, posix:isSymbolicLink"
-        })
-        void testReadAttributesMapIsSymbolicLink(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "isSymbolicLink", "basic:isSymbolicLink", "posix:isSymbolicLink" })
+        void testReadAttributesMapIsSymbolicLink(String attributeName) throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
+            Map<String, ?> expected = Collections.singletonMap("isSymbolicLink", false);
             assertEquals(expected, attributes);
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "isOther, basic:isOther",
-                "basic:isOther, basic:isOther",
-                "posix:isOther, posix:isOther"
-        })
-        void testReadAttributesMapIsOther(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "isOther", "basic:isOther", "posix:isOther" })
+        void testReadAttributesMapIsOther(String attributeName) throws IOException {
             addDirectory("/foo");
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, false);
+            Map<String, ?> expected = Collections.singletonMap("isOther", false);
             assertEquals(expected, attributes);
         }
 
-        @ParameterizedTest(name = "{0} -> {1}")
-        @CsvSource({
-                "fileKey, basic:fileKey",
-                "basic:fileKey, basic:fileKey",
-                "posix:fileKey, posix:fileKey"
-        })
-        void testReadAttributesMapFileKey(String attributeName, String expectedKey) throws IOException {
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "fileKey", "basic:fileKey", "posix:fileKey" })
+        void testReadAttributesMapFileKey(String attributeName) throws IOException {
             addDirectory("/foo");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap(expectedKey, null);
+            Map<String, ?> expected = Collections.singletonMap("fileKey", null);
             assertEquals(expected, attributes);
         }
 
@@ -2235,8 +2240,8 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "size,isDirectory");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("basic:size", foo.getSize());
-            expected.put("basic:isDirectory", true);
+            expected.put("size", foo.getSize());
+            expected.put("isDirectory", true);
             assertEquals(expected, attributes);
         }
 
@@ -2246,22 +2251,22 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "*");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("basic:size", foo.getSize());
-            expected.put("basic:isRegularFile", false);
-            expected.put("basic:isDirectory", true);
-            expected.put("basic:isSymbolicLink", false);
-            expected.put("basic:isOther", false);
-            expected.put("basic:fileKey", null);
+            expected.put("size", foo.getSize());
+            expected.put("isRegularFile", false);
+            expected.put("isDirectory", true);
+            expected.put("isSymbolicLink", false);
+            expected.put("isOther", false);
+            expected.put("fileKey", null);
 
-            assertNotNull(attributes.remove("basic:lastModifiedTime"));
-            assertNotNull(attributes.remove("basic:lastAccessTime"));
-            assertNotNull(attributes.remove("basic:creationTime"));
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
 
-            attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
-            assertNotNull(attributes.remove("basic:lastModifiedTime"));
-            assertNotNull(attributes.remove("basic:lastAccessTime"));
-            assertNotNull(attributes.remove("basic:creationTime"));
+            attributes = provider().readAttributes(createPath("/foo"), "lastModifiedTime,*");
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
         }
 
@@ -2271,8 +2276,8 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:size,isDirectory");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("basic:size", foo.getSize());
-            expected.put("basic:isDirectory", true);
+            expected.put("size", foo.getSize());
+            expected.put("isDirectory", true);
             assertEquals(expected, attributes);
         }
 
@@ -2282,22 +2287,22 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:*");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("basic:size", foo.getSize());
-            expected.put("basic:isRegularFile", false);
-            expected.put("basic:isDirectory", true);
-            expected.put("basic:isSymbolicLink", false);
-            expected.put("basic:isOther", false);
-            expected.put("basic:fileKey", null);
+            expected.put("size", foo.getSize());
+            expected.put("isRegularFile", false);
+            expected.put("isDirectory", true);
+            expected.put("isSymbolicLink", false);
+            expected.put("isOther", false);
+            expected.put("fileKey", null);
 
-            assertNotNull(attributes.remove("basic:lastModifiedTime"));
-            assertNotNull(attributes.remove("basic:lastAccessTime"));
-            assertNotNull(attributes.remove("basic:creationTime"));
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
 
             attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
-            assertNotNull(attributes.remove("basic:lastModifiedTime"));
-            assertNotNull(attributes.remove("basic:lastAccessTime"));
-            assertNotNull(attributes.remove("basic:creationTime"));
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
         }
 
@@ -2307,7 +2312,7 @@ class FTPFileSystemTest {
             foo.setOwner("test");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:owner");
-            Map<String, ?> expected = Collections.singletonMap("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
+            Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
         }
 
@@ -2318,7 +2323,7 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:*");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("owner:owner", new SimpleUserPrincipal(foo.getOwner()));
+            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
 
             attributes = provider().readAttributes(createPath("/foo"), "owner:owner,*");
@@ -2331,7 +2336,7 @@ class FTPFileSystemTest {
             foo.setOwner("test");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:owner");
-            Map<String, ?> expected = Collections.singletonMap("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
+            Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
             assertEquals(expected, attributes);
         }
 
@@ -2341,7 +2346,7 @@ class FTPFileSystemTest {
             foo.setGroup("test");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:group");
-            Map<String, ?> expected = Collections.singletonMap("posix:group", new SimpleGroupPrincipal(foo.getGroup()));
+            Map<String, ?> expected = Collections.singletonMap("group", new SimpleGroupPrincipal(foo.getGroup()));
             assertEquals(expected, attributes);
         }
 
@@ -2351,8 +2356,7 @@ class FTPFileSystemTest {
             foo.setPermissionsFromString("r-xr-xr-x");
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:permissions");
-            Map<String, ?> expected = Collections.singletonMap("posix:permissions",
-                    PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
+            Map<String, ?> expected = Collections.singletonMap("permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
             assertEquals(expected, attributes);
         }
 
@@ -2364,9 +2368,9 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:size,owner,group");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("posix:size", foo.getSize());
-            expected.put("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
-            expected.put("posix:group", new SimpleGroupPrincipal(foo.getGroup()));
+            expected.put("size", foo.getSize());
+            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
+            expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
             assertEquals(expected, attributes);
         }
 
@@ -2379,25 +2383,25 @@ class FTPFileSystemTest {
 
             Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:*");
             Map<String, Object> expected = new HashMap<>();
-            expected.put("posix:size", foo.getSize());
-            expected.put("posix:isRegularFile", false);
-            expected.put("posix:isDirectory", true);
-            expected.put("posix:isSymbolicLink", false);
-            expected.put("posix:isOther", false);
-            expected.put("posix:fileKey", null);
-            expected.put("posix:owner", new SimpleUserPrincipal(foo.getOwner()));
-            expected.put("posix:group", new SimpleGroupPrincipal(foo.getGroup()));
-            expected.put("posix:permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
+            expected.put("size", foo.getSize());
+            expected.put("isRegularFile", false);
+            expected.put("isDirectory", true);
+            expected.put("isSymbolicLink", false);
+            expected.put("isOther", false);
+            expected.put("fileKey", null);
+            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
+            expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
+            expected.put("permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
 
-            assertNotNull(attributes.remove("posix:lastModifiedTime"));
-            assertNotNull(attributes.remove("posix:lastAccessTime"));
-            assertNotNull(attributes.remove("posix:creationTime"));
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
 
             attributes = provider().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
-            assertNotNull(attributes.remove("posix:lastModifiedTime"));
-            assertNotNull(attributes.remove("posix:lastAccessTime"));
-            assertNotNull(attributes.remove("posix:creationTime"));
+            assertNotNull(attributes.remove("lastModifiedTime"));
+            assertNotNull(attributes.remove("lastAccessTime"));
+            assertNotNull(attributes.remove("creationTime"));
             assertEquals(expected, attributes);
         }
 
@@ -2414,8 +2418,28 @@ class FTPFileSystemTest {
             assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
         }
 
+        @ParameterizedTest(name = "{0}")
+        @CsvSource({
+                "basic:owner, owner",
+                "basic:permissions, permissions",
+                "basic:group, group",
+                "owner:permissions, permissions",
+                "owner:group, group",
+                "owner:size, size"
+        })
+        void testReadAttributesMapSupportedAttributeForWrongView(String attributes, String attribute) {
+            DirectoryEntry foo = addDirectory("/foo");
+            foo.setOwner("test");
+
+            FTPFileSystemProvider provider = provider();
+            FTPPath path = createPath("/foo");
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.readAttributes(path, attributes));
+            assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute(attribute).getMessage(), exception.getMessage());
+        }
+
         @Test
-        void testReadAttributesMapUnsupportedType() {
+        void testReadAttributesMapUnsupportedView() {
             addDirectory("/foo");
 
             FTPFileSystemProvider provider = provider();

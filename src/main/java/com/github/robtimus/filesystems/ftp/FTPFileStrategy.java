@@ -17,6 +17,9 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.CURRENT_DIR;
+import static com.github.robtimus.filesystems.SimpleAbstractPath.PARENT_DIR;
+import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.NoSuchFileException;
@@ -197,9 +200,9 @@ public abstract class FTPFileStrategy {
             List<FTPFile> children = new ArrayList<>(ftpFiles.length);
             for (FTPFile ftpFile : ftpFiles) {
                 String fileName = FTPFileSystem.getFileName(ftpFile);
-                if (FTPFileSystem.CURRENT_DIR.equals(fileName)) {
+                if (CURRENT_DIR.equals(fileName)) {
                     isDirectory = true;
-                } else if (!FTPFileSystem.PARENT_DIR.equals(fileName)) {
+                } else if (!PARENT_DIR.equals(fileName)) {
                     children.add(ftpFile);
                 }
             }
@@ -217,7 +220,7 @@ public abstract class FTPFileStrategy {
 
             FTPFile[] ftpFiles = client.listFiles(path(path), f -> {
                 String fileName = FTPFileSystem.getFileName(f);
-                return FTPFileSystem.CURRENT_DIR.equals(fileName)
+                return CURRENT_DIR.equals(fileName)
                         || name != null && name.equals(fileName);
             });
             throwIfEmpty(ftpFiles, path, client, exceptionFactory);
@@ -225,7 +228,7 @@ public abstract class FTPFileStrategy {
                 return ftpFiles[0];
             }
             for (FTPFile ftpFile : ftpFiles) {
-                if (FTPFileSystem.CURRENT_DIR.equals(FTPFileSystem.getFileName(ftpFile))) {
+                if (CURRENT_DIR.equals(FTPFileSystem.getFileName(ftpFile))) {
                     return ftpFile;
                 }
             }
@@ -237,7 +240,7 @@ public abstract class FTPFileStrategy {
             if (ftpFile.getLink() != null) {
                 return ftpFile;
             }
-            if (ftpFile.isDirectory() && FTPFileSystem.CURRENT_DIR.equals(FTPFileSystem.getFileName(ftpFile))) {
+            if (ftpFile.isDirectory() && CURRENT_DIR.equals(FTPFileSystem.getFileName(ftpFile))) {
                 // The file is returned using getFTPFile, which returns the . (current directory) entry for directories.
                 // List the parent (if any) instead.
 
@@ -276,9 +279,9 @@ public abstract class FTPFileStrategy {
             List<FTPFile> children = new ArrayList<>(ftpFiles.length);
             for (FTPFile ftpFile : ftpFiles) {
                 String fileName = FTPFileSystem.getFileName(ftpFile);
-                if (FTPFileSystem.CURRENT_DIR.equals(fileName)) {
+                if (CURRENT_DIR.equals(fileName)) {
                     isDirectory = true;
-                } else if (!FTPFileSystem.PARENT_DIR.equals(fileName)) {
+                } else if (!PARENT_DIR.equals(fileName)) {
                     children.add(ftpFile);
                 }
             }
@@ -307,7 +310,7 @@ public abstract class FTPFileStrategy {
             if (parentPath == null) {
                 // path is /, but that cannot be listed
                 FTPFile rootFtpFile = new FTPFile();
-                rootFtpFile.setName("/"); //$NON-NLS-1$
+                rootFtpFile.setName(ROOT_PATH);
                 rootFtpFile.setType(FTPFile.DIRECTORY_TYPE);
                 return rootFtpFile;
             }
@@ -345,9 +348,9 @@ public abstract class FTPFileStrategy {
                 throw new IllegalStateException(FTPMessages.autoDetectFileStrategyAlreadyInitialized());
             }
 
-            FTPFile[] ftpFiles = client.listFiles("/", f -> { //$NON-NLS-1$
+            FTPFile[] ftpFiles = client.listFiles(ROOT_PATH, f -> {
                 String fileName = FTPFileSystem.getFileName(f);
-                return FTPFileSystem.CURRENT_DIR.equals(fileName);
+                return CURRENT_DIR.equals(fileName);
             });
             delegate = ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
         }

@@ -40,12 +40,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.FileOwnerAttributeView;
-import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.GroupPrincipal;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Map;
 import java.util.Objects;
@@ -374,67 +370,8 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     @Override
     public <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> type, LinkOption... options) {
         Objects.requireNonNull(type);
-        if (type == BasicFileAttributeView.class) {
-            boolean followLinks = LinkOptionSupport.followLinks(options);
-            return type.cast(new AttributeView("basic", toFTPPath(path), followLinks)); //$NON-NLS-1$
-        }
-        if (type == FileOwnerAttributeView.class) {
-            boolean followLinks = LinkOptionSupport.followLinks(options);
-            return type.cast(new AttributeView("owner", toFTPPath(path), followLinks)); //$NON-NLS-1$
-        }
-        if (type == PosixFileAttributeView.class) {
-            boolean followLinks = LinkOptionSupport.followLinks(options);
-            return type.cast(new AttributeView("posix", toFTPPath(path), followLinks)); //$NON-NLS-1$
-        }
-        return null;
-    }
-
-    private static final class AttributeView implements PosixFileAttributeView {
-
-        private final String name;
-        private final FTPPath path;
-        private final boolean followLinks;
-
-        private AttributeView(String name, FTPPath path, boolean followLinks) {
-            this.name = Objects.requireNonNull(name);
-            this.path = Objects.requireNonNull(path);
-            this.followLinks = followLinks;
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public UserPrincipal getOwner() throws IOException {
-            return readAttributes().owner();
-        }
-
-        @Override
-        public PosixFileAttributes readAttributes() throws IOException {
-            return path.readAttributes(followLinks);
-        }
-
-        @Override
-        public void setTimes(FileTime lastModifiedTime, FileTime lastAccessTime, FileTime createTime) throws IOException {
-            throw Messages.unsupportedOperation(BasicFileAttributeView.class, "setTimes"); //$NON-NLS-1$
-        }
-
-        @Override
-        public void setOwner(UserPrincipal owner) throws IOException {
-            throw Messages.unsupportedOperation(FileOwnerAttributeView.class, "setOwner"); //$NON-NLS-1$
-        }
-
-        @Override
-        public void setGroup(GroupPrincipal group) throws IOException {
-            throw Messages.unsupportedOperation(PosixFileAttributeView.class, "setGroup"); //$NON-NLS-1$
-        }
-
-        @Override
-        public void setPermissions(Set<PosixFilePermission> perms) throws IOException {
-            throw Messages.unsupportedOperation(PosixFileAttributeView.class, "setPermissions"); //$NON-NLS-1$
-        }
+        boolean followLinks = LinkOptionSupport.followLinks(options);
+        return toFTPPath(path).getFileAttributeView(type, followLinks);
     }
 
     /**

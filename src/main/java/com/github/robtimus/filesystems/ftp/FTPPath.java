@@ -35,6 +35,7 @@ import java.nio.file.WatchEvent.Modifier;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.util.Map;
 import java.util.Objects;
@@ -210,6 +211,10 @@ class FTPPath extends SimpleAbstractPath {
 
     void checkAccess(AccessMode... modes) throws IOException {
         fs.checkAccess(this, modes);
+    }
+
+    <V extends FileAttributeView> V getFileAttributeView(Class<V> type, boolean followLinks) {
+        return fs.getFileAttributeView(this, type, followLinks);
     }
 
     PosixFileAttributes readAttributes(boolean followLinks) throws IOException {

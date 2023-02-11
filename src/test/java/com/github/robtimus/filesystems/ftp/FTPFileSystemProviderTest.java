@@ -42,15 +42,24 @@ import java.nio.file.Paths;
 import java.nio.file.ProviderMismatchException;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.nio.file.attribute.FileOwnerAttributeView;
+import java.nio.file.attribute.GroupPrincipal;
 import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.URISupport;
+import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
+import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 
 @SuppressWarnings("nls")
 class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
@@ -64,7 +73,6 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
     @Test
     void testPathsAndFilesSupport() throws IOException {
-
         try (FTPFileSystem fs = newFileSystem(createEnv(UNIX))) {
             Path path = Paths.get(URI.create(getBaseUrl() + "/foo"));
             assertThat(path, instanceOf(FTPPath.class));
@@ -186,7 +194,6 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
     @Test
     void testIsSameFileWithDifferentTypes() throws IOException {
-
         FTPFileSystemProvider ftpProvider = new FTPFileSystemProvider();
 
         @SuppressWarnings("resource")
@@ -206,7 +213,6 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
     @Test
     void testGetFileAttributeViewBasic() throws IOException {
-
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
             FTPPath path = new FTPPath(fs, "/foo/bar");
@@ -214,11 +220,36 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
             assertNotNull(view);
             assertEquals("basic", view.name());
+
+            assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
+        }
+    }
+
+    @Test
+    void testGetFileAttributeViewFileOwner() throws IOException {
+        FileEntry file = addFile("/foo/bar");
+        file.setOwner("user");
+
+        FTPFileSystemProvider provider = new FTPFileSystemProvider();
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+            FTPPath path = new FTPPath(fs, "/foo/bar");
+
+            FileOwnerAttributeView view = fs.provider().getFileAttributeView(path, FileOwnerAttributeView.class);
+            assertNotNull(view);
+            assertEquals("owner", view.name());
+
+            assertEquals("user", view.getOwner().getName());
+
+            UserPrincipal owner = new SimpleUserPrincipal("test");
+
+            assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
         }
     }
 
     @Test
     void testGetFileAttributeViewPosix() throws IOException {
+        FileEntry file = addFile("/foo/bar");
+        file.setOwner("user");
 
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
@@ -227,6 +258,28 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             PosixFileAttributeView view = fs.provider().getFileAttributeView(path, PosixFileAttributeView.class);
             assertNotNull(view);
             assertEquals("posix", view.name());
+
+            assertEquals("user", view.getOwner().getName());
+
+            UserPrincipal owner = new SimpleUserPrincipal("test");
+            Set<PosixFilePermission> permissions = EnumSet.noneOf(PosixFilePermission.class);
+            GroupPrincipal group = new SimpleGroupPrincipal("test");
+
+            assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
+            assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
+            assertThrows(UnsupportedOperationException.class, () -> view.setPermissions(permissions));
+            assertThrows(UnsupportedOperationException.class, () -> view.setGroup(group));
+        }
+    }
+
+    @Test
+    void testGetFileAttributeViewOther() throws IOException {
+        FTPFileSystemProvider provider = new FTPFileSystemProvider();
+        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+            FTPPath path = new FTPPath(fs, "/foo/bar");
+
+            DosFileAttributeView view = fs.provider().getFileAttributeView(path, DosFileAttributeView.class);
+            assertNull(view);
         }
     }
 

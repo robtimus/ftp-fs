@@ -147,7 +147,7 @@ final class FTPClientPool {
             public void protocolCommandSent(ProtocolCommandEvent event) {
                 logger.objectEvent(LogLevel.TRACE, Client.this, () -> {
                     String message = trimTrailingLineTerminator(event.getMessage());
-                    return FTPMessages.ftpCommandSent(message);
+                    return FTPMessages.log.ftpCommandSent(message);
                 });
             }
 
@@ -155,7 +155,7 @@ final class FTPClientPool {
             public void protocolReplyReceived(ProtocolCommandEvent event) {
                 logger.objectEvent(LogLevel.TRACE, Client.this, () -> {
                     String message = trimTrailingLineTerminator(event.getMessage());
-                    return FTPMessages.ftpReplyReceived(message);
+                    return FTPMessages.log.ftpReplyReceived(message);
                 });
             }
 
@@ -254,7 +254,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.createdInputStream(path.path()));
+                logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
             }
 
             @Override
@@ -296,7 +296,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
-                    logEvent(() -> FTPMessages.closedInputStream(path.path()));
+                    logEvent(() -> FTPMessages.log.closedInputStream(path.path()));
                 }
             }
 
@@ -344,7 +344,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.createdOutputStream(path.path()));
+                logEvent(() -> FTPMessages.log.createdOutputStream(path.path()));
             }
 
             @Override
@@ -381,7 +381,7 @@ final class FTPClientPool {
                     if (deleteOnClose) {
                         delete(path, false);
                     }
-                    logEvent(() -> FTPMessages.closedOutputStream(path.path()));
+                    logEvent(() -> FTPMessages.log.closedOutputStream(path.path()));
                 }
             }
         }

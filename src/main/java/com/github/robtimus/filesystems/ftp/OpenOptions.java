@@ -63,7 +63,7 @@ final class OpenOptions extends TransferOptions {
 
     static OpenOptions forNewInputStream(Collection<? extends OpenOption> options) {
         if (options.isEmpty()) {
-            return new OpenOptions(true, false, false, false, false, false, null, null, null, Collections.<OpenOption>emptySet());
+            return new OpenOptions(true, false, false, false, false, false, null, null, null, Collections.emptySet());
         }
 
         boolean deleteOnClose = false;
@@ -95,7 +95,7 @@ final class OpenOptions extends TransferOptions {
     static OpenOptions forNewOutputStream(Collection<? extends OpenOption> options) {
         if (options.isEmpty()) {
             // CREATE, TRUNCATE_EXISTING and WRITE, i.e. create, not createNew, and not append
-            return new OpenOptions(false, true, false, true, false, false, null, null, null, Collections.<OpenOption>emptySet());
+            return new OpenOptions(false, true, false, true, false, false, null, null, null, Collections.emptySet());
         }
 
         boolean append = false;

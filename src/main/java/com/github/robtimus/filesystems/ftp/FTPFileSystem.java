@@ -114,9 +114,9 @@ class FTPFileSystem extends FileSystem {
 
     FTPFileSystem(FTPFileSystemProvider provider, URI uri, FTPEnvironment env) throws IOException {
         this.provider = Objects.requireNonNull(provider);
-        this.rootDirectories = Collections.<Path>singleton(new FTPPath(this, ROOT_PATH));
+        this.rootDirectories = Collections.singleton(new FTPPath(this, ROOT_PATH));
         this.fileStore = new FTPFileStore(this);
-        this.fileStores = Collections.<FileStore>singleton(fileStore);
+        this.fileStores = Collections.singleton(fileStore);
 
         this.clientPool = new FTPClientPool(uri.getHost(), uri.getPort(), env);
         this.uri = Objects.requireNonNull(uri);

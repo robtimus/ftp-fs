@@ -18,16 +18,11 @@
 package com.github.robtimus.filesystems.ftp;
 
 import static com.github.robtimus.filesystems.SimpleAbstractPath.ROOT_PATH;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.BASIC_VIEW;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.FILE_OWNER_VIEW;
-import static com.github.robtimus.filesystems.attribute.FileAttributeConstants.POSIX_VIEW;
+import static com.github.robtimus.filesystems.ftp.FTPFileSystem.VIEWS;
 import java.io.IOException;
 import java.nio.file.FileStore;
-import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.FileAttributeView;
-import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.FileStoreAttributeView;
-import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.Objects;
 import com.github.robtimus.filesystems.Messages;
 
@@ -76,12 +71,12 @@ class FTPFileStore extends FileStore {
 
     @Override
     public boolean supportsFileAttributeView(Class<? extends FileAttributeView> type) {
-        return type == BasicFileAttributeView.class || type == FileOwnerAttributeView.class || type == PosixFileAttributeView.class;
+        return VIEWS.containsView(type);
     }
 
     @Override
     public boolean supportsFileAttributeView(String name) {
-        return BASIC_VIEW.equals(name) || FILE_OWNER_VIEW.equals(name) || POSIX_VIEW.equals(name);
+        return VIEWS.containsView(name);
     }
 
     @Override

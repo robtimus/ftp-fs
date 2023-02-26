@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp;
 import static com.github.robtimus.filesystems.ftp.FTPFileSystemProvider.normalizeWithUsername;
 import static com.github.robtimus.filesystems.ftp.FTPFileSystemProvider.normalizeWithoutPassword;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -170,7 +171,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         URI uri = URI.create("/foo/bar");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertEquals(Messages.uri().notAbsolute(uri).getMessage(), exception.getMessage());
+        assertChainEquals(Messages.uri().notAbsolute(uri), exception);
     }
 
     @Test
@@ -178,7 +179,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         FTPFileSystemProvider provider = new FTPFileSystemProvider();
         URI uri = URI.create("https://www.github.com/");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertEquals(Messages.uri().invalidScheme(uri, "ftp").getMessage(), exception.getMessage());
+        assertChainEquals(Messages.uri().invalidScheme(uri, "ftp"), exception);
     }
 
     @Test

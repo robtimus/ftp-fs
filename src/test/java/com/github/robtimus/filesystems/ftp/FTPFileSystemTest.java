@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -1486,8 +1487,7 @@ class FTPFileSystemTest {
             CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES };
 
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.copy(source, target, options));
-            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(StandardCopyOption.COPY_ATTRIBUTES).getMessage(),
-                    exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(StandardCopyOption.COPY_ATTRIBUTES), exception);
         }
 
         // FTPFileSystem.move
@@ -2151,7 +2151,7 @@ class FTPFileSystemTest {
             Class<? extends BasicFileAttributes> type = DosFileAttributes.class;
 
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.readAttributes(path, type));
-            assertEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(type).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(type), exception);
         }
 
         // FTPFileSystem.readAttributes (map variant)
@@ -2415,7 +2415,7 @@ class FTPFileSystemTest {
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                     () -> provider.readAttributes(path, "posix:lastModifiedTime,owner,dummy"));
-            assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy").getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy"), exception);
         }
 
         @ParameterizedTest(name = "{0}")
@@ -2435,7 +2435,7 @@ class FTPFileSystemTest {
             FTPPath path = createPath("/foo");
 
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.readAttributes(path, attributes));
-            assertEquals(Messages.fileSystemProvider().unsupportedFileAttribute(attribute).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute(attribute), exception);
         }
 
         @Test
@@ -2447,7 +2447,7 @@ class FTPFileSystemTest {
 
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                     () -> provider.readAttributes(path, "zipfs:*"));
-            assertEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs").getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
         }
 
         // FTPFileSystem.getFTPFile

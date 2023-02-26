@@ -17,8 +17,8 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -531,7 +531,7 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
 
                 FTPSEnvironment env = new FTPSEnvironment().withDataChannelProtectionLevel(null);
                 IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> env.initializePostConnect(client));
-                assertEquals(Messages.fileSystemProvider().env().missingProperty("dataChannelProtectionLevel").getMessage(), exception.getMessage());
+                assertChainEquals(Messages.fileSystemProvider().env().missingProperty("dataChannelProtectionLevel"), exception);
 
                 verify(client, never()).execPBSZ(anyLong());
                 verify(client, never()).execPROT(anyString());

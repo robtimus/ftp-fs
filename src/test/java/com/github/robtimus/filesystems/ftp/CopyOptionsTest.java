@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -118,7 +119,7 @@ class CopyOptionsTest {
 
         private void testWithInvalid(CopyOption option) {
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> CopyOptions.forCopy(option));
-            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(option), exception);
         }
 
         @Test
@@ -138,7 +139,7 @@ class CopyOptionsTest {
 
         private void testWithMultiples(CopyOption... options) {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forCopy(options));
-            assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options), exception);
         }
     }
 
@@ -343,12 +344,12 @@ class CopyOptionsTest {
         private void testWithInvalid(boolean sameFileSystem, CopyOption option) {
             UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
                     () -> CopyOptions.forMove(sameFileSystem, option));
-            assertEquals(Messages.fileSystemProvider().unsupportedCopyOption(option).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(option), exception);
         }
 
         private void testWithMultiples(boolean sameFileSystem, CopyOption... options) {
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> CopyOptions.forMove(sameFileSystem, options));
-            assertEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.fileSystemProvider().illegalCopyOptionCombination(options), exception);
         }
     }
 }

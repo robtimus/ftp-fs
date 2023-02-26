@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
+import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -161,7 +162,7 @@ class FTPFileSystemDirectoryStreamTest {
             try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
                 stream.close();
                 IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
-                assertEquals(Messages.directoryStream().closed().getMessage(), exception.getMessage());
+                assertChainEquals(Messages.directoryStream().closed(), exception);
             }
         }
 
@@ -170,7 +171,7 @@ class FTPFileSystemDirectoryStreamTest {
             try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
                 stream.iterator();
                 IllegalStateException exception = assertThrows(IllegalStateException.class, stream::iterator);
-                assertEquals(Messages.directoryStream().iteratorAlreadyReturned().getMessage(), exception.getMessage());
+                assertChainEquals(Messages.directoryStream().iteratorAlreadyReturned(), exception);
             }
         }
 

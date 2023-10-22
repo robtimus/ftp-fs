@@ -302,7 +302,7 @@ abstract class AbstractFTPFileSystemTest {
         return size;
     }
 
-    private static class ExceptionFactoryWrapper implements FileSystemExceptionFactory {
+    private static final class ExceptionFactoryWrapper implements FileSystemExceptionFactory {
 
         private FileSystemExceptionFactory delegate;
 

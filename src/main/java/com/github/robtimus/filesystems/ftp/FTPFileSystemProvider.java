@@ -86,8 +86,14 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
-        // user info must come from the environment map
-        checkURI(uri, false, false);
+        //
+        // Java NIO does not enforce to reject a full URI when creating a file
+        // system. It can be actually confusing for users and it prevents the
+        // use of Paths.getPath() without prior creation of the file system
+        //
+        // The fllowing check shall accept both credentials and path
+        //
+        checkURI(uri, true, true);
 
         FTPEnvironment environment = copy(env);
 
@@ -129,13 +135,48 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     public Path getPath(URI uri) {
         checkURI(uri, true, true);
 
-        FTPFileSystem fs = getExistingFileSystem(uri);
-        return fs.getPath(uri.getPath());
+        FTPFileSystem fs = getFileSystem(uri, true);
+
+        String path = uri.getPath();
+        if (path.isBlank()) {
+            path = "/";
+        }
+        return fs.getPath(path);
+    }
+
+    private FTPFileSystem getFileSystem(URI uri, boolean create) {
+        URI normalizedURI = normalizeWithoutPassword(uri);
+        try {
+            return fileSystems.get(normalizedURI);
+        } catch (FileSystemNotFoundException x) {
+            if (create) {
+                try {
+                    FTPEnvironment env = new FTPEnvironment()
+                            .withPoolConfig(FTPPoolConfig.custom().withInitialSize(0).build())
+                            .withDefaultDirectory(".");
+
+                    String userInfo = uri.getUserInfo();
+                    if (userInfo != null) {
+                        String[] credentials = userInfo.split(":");
+                        env.withCredentials(
+                                credentials[0],
+                                (credentials.length > 1) ? credentials[1].toCharArray() : null
+                        );
+                    }
+
+                    return (FTPFileSystem) newFileSystem(uri, env);
+                } catch (IOException y) {
+                    y.printStackTrace();
+                    throw new FileSystemNotFoundException(y.getMessage());
+                }
+            }
+
+            throw x;
+        }
     }
 
     private FTPFileSystem getExistingFileSystem(URI uri) {
-        URI normalizedURI = normalizeWithoutPassword(uri);
-        return fileSystems.get(normalizedURI);
+        return getFileSystem(uri, false);
     }
 
     private void checkURI(URI uri, boolean allowUserInfo, boolean allowPath) {

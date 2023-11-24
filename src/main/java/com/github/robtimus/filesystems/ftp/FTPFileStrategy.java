@@ -39,6 +39,9 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
  */
 public abstract class FTPFileStrategy {
 
+    private static final FTPFileStrategy UNIX = new Unix();
+    private static final FTPFileStrategy NON_UNIX = new NonUnix();
+
     final List<FTPFile> getChildren(Client client, Path path) throws IOException {
         return getChildren(client.ftpClient(), normalized(path), client.exceptionFactory());
     }
@@ -164,7 +167,7 @@ public abstract class FTPFileStrategy {
      * @return A strategy for Unix-like FTP file systems.
      */
     public static FTPFileStrategy unix() {
-        return Unix.INSTANCE;
+        return UNIX;
     }
 
     /**
@@ -177,7 +180,7 @@ public abstract class FTPFileStrategy {
      * @return A strategy for non-Unix-like FTP file systems.
      */
     public static FTPFileStrategy nonUnix() {
-        return NonUnix.INSTANCE;
+        return NON_UNIX;
     }
 
     /**
@@ -191,8 +194,6 @@ public abstract class FTPFileStrategy {
     }
 
     private static final class Unix extends FTPFileStrategy {
-
-        private static final FTPFileStrategy INSTANCE = new Unix();
 
         @Override
         protected List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
@@ -273,8 +274,6 @@ public abstract class FTPFileStrategy {
     }
 
     private static final class NonUnix extends FTPFileStrategy {
-
-        private static final FTPFileStrategy INSTANCE = new NonUnix();
 
         @Override
         protected List<FTPFile> getChildren(FTPClient client, Path path, FileSystemExceptionFactory exceptionFactory) throws IOException {
@@ -357,7 +356,7 @@ public abstract class FTPFileStrategy {
                 String fileName = FTPFileSystem.getFileName(f);
                 return CURRENT_DIR.equals(fileName);
             });
-            delegate = ftpFiles.length == 0 ? NonUnix.INSTANCE : Unix.INSTANCE;
+            delegate = ftpFiles.length == 0 ? nonUnix() : unix();
         }
 
         private void checkInitialized() {

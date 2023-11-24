@@ -79,6 +79,7 @@ public class FTPEnvironment implements Map<String, Object> {
     private static final String CONNECT_TIMEOUT = "connectTimeout"; //$NON-NLS-1$
     private static final String PROXY = "proxy"; //$NON-NLS-1$
     private static final String CHARSET = "charset"; //$NON-NLS-1$
+    private static final int DEFAULT_CONNECT_TIMEOUT = 30 * 1000; // 30 seconds
 
     // FTP
 
@@ -836,10 +837,8 @@ public class FTPEnvironment implements Map<String, Object> {
     }
 
     private void configureConnectTimeout(FTPClient client) {
-        if (containsKey(CONNECT_TIMEOUT)) {
-            int connectTimeout = FileSystemProviderSupport.getIntValue(this, CONNECT_TIMEOUT);
-            client.setConnectTimeout(connectTimeout);
-        }
+        int connectTimeout = FileSystemProviderSupport.getIntValue(this, CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT);
+        client.setConnectTimeout(connectTimeout);
     }
 
     private void configureProxy(FTPClient client) {

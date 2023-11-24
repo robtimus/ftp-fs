@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -436,7 +437,7 @@ class FTPEnvironmentTest {
                 FTPEnvironment env = new FTPEnvironment();
                 env.initializePreConnect(client);
 
-                verify(client, never()).setConnectTimeout(anyInt());
+                verify(client).setConnectTimeout(Math.toIntExact(TimeUnit.SECONDS.toMillis(30)));
             }
 
             @Test

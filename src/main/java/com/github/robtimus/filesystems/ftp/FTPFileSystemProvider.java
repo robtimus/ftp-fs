@@ -76,9 +76,10 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     /**
      * Constructs a new {@code FileSystem} object identified by a URI.
      * <p>
-     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getUserInfo() user information},
-     * {@link URI#getPath() path}, {@link URI#getQuery() query} or {@link URI#getFragment() fragment}. Authentication credentials must be set through
-     * the given environment map, preferably through {@link FTPEnvironment}.
+     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getQuery() query} or
+     * {@link URI#getFragment() fragment}. Authentication credentials can be set either through the URI's {@link URI#getUserInfo() user information},
+     * or through the given environment map, preferably through {@link FTPEnvironment}. The default directory can be set either through the URI's
+     * {@link URI#getPath() path} or through the given environment map, preferably through {@link FTPEnvironment}.
      * <p>
      * This provider allows multiple file systems per host, but only one file system per user on a host.
      * Once a file system is {@link FileSystem#close() closed}, this provider allows a new file system to be created with the same URI and credentials
@@ -86,10 +87,15 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public FileSystem newFileSystem(URI uri, Map<String, ?> env) throws IOException {
-        // user info must come from the environment map
-        checkURI(uri, false, false);
-
         FTPEnvironment environment = copy(env);
+
+        boolean allowUserInfo = !environment.hasUsername();
+        boolean allowPath = !environment.hasDefaultDir();
+
+        checkURI(uri, allowUserInfo, allowPath);
+
+        addUserInfoIfNeeded(environment, uri.getUserInfo());
+        addDefaultDirIfNeeded(environment, uri.getPath());
 
         String username = environment.getUsername();
         URI normalizedURI = normalizeWithUsername(uri, username);
@@ -100,12 +106,30 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         return FTPEnvironment.copy(env);
     }
 
+    private void addUserInfoIfNeeded(FTPEnvironment environment, String userInfo) {
+        if (userInfo != null) {
+            int indexOfColon = userInfo.indexOf(':');
+            if (indexOfColon == -1) {
+                environment.withCredentials(userInfo, null);
+            } else {
+                environment.withCredentials(userInfo.substring(0, indexOfColon), userInfo.substring(indexOfColon + 1).toCharArray());
+            }
+        }
+    }
+
+    private void addDefaultDirIfNeeded(FTPEnvironment environment, String path) {
+        if (path != null && !path.isEmpty()) {
+            environment.withDefaultDirectory(path);
+        }
+    }
+
     /**
      * Returns an existing {@code FileSystem} created by this provider.
      * <p>
      * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getPath() path},
-     * {@link URI#getQuery() query} or {@link URI#getFragment() fragment}. Because the original credentials were provided through an environment map,
-     * the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security reasons.
+     * {@link URI#getQuery() query} or {@link URI#getFragment() fragment}. Because the original credentials were possibly provided through an
+     * environment map, the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security
+     * reasons.
      * <p>
      * Once a file system is {@link FileSystem#close() closed}, this provider will throw a {@link FileSystemNotFoundException}.
      */
@@ -121,7 +145,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * already exists. This method does not support constructing {@code FileSystem}s automatically.
      * <p>
      * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getQuery() query} or
-     * {@link URI#getFragment() fragment}. Because the original credentials were provided through an environment map,
+     * {@link URI#getFragment() fragment}. Because the original credentials were possibly provided through an environment map,
      * the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security reasons.
      */
     @Override
@@ -151,7 +175,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         if (uri.isOpaque()) {
             throw Messages.uri().notHierarchical(uri);
         }
-        if (!allowPath && !hasEmptyPath(uri)) {
+        if (!allowPath && !hasEmptyPath(uri) && !"/".equals(uri.getPath())) { //$NON-NLS-1$
             throw Messages.uri().hasPath(uri);
         }
         if (uri.getQuery() != null && !uri.getQuery().isEmpty()) {

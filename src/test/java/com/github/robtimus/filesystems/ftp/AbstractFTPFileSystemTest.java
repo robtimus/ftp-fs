@@ -148,8 +148,12 @@ abstract class AbstractFTPFileSystemTest {
     }
 
     protected static FTPEnvironment createEnv(FTPFileStrategyFactory ftpFileStrategyFactory) {
+        return createMinimalEnv(ftpFileStrategyFactory)
+                .withCredentials(USERNAME, PASSWORD.toCharArray());
+    }
+
+    protected static FTPEnvironment createMinimalEnv(FTPFileStrategyFactory ftpFileStrategyFactory) {
         return new FTPEnvironment()
-                .withCredentials(USERNAME, PASSWORD.toCharArray())
                 .withPoolConfig(FTPPoolConfig.custom().withMaxSize(1).build())
                 .withFTPFileStrategyFactory(ftpFileStrategyFactory)
                 .withFileSystemExceptionFactory(exceptionFactory);

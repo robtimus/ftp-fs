@@ -725,6 +725,8 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @since 3.0
      */
     public static FTPSEnvironment copy(Map<String, ?> env) {
-        return new FTPSEnvironment(new HashMap<>(env));
+        return env == null
+                ? new FTPSEnvironment()
+                : new FTPSEnvironment(new HashMap<>(env));
     }
 }

@@ -120,6 +120,106 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         }
     }
 
+    @Nested
+    class NewFileSystem {
+
+        @Test
+        void testWithMinimalEnv() throws IOException {
+            URI uri = URI.create(getBaseUrlWithCredentials() + getDefaultDir());
+            try (FileSystem fs = FileSystems.newFileSystem(uri, createMinimalEnv(UNIX))) {
+                Path path = fs.getPath("");
+                assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+            }
+        }
+
+        @Test
+        void testWithUserInfoAndCredentials() {
+            URI uri = URI.create(getBaseUrl());
+            FTPEnvironment env = createEnv(UNIX);
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+            assertEquals(Messages.uri().hasUserInfo(uri).getMessage(), exception.getMessage());
+        }
+
+        @Test
+        void testWithPathAndDefaultDir() {
+            URI uri = getURI().resolve("/path");
+            FTPEnvironment env = createEnv(UNIX)
+                    .withDefaultDirectory("/home/test");
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+            assertEquals(Messages.uri().hasPath(uri).getMessage(), exception.getMessage());
+        }
+
+        @Test
+        void testWithQuery() {
+            URI uri = getURI().resolve("?q=v");
+            FTPEnvironment env = createEnv(UNIX);
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+            assertEquals(Messages.uri().hasQuery(uri).getMessage(), exception.getMessage());
+        }
+
+        @Test
+        void testWithFragment() {
+            URI uri = getURI().resolve("#id");
+            FTPEnvironment env = createEnv(UNIX);
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+            assertEquals(Messages.uri().hasFragment(uri).getMessage(), exception.getMessage());
+        }
+    }
+
+    @Nested
+    class GetFileSystem {
+
+        @Test
+        @SuppressWarnings("resource")
+        void testExisting() throws IOException {
+            try (FileSystem fs = newFileSystem(createEnv(UNIX))) {
+                FileSystem existingFileSystem = FileSystems.getFileSystem(URI.create(getBaseUrl()));
+                assertSame(fs, existingFileSystem);
+
+                existingFileSystem = FileSystems.getFileSystem(URI.create(getBaseUrl() + "/"));
+                assertSame(fs, existingFileSystem);
+            }
+        }
+
+        @Test
+        @SuppressWarnings("resource")
+        void testExistingWithTrailingSlash() throws IOException {
+            try (FileSystem fs = newFileSystem(createEnv(UNIX))) {
+                FileSystem existingFileSystem = FileSystems.getFileSystem(URI.create(getBaseUrl() + "/"));
+                assertSame(fs, existingFileSystem);
+
+                existingFileSystem = FileSystems.getFileSystem(URI.create(getBaseUrl() + "/"));
+                assertSame(fs, existingFileSystem);
+            }
+        }
+
+        @Test
+        void testWithNonEmptyPath() {
+            URI uri = URI.create(getBaseUrl() + "/foo");
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.getFileSystem(uri));
+            assertEquals(Messages.uri().hasPath(uri).getMessage(), exception.getMessage());
+        }
+
+        @Test
+        void testNotExisting() {
+            URI uri = URI.create(getBaseUrl());
+            assertThrows(FileSystemNotFoundException.class, () -> FileSystems.getFileSystem(uri));
+        }
+
+        @Test
+        @SuppressWarnings("resource")
+        void testClosed() throws IOException {
+            try (FileSystem fs = newFileSystem(createEnv(UNIX))) {
+                URI uri = URI.create(getBaseUrl());
+                FileSystem existingFileSystem = FileSystems.getFileSystem(uri);
+                assertSame(fs, existingFileSystem);
+
+                fs.close();
+                assertThrows(FileSystemNotFoundException.class, () -> FileSystems.getFileSystem(uri));
+            }
+        }
+    }
+
     @Test
     void testRemoveFileSystem() throws IOException {
         addDirectory("/foo/bar");

@@ -673,6 +673,14 @@ public class FTPEnvironment implements Map<String, Object> {
         return this;
     }
 
+    boolean hasUsername() {
+        return containsKey(USERNAME);
+    }
+
+    boolean hasDefaultDir() {
+        return containsKey(DEFAULT_DIR);
+    }
+
     String getUsername() {
         return FileSystemProviderSupport.getValue(this, USERNAME, String.class, null);
     }
@@ -1168,6 +1176,8 @@ public class FTPEnvironment implements Map<String, Object> {
         if (env instanceof FTPSEnvironment) {
             return new FTPSEnvironment(new HashMap<>(env));
         }
-        return new FTPEnvironment(new HashMap<>(env));
+        return env == null
+                ? new FTPEnvironment()
+                : new FTPEnvironment(new HashMap<>(env));
     }
 }

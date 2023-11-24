@@ -195,9 +195,18 @@ abstract class AbstractFTPFileSystemTest {
         return "ftp://" + USERNAME + "@localhost:" + ftpServer.getServerControlPort();
     }
 
+    protected final String getBaseUrlWithCredentials() {
+        FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
+        return "ftp://" + USERNAME + ":" + PASSWORD + "@localhost:" + ftpServer.getServerControlPort();
+    }
+
     protected final URI getURI() {
         FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         return URI.create("ftp://localhost:" + ftpServer.getServerControlPort());
+    }
+
+    protected final String getUsername() {
+        return USERNAME;
     }
 
     protected final FTPFileSystemProvider provider() {

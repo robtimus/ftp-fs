@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
@@ -55,6 +56,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import com.github.robtimus.filesystems.Messages;
@@ -70,53 +72,53 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         super(true, null);
     }
 
-    // support for Paths and Files
+    @Nested
+    class PathsAndFiles {
 
-    @Test
-    void testPathsAndFilesSupport() throws IOException {
-        try (FTPFileSystem fs = newFileSystem(createEnv(UNIX))) {
-            Path path = Paths.get(URI.create(getBaseUrl() + "/foo"));
-            assertThat(path, instanceOf(FTPPath.class));
-            // as required by Paths.get
-            assertEquals(path, path.toAbsolutePath());
+        @Test
+        void testSuccess() throws IOException {
+            try (FTPFileSystem fs = newFileSystem(createEnv(UNIX))) {
+                Path path = Paths.get(URI.create(getBaseUrl() + "/foo"));
+                assertThat(path, instanceOf(FTPPath.class));
+                // as required by Paths.get
+                assertEquals(path, path.toAbsolutePath());
 
-            // the file does not exist yet
-            assertFalse(Files.exists(path));
-
-            Files.createFile(path);
-            try {
-                // the file now exists
-                assertTrue(Files.exists(path));
-
-                byte[] content = new byte[1024];
-                new Random().nextBytes(content);
-                try (OutputStream output = Files.newOutputStream(path, FileType.binary())) {
-                    output.write(content);
-                }
-
-                // check the file directly
-                FileEntry file = getFile("/foo");
-                assertArrayEquals(content, getContents(file));
-
-            } finally {
-
-                Files.delete(path);
+                // the file does not exist yet
                 assertFalse(Files.exists(path));
 
-                assertNull(getFileSystemEntry("/foo"));
+                Files.createFile(path);
+                try {
+                    // the file now exists
+                    assertTrue(Files.exists(path));
+
+                    byte[] content = new byte[1024];
+                    new Random().nextBytes(content);
+                    try (OutputStream output = Files.newOutputStream(path, FileType.binary())) {
+                        output.write(content);
+                    }
+
+                    // check the file directly
+                    FileEntry file = getFile("/foo");
+                    assertArrayEquals(content, getContents(file));
+
+                } finally {
+
+                    Files.delete(path);
+                    assertFalse(Files.exists(path));
+
+                    assertNull(getFileSystemEntry("/foo"));
+                }
             }
         }
-    }
 
-    @Test
-    void testPathsAndFilesSupportFileSystemNotFound() {
-        URI uri = URI.create("ftp://ftp.github.com/");
-        FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> Paths.get(uri));
-        assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
-        assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
+        @Test
+        void testFileSystemNotFound() {
+            URI uri = URI.create("ftp://ftp.github.com/");
+            FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> Paths.get(uri));
+            assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
+            assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
+        }
     }
-
-    // FTPFileSystemProvider.removeFileSystem
 
     @Test
     void testRemoveFileSystem() throws IOException {
@@ -137,204 +139,294 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
     }
 
-    // FTPFileSystemProvider.getPath
+    @Nested
+    class NormalizeWithoutPassword {
 
-    @Test
-    void testGetPath() throws IOException {
-        Map<String, String> inputs = new HashMap<>();
-        inputs.put("/", "/");
-        inputs.put("foo", "/home/test/foo");
-        inputs.put("/foo", "/foo");
-        inputs.put("foo/bar", "/home/test/foo/bar");
-        inputs.put("/foo/bar", "/foo/bar");
+        @Test
+        void testMinimalURI() {
+            URI uri = getURI();
+            assertSame(uri, FTPFileSystemProvider.normalizeWithoutPassword(uri));
+        }
 
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            for (Map.Entry<String, String> entry : inputs.entrySet()) {
-                URI uri = fs.getPath(entry.getKey()).toUri();
-                Path path = provider.getPath(uri);
-                assertThat(path, instanceOf(FTPPath.class));
-                assertEquals(entry.getValue(), ((FTPPath) path).path());
+        @Test
+        void testWithOnlyUserName() {
+            URI uri = URI.create(getBaseUrl());
+            assertEquals(uri, FTPFileSystemProvider.normalizeWithoutPassword(uri));
+        }
+
+        @Test
+        void testWithUserNameAndPassword() {
+            URI uri = URI.create(getBaseUrlWithCredentials());
+            URI expected = URI.create(getBaseUrl());
+            assertEquals(expected, FTPFileSystemProvider.normalizeWithoutPassword(uri));
+        }
+
+        @Test
+        void testWithPath() {
+            testNormalizeWithoutPassword("/");
+        }
+
+        @Test
+        void testWithQuery() {
+            testNormalizeWithoutPassword("?q=v");
+        }
+
+        @Test
+        void testWithFragment() {
+            testNormalizeWithoutPassword("#id");
+        }
+
+        private void testNormalizeWithoutPassword(String uriAddition) {
+            URI uri = getURI().resolve(uriAddition);
+            assertEquals(getURI(), FTPFileSystemProvider.normalizeWithoutPassword(uri));
+        }
+    }
+
+    @Nested
+    class NormalizeWithUsername {
+
+        @Test
+        void testMinimalURIWithoutUserInfo() {
+            URI uri = getURI();
+            assertSame(uri, FTPFileSystemProvider.normalizeWithUsername(uri, null));
+        }
+
+        @Test
+        void testMinimalURIWithUsername() {
+            URI uri = getURI();
+            assertEquals(URI.create(getBaseUrl()), FTPFileSystemProvider.normalizeWithUsername(uri, getUsername()));
+        }
+
+        @Test
+        void testWithPath() {
+            testNormalizeWithoutPassword("/");
+        }
+
+        @Test
+        void testWithQuery() {
+            testNormalizeWithoutPassword("?q=v");
+        }
+
+        @Test
+        void testWithFragment() {
+            testNormalizeWithoutPassword("#id");
+        }
+
+        private void testNormalizeWithoutPassword(String uriAddition) {
+            URI uri = getURI().resolve(uriAddition);
+            assertEquals(URI.create(getBaseUrl()), FTPFileSystemProvider.normalizeWithUsername(uri, getUsername()));
+        }
+    }
+
+    @Nested
+    class GetPath {
+
+        @Test
+        void testSuccess() throws IOException {
+            Map<String, String> inputs = new HashMap<>();
+            inputs.put("/", "/");
+            inputs.put("foo", "/home/test/foo");
+            inputs.put("/foo", "/foo");
+            inputs.put("foo/bar", "/home/test/foo/bar");
+            inputs.put("/foo/bar", "/foo/bar");
+
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                for (Map.Entry<String, String> entry : inputs.entrySet()) {
+                    URI uri = fs.getPath(entry.getKey()).toUri();
+                    Path path = provider.getPath(uri);
+                    assertThat(path, instanceOf(FTPPath.class));
+                    assertEquals(entry.getValue(), ((FTPPath) path).path());
+                }
+                for (Map.Entry<String, String> entry : inputs.entrySet()) {
+                    URI uri = fs.getPath(entry.getKey()).toUri();
+                    uri = URISupport.create(uri.getScheme().toUpperCase(), uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(),
+                            null, null);
+                    Path path = provider.getPath(uri);
+                    assertThat(path, instanceOf(FTPPath.class));
+                    assertEquals(entry.getValue(), ((FTPPath) path).path());
+                }
             }
-            for (Map.Entry<String, String> entry : inputs.entrySet()) {
-                URI uri = fs.getPath(entry.getKey()).toUri();
-                uri = URISupport.create(uri.getScheme().toUpperCase(), uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(), null, null);
-                Path path = provider.getPath(uri);
-                assertThat(path, instanceOf(FTPPath.class));
-                assertEquals(entry.getValue(), ((FTPPath) path).path());
+        }
+
+        @Test
+        void testNoScheme() {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create("/foo/bar");
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
+            assertChainEquals(Messages.uri().notAbsolute(uri), exception);
+        }
+
+        @Test
+        void testInvalidScheme() {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create("https://www.github.com/");
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
+            assertChainEquals(Messages.uri().invalidScheme(uri, "ftp"), exception);
+        }
+
+        @Test
+        void testFileSystemNotFound() {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create("ftp://ftp.github.com/");
+            FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
+            assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
+            assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
+        }
+    }
+
+    @Nested
+    class IsSameFile {
+
+        @Test
+        void testWithDifferentTypes() throws IOException {
+            FTPFileSystemProvider ftpProvider = new FTPFileSystemProvider();
+
+            @SuppressWarnings("resource")
+            FileSystem defaultFileSystem = FileSystems.getDefault();
+            FileSystemProvider defaultProvider = defaultFileSystem.provider();
+
+            try (FTPFileSystem fs1 = newFileSystem(ftpProvider, createEnv(UNIX))) {
+                FTPPath path1 = new FTPPath(fs1, "pom.xml");
+                Path path2 = Paths.get("pom.xml");
+
+                assertFalse(ftpProvider.isSameFile(path1, path2));
+                assertFalse(defaultProvider.isSameFile(path2, path1));
             }
         }
     }
 
-    @Test
-    void testGetPathNoScheme() {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        URI uri = URI.create("/foo/bar");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertChainEquals(Messages.uri().notAbsolute(uri), exception);
-    }
+    @Nested
+    class GetFileAttributeView {
 
-    @Test
-    void testGetPathInvalidScheme() {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        URI uri = URI.create("https://www.github.com/");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.getPath(uri));
-        assertChainEquals(Messages.uri().invalidScheme(uri, "ftp"), exception);
-    }
+        @Test
+        void testBasic() throws IOException {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
 
-    @Test
-    void testGetPathFileSystemNotFound() {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        URI uri = URI.create("ftp://ftp.github.com/");
-        FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
-        assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
-        assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
-    }
+                BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
+                assertNotNull(view);
+                assertEquals("basic", view.name());
 
-    // FTPFileSystemProvider.isSameFile
+                assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
+            }
+        }
 
-    @Test
-    void testIsSameFileWithDifferentTypes() throws IOException {
-        FTPFileSystemProvider ftpProvider = new FTPFileSystemProvider();
+        @Test
+        void testFileOwner() throws IOException {
+            FileEntry file = addFile("/foo/bar");
+            file.setOwner("user");
 
-        @SuppressWarnings("resource")
-        FileSystem defaultFileSystem = FileSystems.getDefault();
-        FileSystemProvider defaultProvider = defaultFileSystem.provider();
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
 
-        try (FTPFileSystem fs1 = newFileSystem(ftpProvider, createEnv(UNIX))) {
-            FTPPath path1 = new FTPPath(fs1, "pom.xml");
-            Path path2 = Paths.get("pom.xml");
+                FileOwnerAttributeView view = fs.provider().getFileAttributeView(path, FileOwnerAttributeView.class);
+                assertNotNull(view);
+                assertEquals("owner", view.name());
 
-            assertFalse(ftpProvider.isSameFile(path1, path2));
-            assertFalse(defaultProvider.isSameFile(path2, path1));
+                assertEquals("user", view.getOwner().getName());
+
+                UserPrincipal owner = new SimpleUserPrincipal("test");
+
+                assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
+            }
+        }
+
+        @Test
+        void testPosix() throws IOException {
+            FileEntry file = addFile("/foo/bar");
+            file.setOwner("user");
+
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
+
+                PosixFileAttributeView view = fs.provider().getFileAttributeView(path, PosixFileAttributeView.class);
+                assertNotNull(view);
+                assertEquals("posix", view.name());
+
+                assertEquals("user", view.getOwner().getName());
+
+                UserPrincipal owner = new SimpleUserPrincipal("test");
+                Set<PosixFilePermission> permissions = EnumSet.noneOf(PosixFilePermission.class);
+                GroupPrincipal group = new SimpleGroupPrincipal("test");
+
+                assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
+                assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
+                assertThrows(UnsupportedOperationException.class, () -> view.setPermissions(permissions));
+                assertThrows(UnsupportedOperationException.class, () -> view.setGroup(group));
+            }
+        }
+
+        @Test
+        void testOther() throws IOException {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
+
+                DosFileAttributeView view = fs.provider().getFileAttributeView(path, DosFileAttributeView.class);
+                assertNull(view);
+            }
+        }
+
+        @Test
+        void testReadAttributes() throws IOException {
+            addDirectory("/foo/bar");
+
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
+
+                BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
+                assertNotNull(view);
+
+                BasicFileAttributes attributes = view.readAttributes();
+                assertTrue(attributes.isDirectory());
+            }
         }
     }
 
-    // FTPFileSystemProvider.getFileAttributeView
+    @Nested
+    class KeepAlive {
 
-    @Test
-    void testGetFileAttributeViewBasic() throws IOException {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
+        @Test
+        void testWithFTPFileSystem() throws IOException {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                assertDoesNotThrow(() -> FTPFileSystemProvider.keepAlive(fs));
+            }
+        }
 
-            BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
-            assertNotNull(view);
-            assertEquals("basic", view.name());
+        @Test
+        void testWithNonFTPFileSystem() {
+            @SuppressWarnings("resource")
+            FileSystem defaultFileSystem = FileSystems.getDefault();
+            assertThrows(ProviderMismatchException.class, () -> FTPFileSystemProvider.keepAlive(defaultFileSystem));
+        }
 
-            assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
+        @Test
+        void testWithNullFTPFileSystem() {
+            assertThrows(ProviderMismatchException.class, () -> FTPFileSystemProvider.keepAlive(null));
         }
     }
 
-    @Test
-    void testGetFileAttributeViewFileOwner() throws IOException {
-        FileEntry file = addFile("/foo/bar");
-        file.setOwner("user");
+    @Nested
+    class CreateDirectory {
 
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
+        @Test
+        void testThroughCreateDirectories() throws IOException {
+            addDirectory("/foo/bar");
 
-            FileOwnerAttributeView view = fs.provider().getFileAttributeView(path, FileOwnerAttributeView.class);
-            assertNotNull(view);
-            assertEquals("owner", view.name());
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
+                FTPPath path = new FTPPath(fs, "/foo/bar");
+                Files.createDirectories(path);
+            }
 
-            assertEquals("user", view.getOwner().getName());
-
-            UserPrincipal owner = new SimpleUserPrincipal("test");
-
-            assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
+            assertNotNull(getFileSystemEntry("/foo/bar"));
         }
-    }
-
-    @Test
-    void testGetFileAttributeViewPosix() throws IOException {
-        FileEntry file = addFile("/foo/bar");
-        file.setOwner("user");
-
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
-
-            PosixFileAttributeView view = fs.provider().getFileAttributeView(path, PosixFileAttributeView.class);
-            assertNotNull(view);
-            assertEquals("posix", view.name());
-
-            assertEquals("user", view.getOwner().getName());
-
-            UserPrincipal owner = new SimpleUserPrincipal("test");
-            Set<PosixFilePermission> permissions = EnumSet.noneOf(PosixFilePermission.class);
-            GroupPrincipal group = new SimpleGroupPrincipal("test");
-
-            assertThrows(UnsupportedOperationException.class, () -> view.setTimes(null, null, null));
-            assertThrows(UnsupportedOperationException.class, () -> view.setOwner(owner));
-            assertThrows(UnsupportedOperationException.class, () -> view.setPermissions(permissions));
-            assertThrows(UnsupportedOperationException.class, () -> view.setGroup(group));
-        }
-    }
-
-    @Test
-    void testGetFileAttributeViewOther() throws IOException {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
-
-            DosFileAttributeView view = fs.provider().getFileAttributeView(path, DosFileAttributeView.class);
-            assertNull(view);
-        }
-    }
-
-    @Test
-    void testGetFileAttributeViewReadAttributes() throws IOException {
-        addDirectory("/foo/bar");
-
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
-
-            BasicFileAttributeView view = fs.provider().getFileAttributeView(path, BasicFileAttributeView.class);
-            assertNotNull(view);
-
-            BasicFileAttributes attributes = view.readAttributes();
-            assertTrue(attributes.isDirectory());
-        }
-    }
-
-    // FTPFileSystemProvider.keepAlive
-
-    @Test
-    void testKeepAliveWithFTPFileSystem() throws IOException {
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            assertDoesNotThrow(() -> FTPFileSystemProvider.keepAlive(fs));
-        }
-    }
-
-    @Test
-    void testKeepAliveWithNonFTPFileSystem() {
-        @SuppressWarnings("resource")
-        FileSystem defaultFileSystem = FileSystems.getDefault();
-        assertThrows(ProviderMismatchException.class, () -> FTPFileSystemProvider.keepAlive(defaultFileSystem));
-    }
-
-    @Test
-    void testKeepAliveWithNullFTPFileSystem() {
-        assertThrows(ProviderMismatchException.class, () -> FTPFileSystemProvider.keepAlive(null));
-    }
-
-    // FTPFileSystemProvider.createDirectory through Files.createDirectories
-
-    @Test
-    void testCreateDirectories() throws IOException {
-        addDirectory("/foo/bar");
-
-        FTPFileSystemProvider provider = new FTPFileSystemProvider();
-        try (FTPFileSystem fs = newFileSystem(provider, createEnv(UNIX))) {
-            FTPPath path = new FTPPath(fs, "/foo/bar");
-            Files.createDirectories(path);
-        }
-
-        assertNotNull(getFileSystemEntry("/foo/bar"));
     }
 
     private FTPFileSystem newFileSystem(Map<String, ?> env) throws IOException {

@@ -206,8 +206,6 @@ class FTPFileSystemTest {
             super(useUnixFtpServer, ftpFileStrategyFactory);
         }
 
-        // FTPFileSystem.getPath
-
         @Test
         void testGetPath() {
             testGetPath("/", "/");
@@ -221,14 +219,10 @@ class FTPFileSystemTest {
             assertEquals(expected, actual);
         }
 
-        // FTPFileSystem.keepAlive
-
         @Test
         void testKeepAlive() {
             assertDoesNotThrow(fileSystem::keepAlive);
         }
-
-        // FTPFileSystem.toUri
 
         @Test
         void testToUri() {
@@ -249,8 +243,6 @@ class FTPFileSystemTest {
             assertEquals(expectedUri, actual);
         }
 
-        // FTPFileSystem.toAbsolutePath
-
         @Test
         void testToAbsolutePath() {
 
@@ -269,1550 +261,1570 @@ class FTPFileSystemTest {
             assertEquals(expectedPath, actual);
         }
 
-        // FTPFileSystem.toRealPath
+        @Nested
+        class ToRealPath {
 
-        @Test
-        void testToRealPathNoFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addDirectory("/foo/bar");
-            addDirectory("/bar");
-            addFile("/home/test/foo/bar");
-            FileEntry bar = addFile("/home/test/bar");
+            @Test
+            void testNoFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addDirectory("/foo/bar");
+                addDirectory("/bar");
+                addFile("/home/test/foo/bar");
+                FileEntry bar = addFile("/home/test/bar");
 
-            // symbolic links
-            SymbolicLinkEntry symLink = addSymLink("/hello", foo);
-            addSymLink("/world", symLink);
-            symLink = addSymLink("/home/test/baz", bar);
-            addSymLink("/baz", symLink);
+                // symbolic links
+                SymbolicLinkEntry symLink = addSymLink("/hello", foo);
+                addSymLink("/world", symLink);
+                symLink = addSymLink("/home/test/baz", bar);
+                addSymLink("/baz", symLink);
 
-            testToRealPathNoFollowLinks("/", "/");
-            testToRealPathNoFollowLinks("/foo/bar", "/foo/bar");
-            testToRealPathNoFollowLinks("/foo/../bar", "/bar");
+                testToNoFollowLinks("/", "/");
+                testToNoFollowLinks("/foo/bar", "/foo/bar");
+                testToNoFollowLinks("/foo/../bar", "/bar");
 
-            testToRealPathNoFollowLinks("", "/home/test");
-            testToRealPathNoFollowLinks("foo/bar", "/home/test/foo/bar");
-            testToRealPathNoFollowLinks("foo/../bar", "/home/test/bar");
+                testToNoFollowLinks("", "/home/test");
+                testToNoFollowLinks("foo/bar", "/home/test/foo/bar");
+                testToNoFollowLinks("foo/../bar", "/home/test/bar");
 
-            // symbolic links
-            testToRealPathNoFollowLinks("/hello", "/hello");
-            testToRealPathNoFollowLinks("/world", "/world");
-            testToRealPathNoFollowLinks("/home/test/baz", "/home/test/baz");
-            testToRealPathNoFollowLinks("/baz", "/baz");
-        }
-
-        private void testToRealPathNoFollowLinks(String path, String expected) throws IOException {
-            FTPPath expectedPath = createPath(expected);
-            Path actual = createPath(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
-            assertEquals(expectedPath, actual);
-        }
-
-        @Test
-        void testToRealPathFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addDirectory("/foo/bar");
-            addDirectory("/bar");
-            addFile("/home/test/foo/bar");
-            FileEntry bar = addFile("/home/test/bar");
-
-            // symbolic links
-            SymbolicLinkEntry symLink = addSymLink("/hello", foo);
-            addSymLink("/world", symLink);
-            symLink = addSymLink("/home/test/baz", bar);
-            addSymLink("/baz", symLink);
-
-            testToRealPathFollowLinks("/", "/");
-            testToRealPathFollowLinks("/foo/bar", "/foo/bar");
-            testToRealPathFollowLinks("/foo/../bar", "/bar");
-
-            testToRealPathFollowLinks("", "/home/test");
-            testToRealPathFollowLinks("foo/bar", "/home/test/foo/bar");
-            testToRealPathFollowLinks("foo/../bar", "/home/test/bar");
-
-            // symbolic links
-            testToRealPathFollowLinks("/hello", "/foo");
-            testToRealPathFollowLinks("/world", "/foo");
-            testToRealPathFollowLinks("/home/test/baz", "/home/test/bar");
-            testToRealPathFollowLinks("/baz", "/home/test/bar");
-        }
-
-        private void testToRealPathFollowLinks(String path, String expected) throws IOException {
-            FTPPath expectedPath = createPath(expected);
-            Path actual = createPath(path).toRealPath();
-            assertEquals(expectedPath, actual);
-        }
-
-        @Test
-        void testToRealPathBrokenLink() {
-            addSymLink("/foo", new FileEntry("/bar"));
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
-            assertEquals("/bar", exception.getFile());
-        }
-
-        @Test
-        void testToRealPathNotExisting() {
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
-            assertEquals("/foo", exception.getFile());
-        }
-
-        // FTPFileSystem.newInputStream
-
-        @Test
-        void testNewInputStream() throws IOException {
-            addFile("/foo/bar");
-
-            try (InputStream input = provider().newInputStream(createPath("/foo/bar"))) {
-                // don't do anything with the stream, there's a separate test for that
+                // symbolic links
+                testToNoFollowLinks("/hello", "/hello");
+                testToNoFollowLinks("/world", "/world");
+                testToNoFollowLinks("/home/test/baz", "/home/test/baz");
+                testToNoFollowLinks("/baz", "/baz");
             }
-            // verify that the file system can be used after closing the stream
-            provider().checkAccess(createPath("/foo/bar"));
-        }
 
-        @Test
-        void testNewInputStreamDeleteOnClose() throws IOException {
-            addFile("/foo/bar");
-
-            OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            try (InputStream input = provider().newInputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
+            private void testToNoFollowLinks(String path, String expected) throws IOException {
+                FTPPath expectedPath = createPath(expected);
+                Path actual = createPath(path).toRealPath(LinkOption.NOFOLLOW_LINKS);
+                assertEquals(expectedPath, actual);
             }
-            assertNull(getFileSystemEntry("/foo/bar"));
-            assertEquals(0, getChildCount("/foo"));
-        }
 
-        @Test
-        void testNewInputStreamFTPFailure() {
+            @Test
+            void testFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addDirectory("/foo/bar");
+                addDirectory("/bar");
+                addFile("/home/test/foo/bar");
+                FileEntry bar = addFile("/home/test/bar");
 
-            // failure: file not found
+                // symbolic links
+                SymbolicLinkEntry symLink = addSymLink("/hello", foo);
+                addSymLink("/world", symLink);
+                symLink = addSymLink("/home/test/baz", bar);
+                addSymLink("/baz", symLink);
 
-            FTPFileSystemProvider provider = provider();
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newInputStream(createPath("/foo/bar")));
-            assertEquals("/foo/bar", exception.getFile());
+                testFollowLinks("/", "/");
+                testFollowLinks("/foo/bar", "/foo/bar");
+                testFollowLinks("/foo/../bar", "/bar");
 
-            verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
-        }
+                testFollowLinks("", "/home/test");
+                testFollowLinks("foo/bar", "/home/test/foo/bar");
+                testFollowLinks("foo/../bar", "/home/test/bar");
 
-        // FTPFileSystem.newOutputStream
-
-        @Test
-        void testNewOutputStreamExisting() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            OpenOption[] options = { StandardOpenOption.WRITE };
-            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
+                // symbolic links
+                testFollowLinks("/hello", "/foo");
+                testFollowLinks("/world", "/foo");
+                testFollowLinks("/home/test/baz", "/home/test/bar");
+                testFollowLinks("/baz", "/home/test/bar");
             }
-            // verify that the file system can be used after closing the stream
-            provider().checkAccess(createPath("/foo/bar"));
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewOutputStreamExistingDeleteOnClose() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-                assertSame(bar, getFileSystemEntry("/foo/bar"));
+            private void testFollowLinks(String path, String expected) throws IOException {
+                FTPPath expectedPath = createPath(expected);
+                Path actual = createPath(path).toRealPath();
+                assertEquals(expectedPath, actual);
             }
-            // verify that the file system can be used after closing the stream
-            provider().checkAccess(createPath("/foo"));
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
-            assertEquals(0, getChildCount("/foo"));
-        }
+            @Test
+            void testBrokenLink() {
+                addSymLink("/foo", new FileEntry("/bar"));
 
-        @Test
-        void testNewOutputStreamExistingCreate() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            OpenOption[] options = { StandardOpenOption.CREATE };
-            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
+                assertEquals("/bar", exception.getFile());
             }
-            // verify that the file system can be used after closing the stream
-            provider().checkAccess(createPath("/foo/bar"));
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewOutputStreamExistingCreateDeleteOnClose() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-                assertSame(bar, getFileSystemEntry("/foo/bar"));
+            @Test
+            void testNotExisting() {
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> createPath("/foo").toRealPath());
+                assertEquals("/foo", exception.getFile());
             }
-            // verify that the file system can be used after closing the stream
-            provider().checkAccess(createPath("/foo"));
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
         }
 
-        @Test
-        void testNewOutputStreamExistingCreateNew() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
+        @Nested
+        class NewInputStream {
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            OpenOption[] options = { StandardOpenOption.CREATE_NEW };
+            @Test
+            void testSuccess() throws IOException {
+                addFile("/foo/bar");
 
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newOutputStream(path, options));
-            assertEquals("/foo/bar", exception.getFile());
+                try (InputStream input = provider().newInputStream(createPath("/foo/bar"))) {
+                    // don't do anything with the stream, there's a separate test for that
+                }
+                // verify that the file system can be used after closing the stream
+                provider().checkAccess(createPath("/foo/bar"));
+            }
 
-            // verify that the file system can be used after closing the stream
-            assertDoesNotThrow(() -> provider().checkAccess(createPath("/foo/bar")));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
+            @Test
+            void testDeleteOnClose() throws IOException {
+                addFile("/foo/bar");
+
+                OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
+                try (InputStream input = provider().newInputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                }
+                assertNull(getFileSystemEntry("/foo/bar"));
+                assertEquals(0, getChildCount("/foo"));
+            }
+
+            @Test
+            void testFTPFailure() {
+                // failure: file not found
+
+                FTPFileSystemProvider provider = provider();
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newInputStream(createPath("/foo/bar")));
+                assertEquals("/foo/bar", exception.getFile());
+
+                verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
+            }
         }
 
-        @Test
-        void testNewOutputStreamExistingFTPFailure() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            bar.setPermissionsFromString("r--r--r--");
+        @Nested
+        class NewOutputStream {
 
-            // failure: no permission to write
+            @Test
+            void testExisting() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            OpenOption[] options = { StandardOpenOption.WRITE };
+                OpenOption[] options = { StandardOpenOption.WRITE };
+                try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                }
+                // verify that the file system can be used after closing the stream
+                provider().checkAccess(createPath("/foo/bar"));
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewOutputStreamExistingFTPFailureDeleteOnClose() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            bar.setPermissionsFromString("r--r--r--");
-
-            // failure: no permission to write
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewOutputStreamNonExistingNoCreate() {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            OpenOption[] options = { StandardOpenOption.WRITE };
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewOutputStreamNonExistingCreate() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            OpenOption[] options = { StandardOpenOption.CREATE };
-            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-            } finally {
                 assertSame(foo, getFileSystemEntry("/foo"));
-                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
-        }
 
-        @Test
-        void testNewOutputStreamNonExistingCreateDeleteOnClose() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
+            @Test
+            void testExistingDeleteOnClose() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
 
-            OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-                // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
-            } finally {
+                OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
+                try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                    assertSame(bar, getFileSystemEntry("/foo/bar"));
+                }
+                // verify that the file system can be used after closing the stream
+                provider().checkAccess(createPath("/foo"));
+
                 assertSame(foo, getFileSystemEntry("/foo"));
                 assertNull(getFileSystemEntry("/foo/bar"));
                 assertEquals(0, getChildCount("/foo"));
             }
-        }
 
-        @Test
-        void testNewOutputStreamNonExistingCreateNew() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
+            @Test
+            void testExistingCreate() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
 
-            OpenOption[] options = { StandardOpenOption.CREATE_NEW };
-            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-            } finally {
+                OpenOption[] options = { StandardOpenOption.CREATE };
+                try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                }
+                // verify that the file system can be used after closing the stream
+                provider().checkAccess(createPath("/foo/bar"));
+
                 assertSame(foo, getFileSystemEntry("/foo"));
-                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
-        }
 
-        @Test
-        void testNewOutputStreamNonExistingCreateNewDeleteOnClose() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
+            @Test
+            void testExistingCreateDeleteOnClose() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
 
-            OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
-            try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
-                // don't do anything with the stream, there's a separate test for that
-                // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
-            } finally {
+                OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
+                try (OutputStream output = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                    assertSame(bar, getFileSystemEntry("/foo/bar"));
+                }
+                // verify that the file system can be used after closing the stream
+                provider().checkAccess(createPath("/foo"));
+
                 assertSame(foo, getFileSystemEntry("/foo"));
                 assertNull(getFileSystemEntry("/foo/bar"));
             }
-        }
 
-        @Test
-        void testNewOutputStreamDirectoryNoCreate() {
-            DirectoryEntry foo = addDirectory("/foo");
+            @Test
+            void testExistingCreateNew() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath createPath = createPath("/foo");
-            OpenOption[] options = { StandardOpenOption.WRITE };
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                OpenOption[] options = { StandardOpenOption.CREATE_NEW };
 
-            FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-            assertEquals("/foo", exception.getFile());
-            assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newOutputStream(path, options));
+                assertEquals("/foo/bar", exception.getFile());
 
-            verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEquals(0, getChildCount("/foo"));
-        }
-
-        @Test
-        void testNewOutputStreamDirectoryDeleteOnClose() {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath createPath = createPath("/foo");
-            OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
-
-            FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-            assertEquals("/foo", exception.getFile());
-            assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
-
-            verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEquals(0, getChildCount("/foo"));
-        }
-
-        // FTPFileSystem.newByteChannel
-
-        @Test
-        void testNewByteChannelRead() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            bar.setContents(new byte[1024]);
-
-            Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(bar.getSize(), channel.size());
-            }
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewByteChannelReadNonExisting() {
-
-            // failure: file does not exist
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newByteChannel(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
-            assertNull(getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testNewByteChannelWrite() throws IOException {
-            addFile("/foo/bar");
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-            }
-        }
-
-        @Test
-        void testNewByteChannelWriteAppend() throws IOException {
-            FileEntry bar = addFile("/foo/bar");
-            bar.setContents(new byte[1024]);
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(bar.getSize(), channel.size());
-            }
-        }
-
-        @Test
-        void testNewByteChannelCreateWriteExisting() throws IOException {
-            FileEntry bar = addFile("/foo/bar");
-
-            byte[] newContents = "Lorem ipsum".getBytes();
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(newContents.length, channel.size());
+                // verify that the file system can be used after closing the stream
+                assertDoesNotThrow(() -> provider().checkAccess(createPath("/foo/bar")));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
 
-            assertArrayEquals(newContents, getContents(bar));
-        }
+            @Test
+            void testExistingFTPFailure() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                bar.setPermissionsFromString("r--r--r--");
 
-        @Test
-        void testNewByteChannelCreateAppendExisting() throws IOException {
-            FileEntry bar = addFile("/foo/bar");
-            bar.setContents(new byte[1024]);
+                // failure: no permission to write
 
-            byte[] newContents = "Lorem ipsum".getBytes();
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                OpenOption[] options = { StandardOpenOption.WRITE };
 
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                long size = bar.getSize();
-                assertEquals(size, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(size + newContents.length, channel.size());
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
 
-            byte[] totalNewContents = new byte[1024 + newContents.length];
-            System.arraycopy(newContents, 0, totalNewContents, 1024, newContents.length);
+            @Test
+            void testExistingFTPFailureDeleteOnClose() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                bar.setPermissionsFromString("r--r--r--");
 
-            assertArrayEquals(totalNewContents, getContents(bar));
-        }
+                // failure: no permission to write
 
-        @Test
-        void testNewByteChannelCreateWriteNonExisting() throws IOException {
-            addDirectory("/foo");
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
 
-            byte[] newContents = "Lorem ipsum".getBytes();
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newOutputStream(path, options));
+                assertEquals("/foo/bar", exception.getFile());
 
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(newContents.length, channel.size());
+                verify(getExceptionFactory()).createNewOutputStreamException(eq("/foo/bar"), eq(553), anyString(), anyCollection());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
 
-            FileEntry bar = getFile("/foo/bar");
+            @Test
+            void testNonExistingNoCreate() {
+                DirectoryEntry foo = addDirectory("/foo");
 
-            assertArrayEquals(newContents, getContents(bar));
-        }
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                OpenOption[] options = { StandardOpenOption.WRITE };
 
-        @Test
-        void testNewByteChannelCreateAppendNonExisting() throws IOException {
-            addDirectory("/foo");
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newOutputStream(path, options));
+                assertEquals("/foo/bar", exception.getFile());
 
-            byte[] newContents = "Lorem ipsum".getBytes();
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(newContents.length, channel.size());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNull(getFileSystemEntry("/foo/bar"));
             }
 
-            FileEntry bar = getFile("/foo/bar");
+            @Test
+            void testNonExistingCreate() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
 
-            assertArrayEquals(newContents, getContents(bar));
-        }
-
-        @Test
-        void testNewByteChannelCreateNewWriteExisting() throws IOException {
-            FileEntry bar = addFile("/foo/bar");
-            byte[] oldContents = "Hello World".getBytes();
-            bar.setContents(oldContents);
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertArrayEquals(oldContents, getContents(bar));
-        }
-
-        @Test
-        void testNewByteChannelCreateNewAppendExisting() throws IOException {
-            FileEntry bar = addFile("/foo/bar");
-            bar.setContents(new byte[1024]);
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertArrayEquals(new byte[1024], getContents(bar));
-        }
-
-        @Test
-        void testNewByteChannelCreateNewWriteNonExisting() throws IOException {
-            addDirectory("/foo");
-
-            byte[] newContents = "Lorem ipsum".getBytes();
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(newContents.length, channel.size());
+                OpenOption[] options = { StandardOpenOption.CREATE };
+                try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                } finally {
+                    assertSame(foo, getFileSystemEntry("/foo"));
+                    assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                }
             }
 
-            FileEntry bar = getFile("/foo/bar");
+            @Test
+            void testNonExistingCreateDeleteOnClose() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
 
-            assertArrayEquals(newContents, getContents(bar));
-        }
-
-        @Test
-        void testNewByteChannelCreateNewAppendNonExisting() throws IOException {
-            addDirectory("/foo");
-
-            byte[] newContents = "Lorem ipsum".getBytes();
-
-            Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
-            try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
-                // don't do anything with the channel, there's a separate test for that
-                assertEquals(0, channel.size());
-                channel.write(ByteBuffer.wrap(newContents));
-                assertEquals(newContents.length, channel.size());
+                OpenOption[] options = { StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE };
+                try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                    // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
+                } finally {
+                    assertSame(foo, getFileSystemEntry("/foo"));
+                    assertNull(getFileSystemEntry("/foo/bar"));
+                    assertEquals(0, getChildCount("/foo"));
+                }
             }
 
-            FileEntry bar = getFile("/foo/bar");
+            @Test
+            void testNonExistingCreateNew() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
 
-            assertArrayEquals(newContents, getContents(bar));
-        }
+                OpenOption[] options = { StandardOpenOption.CREATE_NEW };
+                try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                } finally {
+                    assertSame(foo, getFileSystemEntry("/foo"));
+                    assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                }
+            }
 
-        // FTPFileSystem.newDirectoryStream
+            @Test
+            void testNonExistingCreateNewDeleteOnClose() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
 
-        @Test
-        void testNewDirectoryStream() throws IOException {
-            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
-                assertNotNull(stream);
-                // don't do anything with the stream, there's a separate test for that
+                OpenOption[] options = { StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE };
+                try (OutputStream input = provider().newOutputStream(createPath("/foo/bar"), options)) {
+                    // don't do anything with the stream, there's a separate test for that
+                    // we can't check here that /foo/bar exists, because it will only be stored in the file system once the stream is closed
+                } finally {
+                    assertSame(foo, getFileSystemEntry("/foo"));
+                    assertNull(getFileSystemEntry("/foo/bar"));
+                }
+            }
+
+            @Test
+            void testDirectoryNoCreate() {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath createPath = createPath("/foo");
+                OpenOption[] options = { StandardOpenOption.WRITE };
+
+                FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
+                assertEquals("/foo", exception.getFile());
+                assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
+
+                verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEquals(0, getChildCount("/foo"));
+            }
+
+            @Test
+            void testDirectoryDeleteOnClose() {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath createPath = createPath("/foo");
+                OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
+
+                FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
+                assertEquals("/foo", exception.getFile());
+                assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
+
+                verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEquals(0, getChildCount("/foo"));
             }
         }
 
-        @Test
-        void testNewDirectoryStreamNotExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
+        @Nested
+        class NewByteChannel {
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
-            assertEquals("/foo", exception.getFile());
-        }
+            @Test
+            void testRead() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                bar.setContents(new byte[1024]);
 
-        @Test
-        void testNewDirectoryStreamNotDirectory() {
-            addFile("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        @Test
-        void testnewDirectoryStreamWithLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addFile("/foo/bar");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-            addSymLink("/baz", bar);
-
-            try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/baz"), entry -> true)) {
-                Iterator<Path> iterator = stream.iterator();
-                assertTrue(iterator.hasNext());
-                assertEquals("bar", iterator.next().getFileName().toString());
+                Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(bar.getSize(), channel.size());
+                }
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
             }
-        }
 
-        @Test
-        void testnewDirectoryStreamWithBrokenLinks() {
-            SymbolicLinkEntry bar = addSymLink("/bar", new DirectoryEntry("/foo"));
-            addSymLink("/baz", bar);
+            @Test
+            void testReadNonExisting() {
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
+                // failure: file does not exist
 
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
-            assertEquals("/foo", exception.getFile());
-        }
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
 
-        @Test
-        void testnewDirectoryStreamWithLinkToFile() {
-            FileEntry foo = addFile("/foo");
-            addFile("/foo/bar");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-            addSymLink("/baz", bar);
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newByteChannel(path, options));
+                assertEquals("/foo/bar", exception.getFile());
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        // FTPFileSystem.createNewDirectory
-
-        @Test
-        void testCreateDirectory() throws IOException {
-            assertNull(getFileSystemEntry("/foo"));
-
-            provider().createDirectory(createPath("/foo"));
-
-            FileSystemEntry entry = getFileSystemEntry("/foo");
-            assertThat(entry, instanceOf(DirectoryEntry.class));
-        }
-
-        @Test
-        void testCreateDirectoryAlreadyExists() {
-            addDirectory("/foo/bar");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
-            assertEquals("/foo/bar", exception.getFile());
-
-            verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), anyInt(), anyString());
-            assertNotNull(getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testCreateDirectoryFTPFailure() {
-            DirectoryEntry root = getDirectory("/");
-            root.setPermissionsFromString("r-xr-xr-x");
-
-            // failure: read-only parent
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.createDirectory(path));
-            assertEquals("/foo", exception.getFile());
-
-            verify(getExceptionFactory()).createCreateDirectoryException(eq("/foo"), eq(550), anyString());
-            assertNull(getFileSystemEntry("/foo"));
-        }
-
-        // FTPFileSystem.delete
-
-        @Test
-        void testDeleteNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(path));
-            assertEquals("/foo", exception.getFile());
-
-            verify(getExceptionFactory(), never()).createDeleteException(anyString(), anyInt(), anyString(), anyBoolean());
-        }
-
-        @Test
-        void testDeleteRoot() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/");
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
-            assertEquals("/", exception.getFile());
-
-            verify(getExceptionFactory()).createDeleteException(eq("/"), eq(550), anyString(), eq(true));
-        }
-
-        @Test
-        void testDeleteFile() throws IOException {
-            addFile("/foo/bar");
-            FileSystemEntry foo = getFileSystemEntry("/foo");
-
-            provider().delete(createPath("/foo/bar"));
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testDeleteEmptyDir() throws IOException {
-            addDirectory("/foo/bar");
-            FileSystemEntry foo = getFileSystemEntry("/foo");
-
-            provider().delete(createPath("/foo/bar"));
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testDeleteFTPFailure() {
-            addDirectory("/foo/bar/baz");
-            FileSystemEntry foo = getFileSystemEntry("/foo");
-            FileSystemEntry bar = getFileSystemEntry("/foo/bar");
-
-            // failure: non-empty directory
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
-            assertEquals("/foo/bar", exception.getFile());
-
-            verify(getExceptionFactory()).createDeleteException(eq("/foo/bar"), eq(550), anyString(), eq(true));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-        }
-
-        // FTPFileSystem.readSymbolicLink
-
-        @Test
-        void testReadSymbolicLinkToFile() throws IOException {
-            FileEntry foo = addFile("/foo");
-            addSymLink("/bar", foo);
-
-            Path link = provider().readSymbolicLink(createPath("/bar"));
-            assertEquals(createPath("/foo"), link);
-        }
-
-        @Test
-        void testReadSymbolicLinkToDirectory() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addSymLink("/bar", foo);
-
-            Path link = provider().readSymbolicLink(createPath("/bar"));
-            assertEquals(createPath("/foo"), link);
-        }
-
-        @Test
-        void testReadSymbolicLinkToNonExistingTarget() throws IOException {
-            addSymLink("/bar", new FileEntry("/foo"));
-
-            Path link = provider().readSymbolicLink(createPath("/bar"));
-            assertEquals(createPath("/foo"), link);
-        }
-
-        @Test
-        void testReadSymbolicLinkNotExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readSymbolicLink(path));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        @Test
-        void testReadSymbolicLinkNoLinkButFile() {
-            addFile("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        @Test
-        void testReadSymbolicLinkNoLinkButDirectory() {
-            addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        // FTPFileSystem.copy
-
-        @Test
-        void testCopySame() throws IOException {
-            DirectoryEntry foo = addDirectory("/home/test/foo");
-            DirectoryEntry bar = addDirectory("/home/test/foo/bar");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/home/test"), createPath(""), options);
-            provider().copy(createPath("/home/test/foo"), createPath("foo"), options);
-            provider().copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/home/test/foo"));
-            assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
-            assertEquals(0, getChildCount("/home/test/foo/bar"));
-        }
-
-        @Test
-        void testCopyNonExisting() {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/foo/bar");
-            FTPPath target = createPath("/foo/baz");
-            CopyOption[] options = {};
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEquals(0, getChildCount("/foo"));
-        }
-
-        @Test
-        void testCopyFTPFailure() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            // failure: target parent does not exist
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/foo/bar");
-            FTPPath target = createPath("/baz/bar");
-            CopyOption[] options = {};
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
-            assertEquals("/baz/bar", exception.getFile());
-
-            verify(getExceptionFactory()).createNewOutputStreamException(eq("/baz/bar"), eq(553), anyString(), anyCollection());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertNull(getFileSystemEntry("/baz"));
-            assertNull(getFileSystemEntry("/baz/bar"));
-        }
-
-        @Test
-        void testCopyRoot() throws IOException {
-            // copying a directory (including the root) will not copy its contents, so copying the root is allowed
-            DirectoryEntry foo = addDirectory("/foo");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-
-            DirectoryEntry bar = getDirectory("/foo/bar");
-
-            assertNotSame(getDirectory("/"), bar);
-            assertEquals(0, getChildCount("/foo/bar"));
-        }
-
-        @Test
-        void testCopyReplaceFile() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo/bar");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceFileAllowed() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-            // permissions are dropped during the delete/recreate
-            assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testCopyReplaceNonEmptyDir() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceNonEmptyDirAllowed() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo");
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceEmptyDir() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceEmptyDirAllowed() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().copy(createPath("/baz"), createPath("/foo"), options);
-
-            assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
-            assertNotSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo"));
-        }
-
-        @Test
-        void testCopyFile() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-            assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
-        }
-
-        @Test
-        void testCopyFileMultipleConnections() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            multiClientFileSystem.copy(createPath(multiClientFileSystem, "/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-            assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
-        }
-
-        @Test
-        void testCopyEmptyDir() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-
-            DirectoryEntry bar = getDirectory("/foo/bar");
-            assertEquals(0, getChildCount("/foo/bar"));
-            assertNotEquals(baz.getOwner(), bar.getOwner());
-        }
-
-        @Test
-        void testCopyNonEmptyDir() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-            addFile("/baz/qux");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-
-            DirectoryEntry bar = getDirectory("/foo/bar");
-            assertEquals(0, getChildCount("/foo/bar"));
-            assertNotEquals(baz.getOwner(), bar.getOwner());
-        }
-
-        @Test
-        void testCopyReplaceFileDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceFileAllowedDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-            // permissions are dropped during the copy/delete
-            assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-        }
-
-        @Test
-        void testCopyReplaceNonEmptyDirDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceNonEmptyDirAllowedDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo");
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceEmptyDirDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo");
-            CopyOption[] options = {};
-
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
-            assertEquals("/foo", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testCopyReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
-
-            assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
-            assertNotSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo"));
-        }
-
-        @Test
-        void testCopyFileDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-            assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
-        }
-
-        @Test
-        void testCopyEmptyDirDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-
-            DirectoryEntry bar = getDirectory("/foo/bar");
-            assertEquals(0, getChildCount("/foo/bar"));
-            assertNotEquals(baz.getOwner(), bar.getOwner());
-        }
-
-        @Test
-        void testCopyNonEmptyDirDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-            addFile("/baz/qux");
-
-            baz.setOwner("root");
-
-            CopyOption[] options = {};
-            provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
-
-            assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNotSame(baz, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-
-            DirectoryEntry bar = getDirectory("/foo/bar");
-            assertEquals(0, getChildCount("/foo/bar"));
-            assertNotEquals(baz.getOwner(), bar.getOwner());
-        }
-
-        @Test
-        void testCopyWithAttributes() {
-            addDirectory("/foo");
-            addDirectory("/baz");
-            addFile("/baz/qux");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo/bar");
-            CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES };
-
-            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.copy(source, target, options));
-            assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(StandardCopyOption.COPY_ATTRIBUTES), exception);
-        }
-
-        // FTPFileSystem.move
-
-        @Test
-        void testMoveSame() throws IOException {
-            DirectoryEntry foo = addDirectory("/home/test/foo");
-            DirectoryEntry bar = addDirectory("/home/test/foo/bar");
-            SymbolicLinkEntry baz = addSymLink("/baz", foo);
-
-            CopyOption[] options = {};
-            provider().move(createPath("/"), createPath("/"), options);
-            provider().move(createPath("/home/test"), createPath(""), options);
-            provider().move(createPath("/home/test/foo"), createPath("foo"), options);
-            provider().move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
-            provider().move(createPath("/home/test/foo"), createPath("/baz"), options);
-            provider().move(createPath("/baz"), createPath("/home/test/foo"), options);
-
-            assertSame(foo, getFileSystemEntry("/home/test/foo"));
-            assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-            assertEquals(0, getChildCount("/home/test/foo/bar"));
-        }
-
-        @Test
-        void testMoveNonExisting() {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/foo/bar");
-            FTPPath target = createPath("/foo/baz");
-            CopyOption[] options = {};
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.move(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEquals(0, getChildCount("/foo"));
-        }
-
-        @Test
-        void testMoveFTPFailure() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            // failure: non-existing target parent
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/foo/bar");
-            FTPPath target = createPath("/baz/bar");
-            CopyOption[] options = {};
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
-            assertEquals("/baz/bar", exception.getOtherFile());
-
-            verify(getExceptionFactory()).createMoveException(eq("/foo/bar"), eq("/baz/bar"), eq(553), anyString());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveEmptyRoot() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/");
-            FTPPath target = createPath("/baz");
-            CopyOption[] options = {};
-
-            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
-            assertEquals("/", exception.getFile());
-
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveNonEmptyRoot() {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/");
-            FTPPath target = createPath("/baz");
-            CopyOption[] options = {};
-
-            DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
-            assertEquals("/", exception.getFile());
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveReplaceFile() {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry bar = addDirectory("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo/bar");
-            CopyOption[] options = {};
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
-            assertEquals("/baz", exception.getFile());
-            assertEquals("/foo/bar", exception.getOtherFile());
-
-            verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo/bar"), eq(553), anyString());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveReplaceFileAllowed() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveReplaceEmptyDir() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath("/foo");
-            CopyOption[] options = {};
-
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
-            assertEquals("/baz", exception.getFile());
-            assertEquals("/foo", exception.getOtherFile());
-
-            verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo"), eq(553), anyString());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(baz, getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveReplaceEmptyDirAllowed() throws IOException {
-            addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().move(createPath("/baz"), createPath("/foo"), options);
-
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveFile() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
-
-            CopyOption[] options = {};
-            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveEmptyDir() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-
-            CopyOption[] options = {};
-            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
-            assertNull(getFileSystemEntry("/baz"));
-        }
-
-        @Test
-        void testMoveNonEmptyDir() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-            FileEntry qux = addFile("/baz/qux");
-
-            CopyOption[] options = {};
-            provider().move(createPath("/baz"), createPath("/foo/bar"), options);
-
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
-            assertEqualsMinusPath(qux, getFileSystemEntry("/foo/bar/qux"));
-            assertEquals(1, getChildCount("/foo"));
-            assertEquals(1, getChildCount("/foo/bar"));
-        }
-
-        @Test
-        void testMoveNonEmptyDirSameParent() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry bar = addFile("/foo/bar");
-
-            CopyOption[] options = {};
-            try {
-                provider().move(createPath("/foo"), createPath("/baz"), options);
-            } finally {
+                verify(getExceptionFactory()).createNewInputStreamException(eq("/foo/bar"), eq(550), anyString());
                 assertNull(getFileSystemEntry("/foo"));
-                assertEqualsMinusPath(foo, getFileSystemEntry("/baz"));
-                assertEqualsMinusPath(bar, getFileSystemEntry("/baz/bar"));
+                assertNull(getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testWrite() throws IOException {
+                addFile("/foo/bar");
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                }
+            }
+
+            @Test
+            void testWriteAppend() throws IOException {
+                FileEntry bar = addFile("/foo/bar");
+                bar.setContents(new byte[1024]);
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(bar.getSize(), channel.size());
+                }
+            }
+
+            @Test
+            void testCreateWriteExisting() throws IOException {
+                FileEntry bar = addFile("/foo/bar");
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(newContents.length, channel.size());
+                }
+
+                assertArrayEquals(newContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateAppendExisting() throws IOException {
+                FileEntry bar = addFile("/foo/bar");
+                bar.setContents(new byte[1024]);
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    long size = bar.getSize();
+                    assertEquals(size, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(size + newContents.length, channel.size());
+                }
+
+                byte[] totalNewContents = new byte[1024 + newContents.length];
+                System.arraycopy(newContents, 0, totalNewContents, 1024, newContents.length);
+
+                assertArrayEquals(totalNewContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateWriteNonExisting() throws IOException {
+                addDirectory("/foo");
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(newContents.length, channel.size());
+                }
+
+                FileEntry bar = getFile("/foo/bar");
+
+                assertArrayEquals(newContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateAppendNonExisting() throws IOException {
+                addDirectory("/foo");
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(newContents.length, channel.size());
+                }
+
+                FileEntry bar = getFile("/foo/bar");
+
+                assertArrayEquals(newContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateNewWriteExisting() throws IOException {
+                FileEntry bar = addFile("/foo/bar");
+                byte[] oldContents = "Hello World".getBytes();
+                bar.setContents(oldContents);
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertArrayEquals(oldContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateNewAppendExisting() throws IOException {
+                FileEntry bar = addFile("/foo/bar");
+                bar.setContents(new byte[1024]);
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.newByteChannel(path, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertArrayEquals(new byte[1024], getContents(bar));
+            }
+
+            @Test
+            void testCreateNewWriteNonExisting() throws IOException {
+                addDirectory("/foo");
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(newContents.length, channel.size());
+                }
+
+                FileEntry bar = getFile("/foo/bar");
+
+                assertArrayEquals(newContents, getContents(bar));
+            }
+
+            @Test
+            void testCreateNewAppendNonExisting() throws IOException {
+                addDirectory("/foo");
+
+                byte[] newContents = "Lorem ipsum".getBytes();
+
+                Set<? extends OpenOption> options = EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND);
+                try (SeekableByteChannel channel = provider().newByteChannel(createPath("/foo/bar"), options)) {
+                    // don't do anything with the channel, there's a separate test for that
+                    assertEquals(0, channel.size());
+                    channel.write(ByteBuffer.wrap(newContents));
+                    assertEquals(newContents.length, channel.size());
+                }
+
+                FileEntry bar = getFile("/foo/bar");
+
+                assertArrayEquals(newContents, getContents(bar));
             }
         }
 
-        @Test
-        void testMoveReplaceFileDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry bar = addDirectory("/foo/bar");
-            FileEntry baz = addFile("/baz");
+        @Nested
+        class NewDirectoryStream {
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
-            CopyOption[] options = {};
+            @Test
+            void testSuccess() throws IOException {
+                try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
+                    assertNotNull(stream);
+                    // don't do anything with the stream, there's a separate test for that
+                }
+            }
 
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
-            assertEquals("/foo/bar", exception.getFile());
+            @Test
+            void testNotExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
 
-            verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(bar, getFileSystemEntry("/foo/bar"));
-            assertSame(baz, getFileSystemEntry("/baz"));
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testNotDirectory() {
+                addFile("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testWithLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addFile("/foo/bar");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+                addSymLink("/baz", bar);
+
+                try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/baz"), entry -> true)) {
+                    Iterator<Path> iterator = stream.iterator();
+                    assertTrue(iterator.hasNext());
+                    assertEquals("bar", iterator.next().getFileName().toString());
+                }
+            }
+
+            @Test
+            void testWithBrokenLinks() {
+                SymbolicLinkEntry bar = addSymLink("/bar", new DirectoryEntry("/foo"));
+                addSymLink("/baz", bar);
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.newDirectoryStream(path, entry -> true));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testWithLinkToFile() {
+                FileEntry foo = addFile("/foo");
+                addFile("/foo/bar");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+                addSymLink("/baz", bar);
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NotDirectoryException exception = assertThrows(NotDirectoryException.class, () -> provider.newDirectoryStream(path, entry -> true));
+                assertEquals("/foo", exception.getFile());
+            }
         }
 
-        @Test
-        void testMoveReplaceFileAllowedDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            addFile("/foo/bar");
-            FileEntry baz = addFile("/baz");
+        @Nested
+        class CreateDirectory {
 
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            @Test
+            void testSuccess() throws IOException {
+                assertNull(getFileSystemEntry("/foo"));
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            // permissions are dropped during the copy/delete
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
-            assertNull(getFileSystemEntry("/baz"));
+                provider().createDirectory(createPath("/foo"));
+
+                FileSystemEntry entry = getFileSystemEntry("/foo");
+                assertThat(entry, instanceOf(DirectoryEntry.class));
+            }
+
+            @Test
+            void testAlreadyExists() {
+                addDirectory("/foo/bar");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
+                assertEquals("/foo/bar", exception.getFile());
+
+                verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), anyInt(), anyString());
+                assertNotNull(getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testFTPFailure() {
+                DirectoryEntry root = getDirectory("/");
+                root.setPermissionsFromString("r-xr-xr-x");
+
+                // failure: read-only parent
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.createDirectory(path));
+                assertEquals("/foo", exception.getFile());
+
+                verify(getExceptionFactory()).createCreateDirectoryException(eq("/foo"), eq(550), anyString());
+                assertNull(getFileSystemEntry("/foo"));
+            }
         }
 
-        @Test
-        void testMoveReplaceEmptyDirDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
+        @Nested
+        class Delete {
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo");
-            CopyOption[] options = {};
+            @Test
+            void testNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
 
-            FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
-            assertEquals("/foo", exception.getFile());
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.delete(path));
+                assertEquals("/foo", exception.getFile());
 
-            verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(baz, getFileSystemEntry("/baz"));
+                verify(getExceptionFactory(), never()).createDeleteException(anyString(), anyInt(), anyString(), anyBoolean());
+            }
+
+            @Test
+            void testRoot() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/");
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
+                assertEquals("/", exception.getFile());
+
+                verify(getExceptionFactory()).createDeleteException(eq("/"), eq(550), anyString(), eq(true));
+            }
+
+            @Test
+            void testFile() throws IOException {
+                addFile("/foo/bar");
+                FileSystemEntry foo = getFileSystemEntry("/foo");
+
+                provider().delete(createPath("/foo/bar"));
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNull(getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testEmptyDir() throws IOException {
+                addDirectory("/foo/bar");
+                FileSystemEntry foo = getFileSystemEntry("/foo");
+
+                provider().delete(createPath("/foo/bar"));
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNull(getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testFTPFailure() {
+                addDirectory("/foo/bar/baz");
+                FileSystemEntry foo = getFileSystemEntry("/foo");
+                FileSystemEntry bar = getFileSystemEntry("/foo/bar");
+
+                // failure: non-empty directory
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.delete(path));
+                assertEquals("/foo/bar", exception.getFile());
+
+                verify(getExceptionFactory()).createDeleteException(eq("/foo/bar"), eq(550), anyString(), eq(true));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+            }
         }
 
-        @Test
-        void testMoveReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
-            addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
+        @Nested
+        class ReadSymbolicLink {
 
-            CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
-            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
+            @Test
+            void testToFile() throws IOException {
+                FileEntry foo = addFile("/foo");
+                addSymLink("/bar", foo);
 
-            // permissions are dropped during the copy/delete
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
-            assertNull(getFileSystemEntry("/baz"));
+                Path link = provider().readSymbolicLink(createPath("/bar"));
+                assertEquals(createPath("/foo"), link);
+            }
+
+            @Test
+            void testToDirectory() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addSymLink("/bar", foo);
+
+                Path link = provider().readSymbolicLink(createPath("/bar"));
+                assertEquals(createPath("/foo"), link);
+            }
+
+            @Test
+            void testToNonExistingTarget() throws IOException {
+                addSymLink("/bar", new FileEntry("/foo"));
+
+                Path link = provider().readSymbolicLink(createPath("/bar"));
+                assertEquals(createPath("/foo"), link);
+            }
+
+            @Test
+            void testNotExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readSymbolicLink(path));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testNoLinkButFile() {
+                addFile("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testNoLinkButDirectory() {
+                addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
+                assertEquals("/foo", exception.getFile());
+            }
         }
 
-        @Test
-        void testMoveFileDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            FileEntry baz = addFile("/baz");
+        @Nested
+        class Copy {
 
-            CopyOption[] options = {};
-            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            @Test
+            void testSame() throws IOException {
+                DirectoryEntry foo = addDirectory("/home/test/foo");
+                DirectoryEntry bar = addDirectory("/home/test/foo/bar");
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            // permissions are dropped during the copy/delete
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
-            assertNull(getFileSystemEntry("/baz"));
+                CopyOption[] options = {};
+                provider().copy(createPath("/home/test"), createPath(""), options);
+                provider().copy(createPath("/home/test/foo"), createPath("foo"), options);
+                provider().copy(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/home/test/foo"));
+                assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
+                assertEquals(0, getChildCount("/home/test/foo/bar"));
+            }
+
+            @Test
+            void testNonExisting() {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/foo/bar");
+                FTPPath target = createPath("/foo/baz");
+                CopyOption[] options = {};
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEquals(0, getChildCount("/foo"));
+            }
+
+            @Test
+            void testFTPFailure() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+
+                // failure: target parent does not exist
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/foo/bar");
+                FTPPath target = createPath("/baz/bar");
+                CopyOption[] options = {};
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
+                assertEquals("/baz/bar", exception.getFile());
+
+                verify(getExceptionFactory()).createNewOutputStreamException(eq("/baz/bar"), eq(553), anyString(), anyCollection());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertNull(getFileSystemEntry("/baz"));
+                assertNull(getFileSystemEntry("/baz/bar"));
+            }
+
+            @Test
+            void testRoot() throws IOException {
+                // copying a directory (including the root) will not copy its contents, so copying the root is allowed
+                DirectoryEntry foo = addDirectory("/foo");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+
+                DirectoryEntry bar = getDirectory("/foo/bar");
+
+                assertNotSame(getDirectory("/"), bar);
+                assertEquals(0, getChildCount("/foo/bar"));
+            }
+
+            @Test
+            void testReplaceFile() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo/bar");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceFileAllowed() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                // permissions are dropped during the delete/recreate
+                assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testReplaceNonEmptyDir() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceNonEmptyDirAllowed() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo");
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDir() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirAllowed() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().copy(createPath("/baz"), createPath("/foo"), options);
+
+                assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
+                assertNotSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo"));
+            }
+
+            @Test
+            void testFile() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+                assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
+            }
+
+            @Test
+            void testFileMultipleConnections() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                multiClientFileSystem.copy(createPath(multiClientFileSystem, "/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+                assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
+            }
+
+            @Test
+            void testEmptyDir() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+
+                DirectoryEntry bar = getDirectory("/foo/bar");
+                assertEquals(0, getChildCount("/foo/bar"));
+                assertNotEquals(baz.getOwner(), bar.getOwner());
+            }
+
+            @Test
+            void testNonEmptyDir() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+                addFile("/baz/qux");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+
+                DirectoryEntry bar = getDirectory("/foo/bar");
+                assertEquals(0, getChildCount("/foo/bar"));
+                assertNotEquals(baz.getOwner(), bar.getOwner());
+            }
+
+            @Test
+            void testReplaceFileDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceFileAllowedDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                // permissions are dropped during the copy/delete
+                assertEqualsMinusPath(bar, getFileSystemEntry("/foo/bar"), false);
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+            }
+
+            @Test
+            void testReplaceNonEmptyDirDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceNonEmptyDirAllowedDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo");
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                verify(getExceptionFactory()).createDeleteException(eq("/foo"), eq(550), anyString(), eq(true));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.copy(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
+
+                assertThat(getFileSystemEntry("/foo"), instanceOf(DirectoryEntry.class));
+                assertNotSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo"));
+            }
+
+            @Test
+            void testFileDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(FileEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+                assertNotEquals(baz.getOwner(), getFileSystemEntry("/foo/bar").getOwner());
+            }
+
+            @Test
+            void testEmptyDirDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+
+                DirectoryEntry bar = getDirectory("/foo/bar");
+                assertEquals(0, getChildCount("/foo/bar"));
+                assertNotEquals(baz.getOwner(), bar.getOwner());
+            }
+
+            @Test
+            void testNonEmptyDirDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+                addFile("/baz/qux");
+
+                baz.setOwner("root");
+
+                CopyOption[] options = {};
+                provider().copy(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertThat(getFileSystemEntry("/foo/bar"), instanceOf(DirectoryEntry.class));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNotSame(baz, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+
+                DirectoryEntry bar = getDirectory("/foo/bar");
+                assertEquals(0, getChildCount("/foo/bar"));
+                assertNotEquals(baz.getOwner(), bar.getOwner());
+            }
+
+            @Test
+            void testWithAttributes() {
+                addDirectory("/foo");
+                addDirectory("/baz");
+                addFile("/baz/qux");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo/bar");
+                CopyOption[] options = { StandardCopyOption.COPY_ATTRIBUTES };
+
+                UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                        () -> provider.copy(source, target, options));
+                assertChainEquals(Messages.fileSystemProvider().unsupportedCopyOption(StandardCopyOption.COPY_ATTRIBUTES), exception);
+            }
         }
 
-        @Test
-        void testMoveEmptyDirDifferentFileSystems() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
+        @Nested
+        class Move {
 
-            CopyOption[] options = {};
-            provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+            @Test
+            void testSame() throws IOException {
+                DirectoryEntry foo = addDirectory("/home/test/foo");
+                DirectoryEntry bar = addDirectory("/home/test/foo/bar");
+                SymbolicLinkEntry baz = addSymLink("/baz", foo);
 
-            assertSame(foo, getFileSystemEntry("/foo"));
-            // permissions are dropped during the copy/delete
-            assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
-            assertNull(getFileSystemEntry("/baz"));
-        }
+                CopyOption[] options = {};
+                provider().move(createPath("/"), createPath("/"), options);
+                provider().move(createPath("/home/test"), createPath(""), options);
+                provider().move(createPath("/home/test/foo"), createPath("foo"), options);
+                provider().move(createPath("/home/test/foo/bar"), createPath("foo/bar"), options);
+                provider().move(createPath("/home/test/foo"), createPath("/baz"), options);
+                provider().move(createPath("/baz"), createPath("/home/test/foo"), options);
 
-        @Test
-        void testMoveNonEmptyDirDifferentFileSystems() {
-            DirectoryEntry foo = addDirectory("/foo");
-            DirectoryEntry baz = addDirectory("/baz");
-            addFile("/baz/qux");
+                assertSame(foo, getFileSystemEntry("/home/test/foo"));
+                assertSame(bar, getFileSystemEntry("/home/test/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+                assertEquals(0, getChildCount("/home/test/foo/bar"));
+            }
 
-            FTPFileSystemProvider provider = provider();
-            FTPPath source = createPath("/baz");
-            FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
-            CopyOption[] options = {};
+            @Test
+            void testNonExisting() {
+                DirectoryEntry foo = addDirectory("/foo");
 
-            FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
-            assertEquals("/baz", exception.getFile());
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/foo/bar");
+                FTPPath target = createPath("/foo/baz");
+                CopyOption[] options = {};
 
-            verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
-            assertSame(foo, getFileSystemEntry("/foo"));
-            assertSame(baz, getFileSystemEntry("/baz"));
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.move(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEquals(0, getChildCount("/foo"));
+            }
+
+            @Test
+            void testFTPFailure() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+
+                // failure: non-existing target parent
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/foo/bar");
+                FTPPath target = createPath("/baz/bar");
+                CopyOption[] options = {};
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+                assertEquals("/baz/bar", exception.getOtherFile());
+
+                verify(getExceptionFactory()).createMoveException(eq("/foo/bar"), eq("/baz/bar"), eq(553), anyString());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testEmptyRoot() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/");
+                FTPPath target = createPath("/baz");
+                CopyOption[] options = {};
+
+                DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
+                assertEquals("/", exception.getFile());
+
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testNonEmptyRoot() {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/");
+                FTPPath target = createPath("/baz");
+                CopyOption[] options = {};
+
+                DirectoryNotEmptyException exception = assertThrows(DirectoryNotEmptyException.class, () -> provider.move(source, target, options));
+                assertEquals("/", exception.getFile());
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceFile() {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry bar = addDirectory("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo/bar");
+                CopyOption[] options = {};
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
+                assertEquals("/baz", exception.getFile());
+                assertEquals("/foo/bar", exception.getOtherFile());
+
+                verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo/bar"), eq(553), anyString());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceFileAllowed() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().move(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDir() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath("/foo");
+                CopyOption[] options = {};
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
+                assertEquals("/baz", exception.getFile());
+                assertEquals("/foo", exception.getOtherFile());
+
+                verify(getExceptionFactory()).createMoveException(eq("/baz"), eq("/foo"), eq(553), anyString());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirAllowed() throws IOException {
+                addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().move(createPath("/baz"), createPath("/foo"), options);
+
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testFile() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = {};
+                provider().move(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testEmptyDir() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                CopyOption[] options = {};
+                provider().move(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testNonEmptyDir() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+                FileEntry qux = addFile("/baz/qux");
+
+                CopyOption[] options = {};
+                provider().move(createPath("/baz"), createPath("/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"));
+                assertEqualsMinusPath(qux, getFileSystemEntry("/foo/bar/qux"));
+                assertEquals(1, getChildCount("/foo"));
+                assertEquals(1, getChildCount("/foo/bar"));
+            }
+
+            @Test
+            void testNonEmptyDirSameParent() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry bar = addFile("/foo/bar");
+
+                CopyOption[] options = {};
+                try {
+                    provider().move(createPath("/foo"), createPath("/baz"), options);
+                } finally {
+                    assertNull(getFileSystemEntry("/foo"));
+                    assertEqualsMinusPath(foo, getFileSystemEntry("/baz"));
+                    assertEqualsMinusPath(bar, getFileSystemEntry("/baz/bar"));
+                }
+            }
+
+            @Test
+            void testReplaceFileDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry bar = addDirectory("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
+                assertEquals("/foo/bar", exception.getFile());
+
+                verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(bar, getFileSystemEntry("/foo/bar"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceFileAllowedDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                addFile("/foo/bar");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                // permissions are dropped during the copy/delete
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo");
+                CopyOption[] options = {};
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.move(source, target, options));
+                assertEquals("/foo", exception.getFile());
+
+                verify(getExceptionFactory(), never()).createMoveException(anyString(), anyString(), anyInt(), anyString());
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testReplaceEmptyDirAllowedDifferentFileSystems() throws IOException {
+                addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo"), options);
+
+                // permissions are dropped during the copy/delete
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo"), false);
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testFileDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                FileEntry baz = addFile("/baz");
+
+                CopyOption[] options = {};
+                provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                // permissions are dropped during the copy/delete
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testEmptyDirDifferentFileSystems() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+
+                CopyOption[] options = {};
+                provider().move(createPath("/baz"), createPath(multiClientFileSystem, "/foo/bar"), options);
+
+                assertSame(foo, getFileSystemEntry("/foo"));
+                // permissions are dropped during the copy/delete
+                assertEqualsMinusPath(baz, getFileSystemEntry("/foo/bar"), false);
+                assertNull(getFileSystemEntry("/baz"));
+            }
+
+            @Test
+            void testNonEmptyDirDifferentFileSystems() {
+                DirectoryEntry foo = addDirectory("/foo");
+                DirectoryEntry baz = addDirectory("/baz");
+                addFile("/baz/qux");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath source = createPath("/baz");
+                FTPPath target = createPath(multiClientFileSystem, "/foo/bar");
+                CopyOption[] options = {};
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.move(source, target, options));
+                assertEquals("/baz", exception.getFile());
+
+                verify(getExceptionFactory()).createDeleteException(eq("/baz"), eq(550), anyString(), eq(true));
+                assertSame(foo, getFileSystemEntry("/foo"));
+                assertSame(baz, getFileSystemEntry("/baz"));
+            }
         }
 
         private void assertEqualsMinusPath(FileSystemEntry entry1, FileSystemEntry entry2) throws IOException {
@@ -1835,715 +1847,745 @@ class FTPFileSystemTest {
             }
         }
 
-        // FTPFileSystem.isSameFile
-
-        @Test
-        void testIsSameFileEquals() throws IOException {
-
-            assertTrue(provider().isSameFile(createPath("/"), createPath("/")));
-            assertTrue(provider().isSameFile(createPath("/foo"), createPath("/foo")));
-            assertTrue(provider().isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
-
-            assertTrue(provider().isSameFile(createPath(""), createPath("")));
-            assertTrue(provider().isSameFile(createPath("foo"), createPath("foo")));
-            assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("foo/bar")));
-
-            assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
-            assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
-        }
-
-        @Test
-        void testIsSameFileExisting() throws IOException {
-            FileEntry bar = addFile("/home/test/foo/bar");
-            addSymLink("/bar", bar);
-
-            assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
-            assertTrue(provider().isSameFile(createPath("/home/test/foo"), createPath("foo")));
-            assertTrue(provider().isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
-
-            assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
-            assertTrue(provider().isSameFile(createPath("foo"), createPath("/home/test/foo")));
-            assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
-
-            assertFalse(provider().isSameFile(createPath("foo"), createPath("foo/bar")));
-
-            assertTrue(provider().isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
-        }
-
-        @Test
-        void testIsSameFileFirstNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-            FTPPath path2 = createPath("/");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        @Test
-        void testIsSameFileSecondNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/");
-            FTPPath path2 = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        // FTPFileSystem.isHidden
-
-        @Test
-        void testIsHidden() throws IOException {
-            addDirectory("/foo");
-            addDirectory("/.foo");
-            addFile("/foo/bar");
-            addFile("/foo/.bar");
-
-            assertFalse(provider().isHidden(createPath("/foo")));
-            assertTrue(provider().isHidden(createPath("/.foo")));
-            assertFalse(provider().isHidden(createPath("/foo/bar")));
-            assertTrue(provider().isHidden(createPath("/foo/.bar")));
-        }
-
-        @Test
-        void testIsHiddenNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(path));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        // FTPFileSystem.checkAccess
-
-        @Test
-        void testCheckAccessNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(path));
-            assertEquals("/foo/bar", exception.getFile());
-        }
-
-        @Test
-        void testCheckAccessNoModes() throws IOException {
-            addDirectory("/foo/bar");
-
-            provider().checkAccess(createPath("/foo/bar"));
-        }
-
-        @Test
-        void testCheckAccessOnlyRead() throws IOException {
-            addDirectory("/foo/bar");
-
-            provider().checkAccess(createPath("/foo/bar"), AccessMode.READ);
-        }
-
-        @Test
-        void testCheckAccessOnlyWriteNotReadOnly() throws IOException {
-            addDirectory("/foo/bar");
-
-            provider().checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
-        }
-
-        @Test
-        void testCheckAccessOnlyWriteReadOnly() {
-            DirectoryEntry bar = addDirectory("/foo/bar");
-            bar.setPermissionsFromString("r-xr-xr-x");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.WRITE));
-            assertEquals("/foo/bar", exception.getFile());
-        }
-
-        @Test
-        void testCheckAccessOnlyExecute() {
-            DirectoryEntry bar = addDirectory("/foo/bar");
-            bar.setPermissionsFromString("rw-rw-rw-");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo/bar");
-
-            AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.EXECUTE));
-            assertEquals("/foo/bar", exception.getFile());
-        }
-
-        // FTPFileSystem.readAttributes (PosixFileAttributes variant)
-
-        @Test
-        void testReadAttributesFileFollowLinks() throws IOException {
-            FileEntry foo = addFile("/foo");
-            foo.setContents(new byte[1024]);
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertFalse(attributes.isDirectory());
-            assertTrue(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesFileNoFollowLinks() throws IOException {
-            FileEntry foo = addFile("/foo");
-            foo.setContents(new byte[1024]);
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertFalse(attributes.isDirectory());
-            assertTrue(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesDirectoryFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertTrue(attributes.isDirectory());
-            assertFalse(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesDirectoryNoFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertTrue(attributes.isDirectory());
-            assertFalse(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesSymLinkToFileFollowLinks() throws IOException {
-            FileEntry foo = addFile("/foo");
-            foo.setContents(new byte[1024]);
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertNotEquals(bar.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertFalse(attributes.isDirectory());
-            assertTrue(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesSymLinkToFileNoFollowLinks() throws IOException {
-            FileEntry foo = addFile("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-            assertEquals(bar.getSize(), attributes.size());
-            assertNotEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("rwxrwxrwx"), attributes.permissions());
-            assertFalse(attributes.isDirectory());
-            assertFalse(attributes.isRegularFile());
-            assertTrue(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesSymLinkToDirectoryFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
-
-            assertEquals(foo.getSize(), attributes.size());
-            assertNotEquals(bar.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
-            assertTrue(attributes.isDirectory());
-            assertFalse(attributes.isRegularFile());
-            assertFalse(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesSymLinkToDirectoryNoFollowLinks() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-            foo.setOwner("user");
-            foo.setGroup("group");
-            SymbolicLinkEntry bar = addSymLink("/bar", foo);
-
-            PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
-
-            assertEquals(bar.getSize(), attributes.size());
-            assertNotEquals(foo.getSize(), attributes.size());
-            assertEquals("user", attributes.owner().getName());
-            assertEquals("group", attributes.group().getName());
-            assertEquals(PosixFilePermissions.fromString("rwxrwxrwx"), attributes.permissions());
-            assertFalse(attributes.isDirectory());
-            assertFalse(attributes.isRegularFile());
-            assertTrue(attributes.isSymbolicLink());
-            assertFalse(attributes.isOther());
-        }
-
-        @Test
-        void testReadAttributesNonExisting() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.readAttributes(path, PosixFileAttributes.class));
-            assertEquals("/foo", exception.getFile());
-        }
-
-        @Test
-        void testReadAttributesUnsupportedType() {
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-            Class<? extends BasicFileAttributes> type = DosFileAttributes.class;
-
-            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> provider.readAttributes(path, type));
-            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(type), exception);
-        }
-
-        // FTPFileSystem.readAttributes (map variant)
-
-        @ParameterizedTest(name = "{0}")
-        @CsvSource({
-                "lastModifiedTime, lastModifiedTime",
-                "lastAccessTime, lastAccessTime",
-                "creationTime, creationTime",
-                "basic:lastModifiedTime, lastModifiedTime",
-                "basic:lastAccessTime, lastAccessTime",
-                "basic:creationTime, creationTime",
-                "posix:lastModifiedTime, lastModifiedTime",
-                "posix:lastAccessTime, lastAccessTime",
-                "posix:creationTime, creationTime"
-        })
-        void testReadAttributesMap(String attributeName, String expectedKey) throws IOException {
-            addDirectory("/foo");
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            assertEquals(Collections.singleton(expectedKey), attributes.keySet());
-            assertNotNull(attributes.get(expectedKey));
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "size", "basic:size", "posix:size" })
-        void testReadAttributesMapSize(String attributeName) throws IOException {
-            FileEntry foo = addFile("/foo");
-            foo.setContents(new byte[1024]);
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("size", foo.getSize());
-            assertEquals(expected, attributes);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "isRegularFile", "basic:isRegularFile", "posix:isRegularFile" })
-        void testReadAttributesMapIsRegularFile(String attributeName) throws IOException {
-            addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("isRegularFile", false);
-            assertEquals(expected, attributes);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "isDirectory", "basic:isDirectory", "posix:isDirectory" })
-        void testReadAttributesMapIsDirectory(String attributeName) throws IOException {
-            addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("isDirectory", true);
-            assertEquals(expected, attributes);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "isSymbolicLink", "basic:isSymbolicLink", "posix:isSymbolicLink" })
-        void testReadAttributesMapIsSymbolicLink(String attributeName) throws IOException {
-            addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("isSymbolicLink", false);
-            assertEquals(expected, attributes);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "isOther", "basic:isOther", "posix:isOther" })
-        void testReadAttributesMapIsOther(String attributeName) throws IOException {
-            addDirectory("/foo");
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("isOther", false);
-            assertEquals(expected, attributes);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @ValueSource(strings = { "fileKey", "basic:fileKey", "posix:fileKey" })
-        void testReadAttributesMapFileKey(String attributeName) throws IOException {
-            addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
-            Map<String, ?> expected = Collections.singletonMap("fileKey", null);
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapNoTypeMultiple() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "size,isDirectory");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("isDirectory", true);
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapNoTypeAll() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "*");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("isRegularFile", false);
-            expected.put("isDirectory", true);
-            expected.put("isSymbolicLink", false);
-            expected.put("isOther", false);
-            expected.put("fileKey", null);
-
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-
-            attributes = provider().readAttributes(createPath("/foo"), "lastModifiedTime,*");
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapBasicMultiple() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:size,isDirectory");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("isDirectory", true);
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapBasicAll() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:*");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("isRegularFile", false);
-            expected.put("isDirectory", true);
-            expected.put("isSymbolicLink", false);
-            expected.put("isOther", false);
-            expected.put("fileKey", null);
-
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-
-            attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapOwnerOwner() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:owner");
-            Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapOwnerAll() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:*");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
-            assertEquals(expected, attributes);
-
-            attributes = provider().readAttributes(createPath("/foo"), "owner:owner,*");
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapPosixOwner() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:owner");
-            Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapPosixGroup() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setGroup("test");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:group");
-            Map<String, ?> expected = Collections.singletonMap("group", new SimpleGroupPrincipal(foo.getGroup()));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapPosixPermissions() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setPermissionsFromString("r-xr-xr-x");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:permissions");
-            Map<String, ?> expected = Collections.singletonMap("permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapPosixMultiple() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-            foo.setGroup("test");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:size,owner,group");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
-            expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapPosixAll() throws IOException {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-            foo.setGroup("group");
-            foo.setPermissionsFromString("r-xr-xr-x");
-
-            Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:*");
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("size", foo.getSize());
-            expected.put("isRegularFile", false);
-            expected.put("isDirectory", true);
-            expected.put("isSymbolicLink", false);
-            expected.put("isOther", false);
-            expected.put("fileKey", null);
-            expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
-            expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
-            expected.put("permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
-
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-
-            attributes = provider().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
-            assertNotNull(attributes.remove("lastModifiedTime"));
-            assertNotNull(attributes.remove("lastAccessTime"));
-            assertNotNull(attributes.remove("creationTime"));
-            assertEquals(expected, attributes);
-        }
-
-        @Test
-        void testReadAttributesMapUnsupportedAttribute() {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                    () -> provider.readAttributes(path, "posix:lastModifiedTime,owner,dummy"));
-            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy"), exception);
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @CsvSource({
-                "basic:owner, owner",
-                "basic:permissions, permissions",
-                "basic:group, group",
-                "owner:permissions, permissions",
-                "owner:group, group",
-                "owner:size, size"
-        })
-        void testReadAttributesMapSupportedAttributeForWrongView(String attributes, String attribute) {
-            DirectoryEntry foo = addDirectory("/foo");
-            foo.setOwner("test");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.readAttributes(path, attributes));
-            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute(attribute), exception);
-        }
-
-        @Test
-        void testReadAttributesMapUnsupportedView() {
-            addDirectory("/foo");
-
-            FTPFileSystemProvider provider = provider();
-            FTPPath path = createPath("/foo");
-
-            UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-                    () -> provider.readAttributes(path, "zipfs:*"));
-            assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
-        }
-
-        // FTPFileSystem.getFTPFile
-
-        @Test
-        void testGetFTPFileFile() throws IOException {
-            addFile("/foo");
-
-            FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
-            assertNotNull(file);
-            assertEquals("foo", file.getName());
-            assertTrue(file.isFile());
-        }
-
-        @Test
-        void testGetFTPFileFileNotExisting() {
-            FTPPath path = createPath("/foo");
-
-            NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(path));
-            assertEquals("/foo", exception.getFile());
-
-            VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
-            verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo"), eq(226), anyString());
-        }
-
-        @Test
-        void testGetFTPFileFileAccessDenied() throws IOException {
-            addFile("/foo/bar");
-            getFile("/foo/bar").setPermissionsFromString("---------");
-
-            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
-                assertThrows(NoSuchFileException.class, this::testGetFTPFileFileAccessDenied0);
-            } else {
-                testGetFTPFileFileAccessDenied0();
+        @Nested
+        class IsSameFile {
+
+            @Test
+            void testEquals() throws IOException {
+
+                assertTrue(provider().isSameFile(createPath("/"), createPath("/")));
+                assertTrue(provider().isSameFile(createPath("/foo"), createPath("/foo")));
+                assertTrue(provider().isSameFile(createPath("/foo/bar"), createPath("/foo/bar")));
+
+                assertTrue(provider().isSameFile(createPath(""), createPath("")));
+                assertTrue(provider().isSameFile(createPath("foo"), createPath("foo")));
+                assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("foo/bar")));
+
+                assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
+                assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
+            }
+
+            @Test
+            void testExisting() throws IOException {
+                FileEntry bar = addFile("/home/test/foo/bar");
+                addSymLink("/bar", bar);
+
+                assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
+                assertTrue(provider().isSameFile(createPath("/home/test/foo"), createPath("foo")));
+                assertTrue(provider().isSameFile(createPath("/home/test/foo/bar"), createPath("foo/bar")));
+
+                assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
+                assertTrue(provider().isSameFile(createPath("foo"), createPath("/home/test/foo")));
+                assertTrue(provider().isSameFile(createPath("foo/bar"), createPath("/home/test/foo/bar")));
+
+                assertFalse(provider().isSameFile(createPath("foo"), createPath("foo/bar")));
+
+                assertTrue(provider().isSameFile(createPath("/bar"), createPath("/home/test/foo/bar")));
+            }
+
+            @Test
+            void testFirstNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+                FTPPath path2 = createPath("/");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testSecondNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/");
+                FTPPath path2 = createPath("/foo");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isSameFile(path, path2));
+                assertEquals("/foo", exception.getFile());
             }
         }
 
-        private void testGetFTPFileFileAccessDenied0() throws IOException {
-            try {
-                FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
+        @Nested
+        class IsHidden {
+
+            @Test
+            void testSuccess() throws IOException {
+                addDirectory("/foo");
+                addDirectory("/.foo");
+                addFile("/foo/bar");
+                addFile("/foo/.bar");
+
+                assertFalse(provider().isHidden(createPath("/foo")));
+                assertTrue(provider().isHidden(createPath("/.foo")));
+                assertFalse(provider().isHidden(createPath("/foo/bar")));
+                assertTrue(provider().isHidden(createPath("/foo/.bar")));
+            }
+
+            @Test
+            void testNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.isHidden(path));
+                assertEquals("/foo", exception.getFile());
+            }
+        }
+
+        @Nested
+        class CheckAccess {
+
+            @Test
+            void testNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> provider.checkAccess(path));
+                assertEquals("/foo/bar", exception.getFile());
+            }
+
+            @Test
+            void testNoModes() throws IOException {
+                addDirectory("/foo/bar");
+
+                provider().checkAccess(createPath("/foo/bar"));
+            }
+
+            @Test
+            void testOnlyRead() throws IOException {
+                addDirectory("/foo/bar");
+
+                provider().checkAccess(createPath("/foo/bar"), AccessMode.READ);
+            }
+
+            @Test
+            void testOnlyWriteNotReadOnly() throws IOException {
+                addDirectory("/foo/bar");
+
+                provider().checkAccess(createPath("/foo/bar"), AccessMode.WRITE);
+            }
+
+            @Test
+            void testOnlyWriteReadOnly() {
+                DirectoryEntry bar = addDirectory("/foo/bar");
+                bar.setPermissionsFromString("r-xr-xr-x");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+
+                AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.WRITE));
+                assertEquals("/foo/bar", exception.getFile());
+            }
+
+            @Test
+            void testOnlyExecute() {
+                DirectoryEntry bar = addDirectory("/foo/bar");
+                bar.setPermissionsFromString("rw-rw-rw-");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo/bar");
+
+                AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.EXECUTE));
+                assertEquals("/foo/bar", exception.getFile());
+            }
+        }
+
+        @Nested
+        class ReadAttributesObject {
+
+            @Test
+            void testFileFollowLinks() throws IOException {
+                FileEntry foo = addFile("/foo");
+                foo.setContents(new byte[1024]);
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertFalse(attributes.isDirectory());
+                assertTrue(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testFileNoFollowLinks() throws IOException {
+                FileEntry foo = addFile("/foo");
+                foo.setContents(new byte[1024]);
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertFalse(attributes.isDirectory());
+                assertTrue(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testDirectoryFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertTrue(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testDirectoryNoFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/foo"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertTrue(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testSymLinkToFileFollowLinks() throws IOException {
+                FileEntry foo = addFile("/foo");
+                foo.setContents(new byte[1024]);
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertNotEquals(bar.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertFalse(attributes.isDirectory());
+                assertTrue(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testSymLinkToFileNoFollowLinks() throws IOException {
+                FileEntry foo = addFile("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+                assertEquals(bar.getSize(), attributes.size());
+                assertNotEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("rwxrwxrwx"), attributes.permissions());
+                assertFalse(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertTrue(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testSymLinkToDirectoryFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class);
+
+                assertEquals(foo.getSize(), attributes.size());
+                assertNotEquals(bar.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertTrue(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testSymLinkToDirectoryNoFollowLinks() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+                foo.setOwner("user");
+                foo.setGroup("group");
+                SymbolicLinkEntry bar = addSymLink("/bar", foo);
+
+                PosixFileAttributes attributes = provider().readAttributes(createPath("/bar"), PosixFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+
+                assertEquals(bar.getSize(), attributes.size());
+                assertNotEquals(foo.getSize(), attributes.size());
+                assertEquals("user", attributes.owner().getName());
+                assertEquals("group", attributes.group().getName());
+                assertEquals(PosixFilePermissions.fromString("rwxrwxrwx"), attributes.permissions());
+                assertFalse(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertTrue(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @Test
+            void testNonExisting() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class,
+                        () -> provider.readAttributes(path, PosixFileAttributes.class));
+                assertEquals("/foo", exception.getFile());
+            }
+
+            @Test
+            void testUnsupportedType() {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+                Class<? extends BasicFileAttributes> type = DosFileAttributes.class;
+
+                UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                        () -> provider.readAttributes(path, type));
+                assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributesType(type), exception);
+            }
+        }
+
+        @Nested
+        class ReadAttributesMap {
+
+            @ParameterizedTest(name = "{0}")
+            @CsvSource({
+                    "lastModifiedTime, lastModifiedTime",
+                    "lastAccessTime, lastAccessTime",
+                    "creationTime, creationTime",
+                    "basic:lastModifiedTime, lastModifiedTime",
+                    "basic:lastAccessTime, lastAccessTime",
+                    "basic:creationTime, creationTime",
+                    "posix:lastModifiedTime, lastModifiedTime",
+                    "posix:lastAccessTime, lastAccessTime",
+                    "posix:creationTime, creationTime"
+            })
+            void testSingleProperty(String attributeName, String expectedKey) throws IOException {
+                addDirectory("/foo");
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                assertEquals(Collections.singleton(expectedKey), attributes.keySet());
+                assertNotNull(attributes.get(expectedKey));
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "size", "basic:size", "posix:size" })
+            void testSize(String attributeName) throws IOException {
+                FileEntry foo = addFile("/foo");
+                foo.setContents(new byte[1024]);
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("size", foo.getSize());
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "isRegularFile", "basic:isRegularFile", "posix:isRegularFile" })
+            void testIsRegularFile(String attributeName) throws IOException {
+                addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("isRegularFile", false);
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "isDirectory", "basic:isDirectory", "posix:isDirectory" })
+            void testIsDirectory(String attributeName) throws IOException {
+                addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("isDirectory", true);
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "isSymbolicLink", "basic:isSymbolicLink", "posix:isSymbolicLink" })
+            void testIsSymbolicLink(String attributeName) throws IOException {
+                addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("isSymbolicLink", false);
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "isOther", "basic:isOther", "posix:isOther" })
+            void testIsOther(String attributeName) throws IOException {
+                addDirectory("/foo");
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("isOther", false);
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @ValueSource(strings = { "fileKey", "basic:fileKey", "posix:fileKey" })
+            void testFileKey(String attributeName) throws IOException {
+                addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), attributeName);
+                Map<String, ?> expected = Collections.singletonMap("fileKey", null);
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testNoTypeMultiple() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "size,isDirectory");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("isDirectory", true);
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testNoTypeAll() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "*");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("isRegularFile", false);
+                expected.put("isDirectory", true);
+                expected.put("isSymbolicLink", false);
+                expected.put("isOther", false);
+                expected.put("fileKey", null);
+
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+
+                attributes = provider().readAttributes(createPath("/foo"), "lastModifiedTime,*");
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testBasicMultiple() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:size,isDirectory");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("isDirectory", true);
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testBasicAll() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "basic:*");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("isRegularFile", false);
+                expected.put("isDirectory", true);
+                expected.put("isSymbolicLink", false);
+                expected.put("isOther", false);
+                expected.put("fileKey", null);
+
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+
+                attributes = provider().readAttributes(createPath("/foo"), "basic:lastModifiedTime,*");
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testOwnerOwner() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:owner");
+                Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testOwnerAll() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "owner:*");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
+                assertEquals(expected, attributes);
+
+                attributes = provider().readAttributes(createPath("/foo"), "owner:owner,*");
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testPosixOwner() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:owner");
+                Map<String, ?> expected = Collections.singletonMap("owner", new SimpleUserPrincipal(foo.getOwner()));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testPosixGroup() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setGroup("test");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:group");
+                Map<String, ?> expected = Collections.singletonMap("group", new SimpleGroupPrincipal(foo.getGroup()));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testPosixPermissions() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setPermissionsFromString("r-xr-xr-x");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:permissions");
+                Map<String, ?> expected = Collections.singletonMap("permissions",
+                        PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testPosixMultiple() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+                foo.setGroup("test");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:size,owner,group");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
+                expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testPosixAll() throws IOException {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+                foo.setGroup("group");
+                foo.setPermissionsFromString("r-xr-xr-x");
+
+                Map<String, Object> attributes = provider().readAttributes(createPath("/foo"), "posix:*");
+                Map<String, Object> expected = new HashMap<>();
+                expected.put("size", foo.getSize());
+                expected.put("isRegularFile", false);
+                expected.put("isDirectory", true);
+                expected.put("isSymbolicLink", false);
+                expected.put("isOther", false);
+                expected.put("fileKey", null);
+                expected.put("owner", new SimpleUserPrincipal(foo.getOwner()));
+                expected.put("group", new SimpleGroupPrincipal(foo.getGroup()));
+                expected.put("permissions", PosixFilePermissions.fromString(foo.getPermissions().asRwxString()));
+
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+
+                attributes = provider().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+            }
+
+            @Test
+            void testUnsupportedAttribute() {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                        () -> provider.readAttributes(path, "posix:lastModifiedTime,owner,dummy"));
+                assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute("dummy"), exception);
+            }
+
+            @ParameterizedTest(name = "{0}")
+            @CsvSource({
+                    "basic:owner, owner",
+                    "basic:permissions, permissions",
+                    "basic:group, group",
+                    "owner:permissions, permissions",
+                    "owner:group, group",
+                    "owner:size, size"
+            })
+            void testSupportedAttributeForWrongView(String attributes, String attribute) {
+                DirectoryEntry foo = addDirectory("/foo");
+                foo.setOwner("test");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> provider.readAttributes(path, attributes));
+                assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttribute(attribute), exception);
+            }
+
+            @Test
+            void testUnsupportedView() {
+                addDirectory("/foo");
+
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath("/foo");
+
+                UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
+                        () -> provider.readAttributes(path, "zipfs:*"));
+                assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
+            }
+        }
+
+        @Test
+        void testPrefixAttributes() {
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("size", 1L);
+            attributes.put("isDirectory", "false");
+            attributes.put("owner", new SimpleUserPrincipal("test"));
+
+            Map<String, Object> expected = new HashMap<>();
+            expected.put("posix:size", 1L);
+            expected.put("posix:isDirectory", "false");
+            expected.put("posix:owner", new SimpleUserPrincipal("test"));
+
+            assertEquals(expected, FTPFileSystem.prefixAttributes(attributes, FileAttributeViewMetadata.POSIX));
+        }
+
+        @Nested
+        class GetFTPFile {
+
+            @Test
+            void testFile() throws IOException {
+                addFile("/foo");
+
+                FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
                 assertNotNull(file);
-                assertEquals("bar", file.getName());
-                assertTrue(file.isFile());
-                for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
-                    for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
-                        assertFalse(file.hasPermission(access, permission));
-                    }
-                }
-
-            } finally {
-                VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
-                verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
-            }
-        }
-
-        @Test
-        void testGetFTPFileDirectory() throws IOException {
-            addDirectory("/foo");
-
-            FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
-            assertNotNull(file);
-            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
-                assertEquals(".", file.getName());
-            } else {
                 assertEquals("foo", file.getName());
+                assertTrue(file.isFile());
             }
-            assertTrue(file.isDirectory());
-        }
 
-        @Test
-        void testGetFTPFileDirectoryAccessDenied() throws IOException {
-            DirectoryEntry bar = addDirectory("/foo/bar");
-            bar.setPermissionsFromString("---------");
+            @Test
+            void testFileNotExisting() {
+                FTPPath path = createPath("/foo");
 
-            if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
-                assertThrows(NoSuchFileException.class, this::testGetFTPFileDirectoryAccessDenied0);
-            } else {
-                testGetFTPFileDirectoryAccessDenied0();
-            }
-        }
+                NoSuchFileException exception = assertThrows(NoSuchFileException.class, () -> fileSystem.getFTPFile(path));
+                assertEquals("/foo", exception.getFile());
 
-        private void testGetFTPFileDirectoryAccessDenied0() throws IOException {
-            try {
-                FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
-                assertNotNull(file);
-                assertEquals("bar", file.getName());
-                assertTrue(file.isDirectory());
-                for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
-                    for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
-                        assertFalse(file.hasPermission(access, permission));
-                    }
-                }
-
-            } finally {
                 VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
-                verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
+                verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo"), eq(226), anyString());
+            }
+
+            @Test
+            void testFileAccessDenied() throws IOException {
+                addFile("/foo/bar");
+                getFile("/foo/bar").setPermissionsFromString("---------");
+
+                if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
+                    assertThrows(NoSuchFileException.class, this::testFileAccessDenied0);
+                } else {
+                    testFileAccessDenied0();
+                }
+            }
+
+            private void testFileAccessDenied0() throws IOException {
+                try {
+                    FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
+                    assertNotNull(file);
+                    assertEquals("bar", file.getName());
+                    assertTrue(file.isFile());
+                    for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
+                        for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
+                            assertFalse(file.hasPermission(access, permission));
+                        }
+                    }
+
+                } finally {
+                    VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
+                    verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
+                }
+            }
+
+            @Test
+            void testDirectory() throws IOException {
+                addDirectory("/foo");
+
+                FTPFile file = fileSystem.getFTPFile(createPath("/foo"));
+                assertNotNull(file);
+                if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
+                    assertEquals(".", file.getName());
+                } else {
+                    assertEquals("foo", file.getName());
+                }
+                assertTrue(file.isDirectory());
+            }
+
+            @Test
+            void testDirectoryAccessDenied() throws IOException {
+                DirectoryEntry bar = addDirectory("/foo/bar");
+                bar.setPermissionsFromString("---------");
+
+                if (useUnixFtpServer() && usesUnixFTPFileStrategyFactory()) {
+                    assertThrows(NoSuchFileException.class, this::testDirectoryAccessDenied0);
+                } else {
+                    testDirectoryAccessDenied0();
+                }
+            }
+
+            private void testDirectoryAccessDenied0() throws IOException {
+                try {
+                    FTPFile file = fileSystem.getFTPFile(createPath("/foo/bar"));
+                    assertNotNull(file);
+                    assertEquals("bar", file.getName());
+                    assertTrue(file.isDirectory());
+                    for (int access = FTPFile.USER_ACCESS; access <= FTPFile.WORLD_ACCESS; access++) {
+                        for (int permission = FTPFile.READ_PERMISSION; permission <= FTPFile.EXECUTE_PERMISSION; permission++) {
+                            assertFalse(file.hasPermission(access, permission));
+                        }
+                    }
+
+                } finally {
+                    VerificationMode verificationMode = useUnixFtpServer() && usesUnixFTPFileStrategyFactory() ? times(1) : never();
+                    verify(getExceptionFactory(), verificationMode).createGetFileException(eq("/foo/bar"), eq(550), anyString());
+                }
             }
         }
     }

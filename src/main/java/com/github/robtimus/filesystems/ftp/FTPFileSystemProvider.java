@@ -107,7 +107,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * {@link URI#getQuery() query} or {@link URI#getFragment() fragment}. Because the original credentials were provided through an environment map,
      * the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security reasons.
      * <p>
-     * Once a file system is {@link FileSystem#close() closed}, this provided will throw a {@link FileSystemNotFoundException}.
+     * Once a file system is {@link FileSystem#close() closed}, this provider will throw a {@link FileSystemNotFoundException}.
      */
     @Override
     public FileSystem getFileSystem(URI uri) {
@@ -151,7 +151,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         if (uri.isOpaque()) {
             throw Messages.uri().notHierarchical(uri);
         }
-        if (!allowPath && uri.getPath() != null && !uri.getPath().isEmpty()) {
+        if (!allowPath && !hasEmptyPath(uri)) {
             throw Messages.uri().hasPath(uri);
         }
         if (uri.getQuery() != null && !uri.getQuery().isEmpty()) {
@@ -162,6 +162,10 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         }
     }
 
+    private static boolean hasEmptyPath(URI uri) {
+        return uri.getPath() == null || uri.getPath().isEmpty();
+    }
+
     void removeFileSystem(URI uri) {
         URI normalizedURI = normalizeWithoutPassword(uri);
         fileSystems.remove(normalizedURI);
@@ -169,7 +173,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
 
     static URI normalizeWithoutPassword(URI uri) {
         String userInfo = uri.getUserInfo();
-        if (userInfo == null && uri.getPath() == null && uri.getQuery() == null && uri.getFragment() == null) {
+        if (userInfo == null && hasEmptyPath(uri) && uri.getQuery() == null && uri.getFragment() == null) {
             // nothing to normalize, return the URI
             return uri;
         }
@@ -183,7 +187,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     }
 
     static URI normalizeWithUsername(URI uri, String username) {
-        if (username == null && uri.getUserInfo() == null && uri.getPath() == null && uri.getQuery() == null && uri.getFragment() == null) {
+        if (username == null && uri.getUserInfo() == null && hasEmptyPath(uri) && uri.getQuery() == null && uri.getFragment() == null) {
             // nothing to normalize or add, return the URI
             return uri;
         }

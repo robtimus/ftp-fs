@@ -40,15 +40,20 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
 public abstract class FTPFileStrategy {
 
     final List<FTPFile> getChildren(Client client, Path path) throws IOException {
-        return getChildren(client.ftpClient(), path, client.exceptionFactory());
+        return getChildren(client.ftpClient(), normalized(path), client.exceptionFactory());
     }
 
     final FTPFile getFTPFile(Client client, Path path) throws IOException {
-        return getFTPFile(client.ftpClient(), path, client.exceptionFactory());
+        return getFTPFile(client.ftpClient(), normalized(path), client.exceptionFactory());
     }
 
     final FTPFile getLink(Client client, FTPFile ftpFile, Path path) throws IOException {
-        return getLink(client.ftpClient(), ftpFile, path, client.exceptionFactory());
+        return getLink(client.ftpClient(), ftpFile, normalized(path), client.exceptionFactory());
+    }
+
+    private Path normalized(Path path) {
+        // Use normalized absolute form so especially fileName and parentPath don't return odd results for paths like "" or ending with "." or ".."
+        return path.toAbsolutePath().normalize();
     }
 
     /**

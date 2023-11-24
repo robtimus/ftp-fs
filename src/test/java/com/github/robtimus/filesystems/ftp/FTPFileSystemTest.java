@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.CURRENT_DIR;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.AUTO_DETECT;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
@@ -88,6 +89,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
@@ -285,6 +287,7 @@ class FTPFileSystemTest {
                 testToNoFollowLinks("", "/home/test");
                 testToNoFollowLinks("foo/bar", "/home/test/foo/bar");
                 testToNoFollowLinks("foo/../bar", "/home/test/bar");
+                testToNoFollowLinks(CURRENT_DIR, "/home/test");
 
                 // symbolic links
                 testToNoFollowLinks("/hello", "/hello");
@@ -373,6 +376,19 @@ class FTPFileSystemTest {
                 }
                 assertNull(getFileSystemEntry("/foo/bar"));
                 assertEquals(0, getChildCount("/foo"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = { "/home", CURRENT_DIR })
+            @EmptySource
+            void testDirectory(String dir) {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath(dir);
+
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newInputStream(path));
+                assertEquals(dir, exception.getFile());
+
+                verify(getExceptionFactory()).createNewInputStreamException(eq(dir), eq(550), anyString());
             }
 
             @Test
@@ -585,38 +601,46 @@ class FTPFileSystemTest {
                 }
             }
 
-            @Test
-            void testDirectoryNoCreate() {
-                DirectoryEntry foo = addDirectory("/foo");
+            @ParameterizedTest
+            @ValueSource(strings = { "/foo", CURRENT_DIR })
+            @EmptySource
+            void testDirectoryNoCreate(String dir) {
+                DirectoryEntry directory = addDirectoryIfNotExists(dir);
+
+                int oldChildCount = getChildCount(dir);
 
                 FTPFileSystemProvider provider = provider();
-                FTPPath createPath = createPath("/foo");
+                FTPPath createPath = createPath(dir);
                 OpenOption[] options = { StandardOpenOption.WRITE };
 
                 FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-                assertEquals("/foo", exception.getFile());
-                assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
+                assertEquals(dir, exception.getFile());
+                assertEquals(Messages.fileSystemProvider().isDirectory(dir).getReason(), exception.getReason());
 
                 verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
-                assertSame(foo, getFileSystemEntry("/foo"));
-                assertEquals(0, getChildCount("/foo"));
+                assertSame(directory, getFileSystemEntry(dir));
+                assertEquals(oldChildCount, getChildCount(dir));
             }
 
-            @Test
-            void testDirectoryDeleteOnClose() {
-                DirectoryEntry foo = addDirectory("/foo");
+            @ParameterizedTest
+            @ValueSource(strings = { "/foo", CURRENT_DIR })
+            @EmptySource
+            void testDirectoryDeleteOnClose(String dir) {
+                DirectoryEntry directory = addDirectoryIfNotExists(dir);
+
+                int oldChildCount = getChildCount(dir);
 
                 FTPFileSystemProvider provider = provider();
-                FTPPath createPath = createPath("/foo");
+                FTPPath createPath = createPath(dir);
                 OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
 
                 FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-                assertEquals("/foo", exception.getFile());
-                assertEquals(Messages.fileSystemProvider().isDirectory("/foo").getReason(), exception.getReason());
+                assertEquals(dir, exception.getFile());
+                assertEquals(Messages.fileSystemProvider().isDirectory(dir).getReason(), exception.getReason());
 
                 verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
-                assertSame(foo, getFileSystemEntry("/foo"));
-                assertEquals(0, getChildCount("/foo"));
+                assertSame(directory, getFileSystemEntry(dir));
+                assertEquals(oldChildCount, getChildCount(dir));
             }
         }
 
@@ -823,14 +847,30 @@ class FTPFileSystemTest {
 
                 assertArrayEquals(newContents, getContents(bar));
             }
+
+            @ParameterizedTest
+            @ValueSource(strings = { "/home", CURRENT_DIR })
+            @EmptySource
+            void testDirectory(String dir) {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath(dir);
+
+                Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newByteChannel(path, options));
+                assertEquals(dir, exception.getFile());
+
+                verify(getExceptionFactory()).createNewInputStreamException(eq(dir), eq(550), anyString());
+            }
         }
 
         @Nested
         class NewDirectoryStream {
 
-            @Test
-            void testSuccess() throws IOException {
-                try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath("/"), entry -> true)) {
+            @ParameterizedTest
+            @ValueSource(strings = { "/", CURRENT_DIR })
+            @EmptySource
+            void testSuccess(String dir) throws IOException {
+                try (DirectoryStream<Path> stream = provider().newDirectoryStream(createPath(dir), entry -> true)) {
                     assertNotNull(stream);
                     // don't do anything with the stream, there's a separate test for that
                 }
@@ -924,6 +964,20 @@ class FTPFileSystemTest {
                 assertNotNull(getFileSystemEntry("/foo/bar"));
             }
 
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCurrentDirectory(String dir) {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath(dir);
+
+                FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
+                assertEquals(dir, exception.getFile());
+
+                verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), eq(550), anyString());
+                assertNotNull(getFileSystemEntry(getDefaultDir()));
+            }
+
             @Test
             void testFTPFailure() {
                 DirectoryEntry root = getDirectory("/");
@@ -987,6 +1041,20 @@ class FTPFileSystemTest {
 
                 assertSame(foo, getFileSystemEntry("/foo"));
                 assertNull(getFileSystemEntry("/foo/bar"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCurrentDirectory(String dir) throws IOException {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath(dir);
+
+                assertNotNull(getFileSystemEntry(getDefaultDir()));
+
+                provider.delete(path);
+
+                assertNull(getFileSystemEntry(getDefaultDir()));
             }
 
             @Test
@@ -1058,15 +1126,17 @@ class FTPFileSystemTest {
                 assertEquals("/foo", exception.getFile());
             }
 
-            @Test
-            void testNoLinkButDirectory() {
-                addDirectory("/foo");
+            @ParameterizedTest
+            @ValueSource(strings = { "/foo", CURRENT_DIR })
+            @EmptySource
+            void testNoLinkButDirectory(String dir) {
+                addDirectoryIfNotExists(dir);
 
                 FTPFileSystemProvider provider = provider();
-                FTPPath path = createPath("/foo");
+                FTPPath path = createPath(dir);
 
                 NotLinkException exception = assertThrows(NotLinkException.class, () -> provider.readSymbolicLink(path));
-                assertEquals("/foo", exception.getFile());
+                assertEquals(dir, exception.getFile());
             }
         }
 
@@ -1319,6 +1389,40 @@ class FTPFileSystemTest {
                 DirectoryEntry bar = getDirectory("/foo/bar");
                 assertEquals(0, getChildCount("/foo/bar"));
                 assertNotEquals(baz.getOwner(), bar.getOwner());
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCopyCurrentDir(String dir) throws IOException {
+                addDirectory("/foo");
+
+                CopyOption[] options = {};
+                provider().copy(createPath(dir), createPath("/foo/bar"), options);
+
+                assertNotNull(getDirectory("/foo"));
+                assertNotNull(getDirectory("/foo/bar"));
+                assertNotNull(getDirectory(getDefaultDir()));
+
+                assertEquals(getChildCount(getDefaultDir()), getChildCount("/foo/bar"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCopyToCurrentDir(String dir) throws IOException {
+                addDirectory("/baz");
+                addFile("/baz/qux");
+
+                int oldChildCount = getChildCount(getDefaultDir());
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().copy(createPath("/baz"), createPath(dir), options);
+
+                assertNotNull(getDirectory(getDefaultDir()));
+                assertNotNull(getDirectory("/baz"));
+
+                assertEquals(oldChildCount, getChildCount(getDefaultDir()));
             }
 
             @Test
@@ -1713,6 +1817,40 @@ class FTPFileSystemTest {
                 }
             }
 
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testMoveCurrentDir(String dir) throws IOException {
+                addDirectory("/foo");
+
+                int oldChildCount = getChildCount(getDefaultDir());
+
+                CopyOption[] options = {};
+                provider().move(createPath(dir), createPath("/foo/bar"), options);
+
+                assertNotNull(getDirectory("/foo"));
+                assertNotNull(getDirectory("/foo/bar"));
+                assertNull(getFileSystemEntry(getDefaultDir()));
+
+                assertEquals(oldChildCount, getChildCount("/foo/bar"));
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testMoveToCurrentDir(String dir) throws IOException {
+                addDirectory("/baz");
+                addFile("/baz/qux");
+
+                CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING };
+                provider().move(createPath("/baz"), createPath(dir), options);
+
+                assertNotNull(getDirectory(getDefaultDir()));
+                assertNull(getFileSystemEntry("/baz"));
+
+                assertEquals(1, getChildCount(getDefaultDir()));
+            }
+
             @Test
             void testReplaceFileDifferentFileSystems() {
                 DirectoryEntry foo = addDirectory("/foo");
@@ -1863,6 +2001,12 @@ class FTPFileSystemTest {
 
                 assertTrue(provider().isSameFile(createPath(""), createPath("/home/test")));
                 assertTrue(provider().isSameFile(createPath("/home/test"), createPath("")));
+
+                assertTrue(provider().isSameFile(createPath(CURRENT_DIR), createPath("/home/test")));
+                assertTrue(provider().isSameFile(createPath("/home/test"), createPath(CURRENT_DIR)));
+
+                assertTrue(provider().isSameFile(createPath(""), createPath(CURRENT_DIR)));
+                assertTrue(provider().isSameFile(createPath(CURRENT_DIR), createPath("")));
             }
 
             @Test
@@ -1918,6 +2062,8 @@ class FTPFileSystemTest {
                 assertTrue(provider().isHidden(createPath("/.foo")));
                 assertFalse(provider().isHidden(createPath("/foo/bar")));
                 assertTrue(provider().isHidden(createPath("/foo/.bar")));
+                assertFalse(provider().isHidden(createPath("")));
+                assertFalse(provider().isHidden(createPath(CURRENT_DIR)));
             }
 
             @Test
@@ -1985,6 +2131,17 @@ class FTPFileSystemTest {
 
                 AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> provider.checkAccess(path, AccessMode.EXECUTE));
                 assertEquals("/foo/bar", exception.getFile());
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCurrentDirectory(String dir) {
+                FTPFileSystemProvider provider = provider();
+                FTPPath path = createPath(dir);
+
+                assertDoesNotThrow(() -> provider.checkAccess(path, AccessMode.READ));
+                assertDoesNotThrow(() -> provider.checkAccess(path, AccessMode.WRITE));
             }
         }
 
@@ -2063,6 +2220,23 @@ class FTPFileSystemTest {
                 assertEquals("user", attributes.owner().getName());
                 assertEquals("group", attributes.group().getName());
                 assertEquals(PosixFilePermissions.fromString("r-xr-xr-x"), attributes.permissions());
+                assertTrue(attributes.isDirectory());
+                assertFalse(attributes.isRegularFile());
+                assertFalse(attributes.isSymbolicLink());
+                assertFalse(attributes.isOther());
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCurrentDirectory(String dir) throws IOException {
+                PosixFileAttributes attributes = provider().readAttributes(createPath(dir), PosixFileAttributes.class);
+
+                // Directories always have size 0 when using sshd-core
+                assertEquals(0, attributes.size());
+                assertNotNull(attributes.owner().getName());
+                assertNotNull(attributes.group().getName());
+                assertNotNull(attributes.permissions());
                 assertTrue(attributes.isDirectory());
                 assertFalse(attributes.isRegularFile());
                 assertFalse(attributes.isSymbolicLink());
@@ -2423,6 +2597,32 @@ class FTPFileSystemTest {
                 assertEquals(expected, attributes);
 
                 attributes = provider().readAttributes(createPath("/foo"), "posix:lastModifiedTime,*");
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = CURRENT_DIR)
+            @EmptySource
+            void testCurrentDirectory(String dir) throws IOException {
+                Map<String, Object> attributes = provider().readAttributes(createPath(dir), "*");
+                Map<String, Object> expected = new HashMap<>();
+                // Directories always have size 0 when using sshd-core
+                expected.put("size", 0L);
+                expected.put("isRegularFile", false);
+                expected.put("isDirectory", true);
+                expected.put("isSymbolicLink", false);
+                expected.put("isOther", false);
+                expected.put("fileKey", null);
+
+                assertNotNull(attributes.remove("lastModifiedTime"));
+                assertNotNull(attributes.remove("lastAccessTime"));
+                assertNotNull(attributes.remove("creationTime"));
+                assertEquals(expected, attributes);
+
+                attributes = provider().readAttributes(createPath(dir), "lastModifiedTime,*");
                 assertNotNull(attributes.remove("lastModifiedTime"));
                 assertNotNull(attributes.remove("lastAccessTime"));
                 assertNotNull(attributes.remove("creationTime"));

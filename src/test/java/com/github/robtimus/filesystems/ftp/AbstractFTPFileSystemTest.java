@@ -17,6 +17,7 @@
 
 package com.github.robtimus.filesystems.ftp;
 
+import static com.github.robtimus.filesystems.SimpleAbstractPath.CURRENT_DIR;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -209,6 +210,10 @@ abstract class AbstractFTPFileSystemTest {
         return USERNAME;
     }
 
+    protected final String getDefaultDir() {
+        return HOME_DIR;
+    }
+
     protected final FTPFileSystemProvider provider() {
         return fileSystem.provider();
     }
@@ -226,7 +231,7 @@ abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FileSystemEntry getFileSystemEntry(String path) {
-        return fs.getEntry(path);
+        return fs.getEntry(realPath(path));
     }
 
     protected final FileEntry getFile(String path) {
@@ -248,21 +253,34 @@ abstract class AbstractFTPFileSystemTest {
     }
 
     protected final FileEntry addFile(String path) {
-        FileEntry file = new FileEntry(path);
+        FileEntry file = new FileEntry(realPath(path));
         fs.add(file);
         return file;
     }
 
     protected final DirectoryEntry addDirectory(String path) {
-        DirectoryEntry directory = new DirectoryEntry(path);
+        DirectoryEntry directory = new DirectoryEntry(realPath(path));
         fs.add(directory);
         return directory;
     }
 
+    protected final DirectoryEntry addDirectoryIfNotExists(String path) {
+        DirectoryEntry directory = (DirectoryEntry) fs.getEntry(realPath(path));
+        return directory == null
+                ? addDirectory(path)
+                : directory;
+    }
+
     protected final SymbolicLinkEntry addSymLink(String path, FileSystemEntry target) {
-        SymbolicLinkEntry symLink = new SymbolicLinkEntry(path, target);
+        SymbolicLinkEntry symLink = new SymbolicLinkEntry(realPath(path), target);
         fs.add(symLink);
         return symLink;
+    }
+
+    private String realPath(String path) {
+        return path.isEmpty() || CURRENT_DIR.equals(path)
+                ? HOME_DIR
+                : path;
     }
 
     protected final boolean delete(String path) {

@@ -30,7 +30,6 @@ import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-import com.github.robtimus.filesystems.SimpleAbstractPath;
 import com.github.robtimus.pool.LogLevel;
 import com.github.robtimus.pool.Pool;
 import com.github.robtimus.pool.PoolConfig;
@@ -206,10 +205,6 @@ final class FTPClientPool {
             return exceptionFactory;
         }
 
-        private String nonEmptyPath(String path) {
-            return path.isEmpty() ? SimpleAbstractPath.CURRENT_DIR : path;
-        }
-
         String pwd() throws IOException {
             String pwd = ftpClient.printWorkingDirectory();
             if (pwd == null) {
@@ -238,7 +233,7 @@ final class FTPClientPool {
 
             applyTransferOptions(options);
 
-            InputStream in = ftpClient.retrieveFileStream(nonEmptyPath(path.path()));
+            InputStream in = ftpClient.retrieveFileStream(path.path());
             if (in == null) {
                 throw exceptionFactory.createNewInputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
@@ -259,7 +254,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
+                logEvent(() -> FTPMessages.log.createdInputStream(path));
             }
 
             @Override
@@ -328,8 +323,8 @@ final class FTPClientPool {
             applyTransferOptions(options);
 
             OutputStream out = options.append
-                    ? ftpClient.appendFileStream(nonEmptyPath(path.path()))
-                    : ftpClient.storeFileStream(nonEmptyPath(path.path()));
+                    ? ftpClient.appendFileStream(path.path())
+                    : ftpClient.storeFileStream(path.path());
             if (out == null) {
                 throw exceptionFactory.createNewOutputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(),
                         options.options);
@@ -351,7 +346,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdOutputStream(path.path()));
+                logEvent(() -> FTPMessages.log.createdOutputStream(path));
             }
 
             @Override
@@ -406,13 +401,13 @@ final class FTPClientPool {
         void storeFile(FTPPath path, InputStream local, TransferOptions options, Collection<? extends OpenOption> openOptions) throws IOException {
             applyTransferOptions(options);
 
-            if (!ftpClient.storeFile(nonEmptyPath(path.path()), local)) {
+            if (!ftpClient.storeFile(path.path(), local)) {
                 throw exceptionFactory.createNewOutputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(), openOptions);
             }
         }
 
         void mkdir(FTPPath path, FTPFileStrategy ftpFileStrategy) throws IOException {
-            if (!ftpClient.makeDirectory(nonEmptyPath(path.path()))) {
+            if (!ftpClient.makeDirectory(path.path())) {
                 int replyCode = ftpClient.getReplyCode();
                 String replyString = ftpClient.getReplyString();
                 if (fileExists(path, ftpFileStrategy)) {
@@ -434,21 +429,21 @@ final class FTPClientPool {
 
         void delete(FTPPath path, boolean isDirectory) throws IOException {
             boolean success = isDirectory
-                    ? ftpClient.removeDirectory(nonEmptyPath(path.path()))
-                    : ftpClient.deleteFile(nonEmptyPath(path.path()));
+                    ? ftpClient.removeDirectory(path.path())
+                    : ftpClient.deleteFile(path.path());
             if (!success) {
                 throw exceptionFactory.createDeleteException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(), isDirectory);
             }
         }
 
         void rename(FTPPath source, FTPPath target) throws IOException {
-            if (!ftpClient.rename(nonEmptyPath(source.path()), nonEmptyPath(target.path()))) {
+            if (!ftpClient.rename(source.path(), target.path())) {
                 throw exceptionFactory.createMoveException(source.path(), target.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
         }
 
         Calendar mdtm(FTPPath path) throws IOException {
-            FTPFile file = ftpClient.mdtmFile(nonEmptyPath(path.path()));
+            FTPFile file = ftpClient.mdtmFile(path.path());
             return file == null ? null : file.getTimestamp();
         }
     }

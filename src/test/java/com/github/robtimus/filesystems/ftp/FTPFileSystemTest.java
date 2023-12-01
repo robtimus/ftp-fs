@@ -378,17 +378,26 @@ class FTPFileSystemTest {
                 assertEquals(0, getChildCount("/foo"));
             }
 
+            @Test
+            void testDirectory() {
+                testDirectory("/home", "/home");
+            }
+
             @ParameterizedTest
-            @ValueSource(strings = { "/home", CURRENT_DIR })
+            @ValueSource(strings = CURRENT_DIR)
             @EmptySource
-            void testDirectory(String dir) {
+            void testCurrentDirectory(String dir) {
+                testDirectory(dir, getDefaultDir());
+            }
+
+            private void testDirectory(String dir, String expectedFile) {
                 FTPFileSystemProvider provider = provider();
                 FTPPath path = createPath(dir);
 
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newInputStream(path));
-                assertEquals(dir, exception.getFile());
+                assertEquals(expectedFile, exception.getFile());
 
-                verify(getExceptionFactory()).createNewInputStreamException(eq(dir), eq(550), anyString());
+                verify(getExceptionFactory()).createNewInputStreamException(eq(expectedFile), eq(550), anyString());
             }
 
             @Test
@@ -601,10 +610,19 @@ class FTPFileSystemTest {
                 }
             }
 
+            @Test
+            void testDirectoryNoCreate() {
+                testDirectoryNoCreate("/foo", "/foo");
+            }
+
             @ParameterizedTest
-            @ValueSource(strings = { "/foo", CURRENT_DIR })
+            @ValueSource(strings = CURRENT_DIR)
             @EmptySource
-            void testDirectoryNoCreate(String dir) {
+            void testCurrentDirectoryNoCreate(String dir) {
+                testDirectoryNoCreate(dir, getDefaultDir());
+            }
+
+            private void testDirectoryNoCreate(String dir, String expectedFile) {
                 DirectoryEntry directory = addDirectoryIfNotExists(dir);
 
                 int oldChildCount = getChildCount(dir);
@@ -614,7 +632,7 @@ class FTPFileSystemTest {
                 OpenOption[] options = { StandardOpenOption.WRITE };
 
                 FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-                assertEquals(dir, exception.getFile());
+                assertEquals(expectedFile, exception.getFile());
                 assertEquals(Messages.fileSystemProvider().isDirectory(dir).getReason(), exception.getReason());
 
                 verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
@@ -622,10 +640,19 @@ class FTPFileSystemTest {
                 assertEquals(oldChildCount, getChildCount(dir));
             }
 
+            @Test
+            void testDirectoryDeleteOnClose() {
+                testDirectoryDeleteOnClose("/foo", "/foo");
+            }
+
             @ParameterizedTest
-            @ValueSource(strings = { "/foo", CURRENT_DIR })
+            @ValueSource(strings = CURRENT_DIR)
             @EmptySource
-            void testDirectoryDeleteOnClose(String dir) {
+            void testCurrentDirectoryDeleteOnClose(String dir) {
+                testDirectoryDeleteOnClose(dir, getDefaultDir());
+            }
+
+            private void testDirectoryDeleteOnClose(String dir, String expectedFile) {
                 DirectoryEntry directory = addDirectoryIfNotExists(dir);
 
                 int oldChildCount = getChildCount(dir);
@@ -635,7 +662,7 @@ class FTPFileSystemTest {
                 OpenOption[] options = { StandardOpenOption.DELETE_ON_CLOSE };
 
                 FileSystemException exception = assertThrows(FileSystemException.class, () -> provider.newOutputStream(createPath, options));
-                assertEquals(dir, exception.getFile());
+                assertEquals(expectedFile, exception.getFile());
                 assertEquals(Messages.fileSystemProvider().isDirectory(dir).getReason(), exception.getReason());
 
                 verify(getExceptionFactory(), never()).createNewOutputStreamException(anyString(), anyInt(), anyString(), anyCollection());
@@ -664,7 +691,6 @@ class FTPFileSystemTest {
 
             @Test
             void testReadNonExisting() {
-
                 // failure: file does not exist
 
                 FTPFileSystemProvider provider = provider();
@@ -848,18 +874,27 @@ class FTPFileSystemTest {
                 assertArrayEquals(newContents, getContents(bar));
             }
 
+            @Test
+            void testDirectory() {
+                testDirectory("/home", "/home");
+            }
+
             @ParameterizedTest
-            @ValueSource(strings = { "/home", CURRENT_DIR })
+            @ValueSource(strings = CURRENT_DIR)
             @EmptySource
-            void testDirectory(String dir) {
+            void testCurrentDirectory(String dir) {
+                testDirectory(dir, getDefaultDir());
+            }
+
+            private void testDirectory(String dir, String expectedFile) {
                 FTPFileSystemProvider provider = provider();
                 FTPPath path = createPath(dir);
 
                 Set<? extends OpenOption> options = EnumSet.noneOf(StandardOpenOption.class);
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> provider.newByteChannel(path, options));
-                assertEquals(dir, exception.getFile());
+                assertEquals(expectedFile, exception.getFile());
 
-                verify(getExceptionFactory()).createNewInputStreamException(eq(dir), eq(550), anyString());
+                verify(getExceptionFactory()).createNewInputStreamException(eq(expectedFile), eq(550), anyString());
             }
         }
 
@@ -972,7 +1007,7 @@ class FTPFileSystemTest {
                 FTPPath path = createPath(dir);
 
                 FileAlreadyExistsException exception = assertThrows(FileAlreadyExistsException.class, () -> provider.createDirectory(path));
-                assertEquals(dir, exception.getFile());
+                assertEquals(getDefaultDir(), exception.getFile());
 
                 verify(getExceptionFactory(), never()).createCreateDirectoryException(anyString(), eq(550), anyString());
                 assertNotNull(getFileSystemEntry(getDefaultDir()));

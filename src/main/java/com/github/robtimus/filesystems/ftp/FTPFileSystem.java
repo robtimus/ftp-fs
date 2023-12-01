@@ -257,6 +257,11 @@ class FTPFileSystem extends FileSystem {
                 || ftpFile.isDirectory() && CURRENT_DIR.equals(getFileName(ftpFile));
     }
 
+    private FTPPath normalizePath(FTPPath path) {
+        // Use normalized absolute form so especially fileName and parentPath don't return odd results for paths like "" or ending with "." or ".."
+        return path.toAbsolutePath().normalize();
+    }
+
     String toString(FTPPath path) {
         return path.path();
     }
@@ -265,7 +270,7 @@ class FTPFileSystem extends FileSystem {
         OpenOptions openOptions = OpenOptions.forNewInputStream(options);
 
         try (Client client = clientPool.get()) {
-            return newInputStream(client, path, openOptions);
+            return newInputStream(client, normalizePath(path), openOptions);
         }
     }
 
@@ -279,7 +284,7 @@ class FTPFileSystem extends FileSystem {
         OpenOptions openOptions = OpenOptions.forNewOutputStream(options);
 
         try (Client client = clientPool.get()) {
-            return newOutputStream(client, path, false, openOptions).out;
+            return newOutputStream(client, normalizePath(path), false, openOptions).out;
         }
     }
 
@@ -329,17 +334,18 @@ class FTPFileSystem extends FileSystem {
         OpenOptions openOptions = OpenOptions.forNewByteChannel(options);
 
         try (Client client = clientPool.get()) {
+            FTPPath normalizedPath = normalizePath(path);
             if (openOptions.read) {
                 // use findFTPFile instead of getFTPFile, to let the opening of the stream provide the correct error message
-                FTPFile ftpFile = findFTPFile(client, path);
-                InputStream in = newInputStream(client, path, openOptions);
+                FTPFile ftpFile = findFTPFile(client, normalizedPath);
+                InputStream in = newInputStream(client, normalizedPath, openOptions);
                 long size = ftpFile == null ? 0 : ftpFile.getSize();
                 return FileSystemProviderSupport.createSeekableByteChannel(in, size);
             }
 
             // if append then we need the FTP file, to find the initial position of the channel
             boolean requireFTPFile = openOptions.append;
-            FTPFileAndOutputStreamPair outPair = newOutputStream(client, path, requireFTPFile, openOptions);
+            FTPFileAndOutputStreamPair outPair = newOutputStream(client, normalizedPath, requireFTPFile, openOptions);
             long initialPosition = outPair.ftpFile == null ? 0 : outPair.ftpFile.getSize();
             return FileSystemProviderSupport.createSeekableByteChannel(outPair.out, initialPosition);
         }
@@ -348,7 +354,7 @@ class FTPFileSystem extends FileSystem {
     DirectoryStream<Path> newDirectoryStream(final FTPPath path, Filter<? super Path> filter) throws IOException {
         List<FTPFile> children;
         try (Client client = clientPool.get()) {
-            children = ftpFileStrategy.getChildren(client, path);
+            children = ftpFileStrategy.getChildren(client, normalizePath(path));
         }
         return new FTPPathDirectoryStream(path, children, filter);
     }
@@ -382,22 +388,24 @@ class FTPFileSystem extends FileSystem {
         }
 
         try (Client client = clientPool.get()) {
-            client.mkdir(path, ftpFileStrategy);
+            client.mkdir(normalizePath(path), ftpFileStrategy);
         }
     }
 
     void delete(FTPPath path) throws IOException {
         try (Client client = clientPool.get()) {
-            FTPFile ftpFile = getFTPFile(client, path);
+            FTPPath normalizedPath = normalizePath(path);
+            FTPFile ftpFile = getFTPFile(client, normalizedPath);
             boolean isDirectory = ftpFile.isDirectory();
-            client.delete(path, isDirectory);
+            client.delete(normalizedPath, isDirectory);
         }
     }
 
     FTPPath readSymbolicLink(FTPPath path) throws IOException {
         try (Client client = clientPool.get()) {
-            FTPFile ftpFile = getFTPFile(client, path);
-            FTPFile link = getLink(client, ftpFile, path);
+            FTPPath normalizedPath = normalizePath(path);
+            FTPFile ftpFile = getFTPFile(client, normalizedPath);
+            FTPFile link = getLink(client, ftpFile, normalizedPath);
             if (link == null) {
                 throw new NotLinkException(path.path());
             }
@@ -415,7 +423,7 @@ class FTPFileSystem extends FileSystem {
             FTPPathAndFilePair sourcePair = toRealPath(client, source, true);
 
             if (!sameFileSystem) {
-                copyAcrossFileSystems(client, source, sourcePair.ftpFile, target, copyOptions);
+                copyAcrossFileSystems(client, normalizePath(source), sourcePair.ftpFile, normalizePath(target), copyOptions);
                 return;
             }
 
@@ -428,21 +436,23 @@ class FTPFileSystem extends FileSystem {
                 // the target does not exist or either path is an invalid link, ignore the error and continue
             }
 
-            FTPFile targetFtpFile = findFTPFile(client, target);
+            FTPPath normalizedTarget = normalizePath(target);
+
+            FTPFile targetFtpFile = findFTPFile(client, normalizedTarget);
 
             if (targetFtpFile != null) {
                 if (copyOptions.replaceExisting) {
-                    client.delete(target, targetFtpFile.isDirectory());
+                    client.delete(normalizedTarget, targetFtpFile.isDirectory());
                 } else {
                     throw new FileAlreadyExistsException(target.path());
                 }
             }
 
             if (sourcePair.ftpFile.isDirectory()) {
-                client.mkdir(target, ftpFileStrategy);
+                client.mkdir(normalizedTarget, ftpFileStrategy);
             } else {
                 try (Client client2 = clientPool.getOrCreate()) {
-                    copyFile(client, source, client2, target, copyOptions);
+                    copyFile(client, normalizePath(source), client2, normalizedTarget, copyOptions);
                 }
             }
         }
@@ -487,13 +497,14 @@ class FTPFileSystem extends FileSystem {
         CopyOptions copyOptions = CopyOptions.forMove(sameFileSystem, options);
 
         try (Client client = clientPool.get()) {
+            FTPPath normalizedSource = normalizePath(source);
             if (!sameFileSystem) {
-                FTPFile ftpFile = getFTPFile(client, source);
-                if (getLink(client, ftpFile, source) != null) {
+                FTPFile ftpFile = getFTPFile(client, normalizedSource);
+                if (getLink(client, ftpFile, normalizedSource) != null) {
                     throw new IOException(FTPMessages.copyOfSymbolicLinksAcrossFileSystemsNotSupported());
                 }
-                copyAcrossFileSystems(client, source, ftpFile, target, copyOptions);
-                client.delete(source, ftpFile.isDirectory());
+                copyAcrossFileSystems(client, normalizedSource, ftpFile, normalizePath(target), copyOptions);
+                client.delete(normalizedSource, ftpFile.isDirectory());
                 return;
             }
 
@@ -506,20 +517,21 @@ class FTPFileSystem extends FileSystem {
                 // the source or target does not exist or either path is an invalid link
                 // call getFTPFile to ensure the source file exists
                 // ignore any error to target or if the source link is invalid
-                getFTPFile(client, source);
+                getFTPFile(client, normalizePath(source));
             }
 
-            if (toAbsolutePath(source).parentPath() == null) {
+            if (ROOT_PATH.equals(normalizedSource.path())) {
                 // cannot move or rename the root
                 throw new DirectoryNotEmptyException(source.path());
             }
 
-            FTPFile targetFTPFile = findFTPFile(client, target);
+            FTPPath normalizedTarget = normalizePath(target);
+            FTPFile targetFTPFile = findFTPFile(client, normalizedTarget);
             if (copyOptions.replaceExisting && targetFTPFile != null) {
-                client.delete(target, targetFTPFile.isDirectory());
+                client.delete(normalizedTarget, targetFTPFile.isDirectory());
             }
 
-            client.rename(source, target);
+            client.rename(normalizedSource, normalizedTarget);
         }
     }
 
@@ -550,7 +562,7 @@ class FTPFileSystem extends FileSystem {
     boolean isHidden(FTPPath path) throws IOException {
         // call getFTPFile to check for existence
         try (Client client = clientPool.get()) {
-            getFTPFile(client, path);
+            getFTPFile(client, normalizePath(path));
         }
         String fileName = path.fileName();
         return !CURRENT_DIR.equals(fileName) && !PARENT_DIR.equals(fileName) && fileName.startsWith("."); //$NON-NLS-1$
@@ -559,14 +571,14 @@ class FTPFileSystem extends FileSystem {
     FileStore getFileStore(FTPPath path) throws IOException {
         // call getFTPFile to check existence of the path
         try (Client client = clientPool.get()) {
-            getFTPFile(client, path);
+            getFTPFile(client, normalizePath(path));
         }
         return fileStore;
     }
 
     void checkAccess(FTPPath path, AccessMode... modes) throws IOException {
         try (Client client = clientPool.get()) {
-            FTPFile ftpFile = getFTPFile(client, path);
+            FTPFile ftpFile = getFTPFile(client, normalizePath(path));
             for (AccessMode mode : modes) {
                 if (!hasAccess(ftpFile, mode)) {
                     throw new AccessDeniedException(path.path());
@@ -768,7 +780,7 @@ class FTPFileSystem extends FileSystem {
         FileAttributeViewMetadata view = VIEWS.getView(viewName);
         Set<String> attributeNames = getAttributeNames(attributes, view);
 
-        PosixFileAttributes fileAttributes = readAttributes(path, followLinks);
+        PosixFileAttributes fileAttributes = readAttributes(normalizePath(path), followLinks);
 
         Map<String, Object> result = new HashMap<>();
         populateAttributeMap(result, fileAttributes, attributeNames);

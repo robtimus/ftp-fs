@@ -110,7 +110,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         if (userInfo != null) {
             int indexOfColon = userInfo.indexOf(':');
             if (indexOfColon == -1) {
-                environment.withCredentials(userInfo, null);
+                environment.withCredentials(userInfo, new char[0]);
             } else {
                 environment.withCredentials(userInfo.substring(0, indexOfColon), userInfo.substring(indexOfColon + 1).toCharArray());
             }
@@ -137,29 +137,49 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     public FileSystem getFileSystem(URI uri) {
         checkURI(uri, true, false);
 
-        return getExistingFileSystem(uri);
+        URI normalizedURI = normalizeWithoutPassword(uri);
+        return fileSystems.get(normalizedURI);
     }
 
     /**
      * Return a {@code Path} object by converting the given {@link URI}. The resulting {@code Path} is associated with a {@link FileSystem} that
-     * already exists. This method does not support constructing {@code FileSystem}s automatically.
+     * already exists, or is constructed automatically.
      * <p>
      * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getQuery() query} or
      * {@link URI#getFragment() fragment}. Because the original credentials were possibly provided through an environment map,
-     * the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security reasons.
+     * the URI can contain {@link URI#getUserInfo() user information}, although for security reasons this should only contain a password to support
+     * automatically creating file systems.
+     * <p>
+     * If no matching file system existed yet, a new one is created. The default environment for {@link FTPEnvironment#setDefault(FTPEnvironment) FTP}
+     * or {@link FTPSEnvironment#setDefault(FTPSEnvironment) FTPS} is used for this, to allow configuring the resulting file system.
+     * <p>
+     * Remember to close any newly created file system.
      */
     @Override
     @SuppressWarnings("resource")
     public Path getPath(URI uri) {
         checkURI(uri, true, true);
 
-        FTPFileSystem fs = getExistingFileSystem(uri);
-        return fs.getPath(uri.getPath());
+        URI normalizedURI = normalizeWithoutPassword(uri);
+        FTPEnvironment env = copyOfDefaultEnvironment();
+
+        addUserInfoIfNeeded(env, uri.getUserInfo());
+        // Do not add any default dir
+
+        try {
+            FTPFileSystem fs = fileSystems.addIfNotExists(normalizedURI, env);
+            return fs.getPath(uri.getPath());
+        } catch (IOException e) {
+            // FileSystemProvider.getPath mandates that a FileSystemNotFoundException should be thrown if no file system could be created
+            // automatically
+            FileSystemNotFoundException exception = new FileSystemNotFoundException(normalizedURI.toString());
+            exception.initCause(e);
+            throw exception;
+        }
     }
 
-    private FTPFileSystem getExistingFileSystem(URI uri) {
-        URI normalizedURI = normalizeWithoutPassword(uri);
-        return fileSystems.get(normalizedURI);
+    FTPEnvironment copyOfDefaultEnvironment() {
+        return FTPEnvironment.copyOfDefault();
     }
 
     private void checkURI(URI uri, boolean allowUserInfo, boolean allowPath) {

@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import org.apache.commons.net.ftp.FTP;
@@ -53,6 +54,8 @@ import com.github.robtimus.filesystems.FileSystemProviderSupport;
  * @author Rob Spoor
  */
 public class FTPEnvironment implements Map<String, Object> {
+
+    private static final AtomicReference<FTPEnvironment> DEFAULTS = new AtomicReference<>();
 
     // connect support
 
@@ -1179,5 +1182,21 @@ public class FTPEnvironment implements Map<String, Object> {
         return env == null
                 ? new FTPEnvironment()
                 : new FTPEnvironment(new HashMap<>(env));
+    }
+
+    /**
+     * Sets the default FTP environment.
+     * This is used in {@link FTPFileSystemProvider#getPath(URI)} when a file system needs to be created, since no environment can be passed.
+     * This way, certain settings like {@link #withPoolConfig(FTPPoolConfig) pool configuration} can still be applied.
+     *
+     * @param defaultEnvironment The default FTP environment. Use {@code null} to reset it to an empty environment.
+     * @since 3.2
+     */
+    public static void setDefault(FTPEnvironment defaultEnvironment) {
+        DEFAULTS.set(copy(defaultEnvironment));
+    }
+
+    static FTPEnvironment copyOfDefault() {
+        return copy(DEFAULTS.get());
     }
 }

@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -49,6 +50,8 @@ import com.github.robtimus.filesystems.FileSystemProviderSupport;
  * @author Rob Spoor
  */
 public class FTPSEnvironment extends FTPEnvironment {
+
+    private static final AtomicReference<FTPSEnvironment> DEFAULTS = new AtomicReference<>();
 
     private static final String SECURITY_MODE = "securityMode"; //$NON-NLS-1$
     private static final String SSL_CONTEXT = "sslContext"; //$NON-NLS-1$
@@ -728,5 +731,21 @@ public class FTPSEnvironment extends FTPEnvironment {
         return env == null
                 ? new FTPSEnvironment()
                 : new FTPSEnvironment(new HashMap<>(env));
+    }
+
+    /**
+     * Sets the default FTPS environment.
+     * This is used in {@link FTPSFileSystemProvider#getPath(URI)} when a file system needs to be created, since no environment can be passed.
+     * This way, certain settings like {@link #withPoolConfig(FTPPoolConfig) pool configuration} can still be applied.
+     *
+     * @param defaultEnvironment The default FTPS environment. Use {@code null} to reset it to an empty environment.
+     * @since 3.2
+     */
+    public static void setDefault(FTPSEnvironment defaultEnvironment) {
+        DEFAULTS.set(copy(defaultEnvironment));
+    }
+
+    static FTPSEnvironment copyOfDefault() {
+        return copy(DEFAULTS.get());
     }
 }

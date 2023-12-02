@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -113,7 +114,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
 
         @Test
         void testFileSystemNotFound() {
-            URI uri = URI.create("ftp://ftp.github.com/");
+            URI uri = getURI();
             FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> Paths.get(uri));
             assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
             assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
@@ -137,7 +138,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             URI uri = URI.create(getBaseUrl());
             FTPEnvironment env = createEnv(UNIX);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertEquals(Messages.uri().hasUserInfo(uri).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.uri().hasUserInfo(uri), exception);
         }
 
         @Test
@@ -146,7 +147,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             FTPEnvironment env = createEnv(UNIX)
                     .withDefaultDirectory("/home/test");
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertEquals(Messages.uri().hasPath(uri).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.uri().hasPath(uri), exception);
         }
 
         @Test
@@ -154,7 +155,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             URI uri = getURI().resolve("?q=v");
             FTPEnvironment env = createEnv(UNIX);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertEquals(Messages.uri().hasQuery(uri).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.uri().hasQuery(uri), exception);
         }
 
         @Test
@@ -162,7 +163,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             URI uri = getURI().resolve("#id");
             FTPEnvironment env = createEnv(UNIX);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertEquals(Messages.uri().hasFragment(uri).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.uri().hasFragment(uri), exception);
         }
     }
 
@@ -197,7 +198,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         void testWithNonEmptyPath() {
             URI uri = URI.create(getBaseUrl() + "/foo");
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.getFileSystem(uri));
-            assertEquals(Messages.uri().hasPath(uri).getMessage(), exception.getMessage());
+            assertChainEquals(Messages.uri().hasPath(uri), exception);
         }
 
         @Test
@@ -366,12 +367,49 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
         }
 
         @Test
-        void testFileSystemNotFound() {
+        void testFileSystemCreatedWithPath() {
             FTPFileSystemProvider provider = new FTPFileSystemProvider();
-            URI uri = URI.create("ftp://ftp.github.com/");
-            FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
-            assertEquals(normalizeWithUsername(uri, null).toString(), exception.getMessage());
-            assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
+            URI uri = URI.create(getBaseUrlWithCredentials() + "/foo");
+            FTPEnvironment.setDefault(createMinimalEnv(UNIX));
+            try {
+                Path path = assertDoesNotThrow(() -> provider.getPath(uri));
+                assertNotEquals(uri, path.toUri());
+                assertEquals("/foo", path.toAbsolutePath().toString());
+                assertFalse(Files.exists(path));
+                assertDoesNotThrow(() -> path.getFileSystem().close());
+            } finally {
+                FTPEnvironment.setDefault(null);
+            }
+        }
+
+        @Test
+        void testFileSystemCreatedWithoutPath() {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create(getBaseUrlWithCredentials());
+            FTPEnvironment.setDefault(createMinimalEnv(UNIX));
+            try {
+                Path path = assertDoesNotThrow(() -> provider.getPath(uri));
+                assertNotEquals(uri, path.toUri());
+                assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+                assertTrue(Files.exists(path));
+                assertDoesNotThrow(() -> path.getFileSystem().close());
+            } finally {
+                FTPEnvironment.setDefault(null);
+            }
+        }
+
+        @Test
+        void testFileSystemCreationFailure() {
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create(getBaseUrl());
+            FTPEnvironment.setDefault(createEnv(UNIX));
+            try {
+                // Invalid credentials; no password is available from the URI
+                FileSystemNotFoundException exception = assertThrows(FileSystemNotFoundException.class, () -> provider.getPath(uri));
+                assertEquals(normalizeWithoutPassword(uri).toString(), exception.getMessage());
+            } finally {
+                FTPEnvironment.setDefault(null);
+            }
         }
     }
 

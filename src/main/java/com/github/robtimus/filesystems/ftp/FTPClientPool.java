@@ -254,7 +254,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.in = in;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdInputStream(path));
+                logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
             }
 
             @Override
@@ -346,7 +346,7 @@ final class FTPClientPool {
                 this.path = path;
                 this.out = out;
                 this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdOutputStream(path));
+                logEvent(() -> FTPMessages.log.createdOutputStream(path.path()));
             }
 
             @Override

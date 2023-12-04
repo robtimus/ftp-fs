@@ -126,7 +126,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
     /**
      * Returns an existing {@code FileSystem} created by this provider.
      * <p>
-     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getPath() path},
+     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no non-empty {@link URI#getPath() path},
      * {@link URI#getQuery() query} or {@link URI#getFragment() fragment}. Because the original credentials were possibly provided through an
      * environment map, the URI can contain {@link URI#getUserInfo() user information}, although this should not contain a password for security
      * reasons.

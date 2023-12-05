@@ -124,30 +124,113 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
     @Nested
     class NewFileSystem {
 
-        @Test
-        void testWithMinimalEnv() throws IOException {
-            URI uri = URI.create(getBaseUrlWithCredentials() + getDefaultDir());
-            try (FileSystem fs = FileSystems.newFileSystem(uri, createMinimalEnv(UNIX))) {
-                Path path = fs.getPath("");
-                assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+        @Nested
+        class WithCredentials {
+
+            @Test
+            void testWithCredentialsFromURI() throws IOException {
+                URI uri = URI.create(getBaseUrlWithCredentials() + getDefaultDir());
+                try (FileSystem fs = FileSystems.newFileSystem(uri, createMinimalEnv(UNIX))) {
+                    Path path = fs.getPath("");
+                    assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testWithCredentialsFromEnv() throws IOException {
+                URI uri = getURI();
+                try (FileSystem fs = FileSystems.newFileSystem(uri, createEnv(UNIX))) {
+                    Path path = fs.getPath("");
+                    assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testWithCredentialsFromURIAndEnv() {
+                URI uri = URI.create(getBaseUrl());
+                FTPEnvironment env = createEnv(UNIX);
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+                assertChainEquals(Messages.uri().hasUserInfo(uri), exception);
+            }
+
+            @Test
+            void testWithoutCredentials() {
+                URI uri = getURI();
+                FTPEnvironment env = createMinimalEnv(UNIX).withDefaultDirectory("/");
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> FileSystems.newFileSystem(uri, env));
+                assertEquals(530, exception.getReplyCode());
             }
         }
 
-        @Test
-        void testWithUserInfoAndCredentials() {
-            URI uri = URI.create(getBaseUrl());
-            FTPEnvironment env = createEnv(UNIX);
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertChainEquals(Messages.uri().hasUserInfo(uri), exception);
-        }
+        @Nested
+        class WithPath {
 
-        @Test
-        void testWithPathAndDefaultDir() {
-            URI uri = getURI().resolve("/path");
-            FTPEnvironment env = createEnv(UNIX)
-                    .withDefaultDirectory("/home/test");
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
-            assertChainEquals(Messages.uri().hasPath(uri), exception);
+            @Test
+            void testNoPathFromURIOrEnv() throws IOException {
+                URI uri = getURI();
+                FTPEnvironment env = createEnv(UNIX);
+                try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                    Path path = fs.getPath("");
+                    assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testPathFromEnv() throws IOException {
+                String defaultDir = getDefaultDir() + "/foo";
+                addDirectoryIfNotExists(defaultDir);
+
+                URI uri = getURI();
+                FTPEnvironment env = createEnv(UNIX).withDefaultDirectory(defaultDir);
+                try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                    Path path = fs.getPath("");
+                    assertEquals(defaultDir, path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testRootPathFromURINoPathFromEnv() throws IOException {
+                URI uri = getURI().resolve("/");
+                FTPEnvironment env = createEnv(UNIX);
+                try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                    Path path = fs.getPath("");
+                    assertEquals("/", path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testRootPathFromURIAndPathFromEnv() throws IOException {
+                String defaultDir = getDefaultDir() + "/foo";
+                addDirectoryIfNotExists(defaultDir);
+
+                URI uri = getURI().resolve("/");
+                FTPEnvironment env = createEnv(UNIX).withDefaultDirectory(defaultDir);
+                try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                    Path path = fs.getPath("");
+                    assertEquals(defaultDir, path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testPathFromURI() throws IOException {
+                String defaultDir = getDefaultDir() + "/foo";
+                addDirectoryIfNotExists(defaultDir);
+
+                URI uri = getURI().resolve(defaultDir);
+                FTPEnvironment env = createEnv(UNIX);
+                try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+                    Path path = fs.getPath("");
+                    assertEquals(defaultDir, path.toAbsolutePath().toString());
+                }
+            }
+
+            @Test
+            void testPathFromURIAndEnv() {
+                URI uri = getURI().resolve("/path");
+                FTPEnvironment env = createEnv(UNIX).withDefaultDirectory("/");
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> FileSystems.newFileSystem(uri, env));
+                assertChainEquals(Messages.uri().hasPath(uri), exception);
+            }
         }
 
         @Test

@@ -457,6 +457,7 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             try {
                 Path path = assertDoesNotThrow(() -> provider.getPath(uri));
                 assertNotEquals(uri, path.toUri());
+                assertEquals("/foo", path.toString());
                 assertEquals("/foo", path.toAbsolutePath().toString());
                 assertFalse(Files.exists(path));
                 assertDoesNotThrow(() -> path.getFileSystem().close());
@@ -473,7 +474,27 @@ class FTPFileSystemProviderTest extends AbstractFTPFileSystemTest {
             try {
                 Path path = assertDoesNotThrow(() -> provider.getPath(uri));
                 assertNotEquals(uri, path.toUri());
+                assertEquals("", path.toString());
                 assertEquals(getDefaultDir(), path.toAbsolutePath().toString());
+                assertTrue(Files.exists(path));
+                assertDoesNotThrow(() -> path.getFileSystem().close());
+            } finally {
+                FTPEnvironment.setDefault(null);
+            }
+        }
+
+        @Test
+        void testFileSystemCreatedWithQueryParams() {
+            addDirectoryIfNotExists("/foo");
+
+            FTPFileSystemProvider provider = new FTPFileSystemProvider();
+            URI uri = URI.create(getBaseUrlWithCredentials() + "?defaultDir=/foo");
+            FTPEnvironment.setDefault(createMinimalEnv(UNIX));
+            try {
+                Path path = assertDoesNotThrow(() -> provider.getPath(uri));
+                assertNotEquals(uri, path.toUri());
+                assertEquals("", path.toString());
+                assertEquals("/foo", path.toAbsolutePath().toString());
                 assertTrue(Files.exists(path));
                 assertDoesNotThrow(() -> path.getFileSystem().close());
             } finally {

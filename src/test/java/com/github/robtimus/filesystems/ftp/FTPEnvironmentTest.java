@@ -21,6 +21,7 @@ import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.NON_UNIX;
 import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory.UNIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -284,6 +286,95 @@ class FTPEnvironmentTest {
 
         Map<String, Object> expected = new HashMap<>();
         expected.put("controlKeepAliveReplyTimeout", timeout);
+        assertEquals(expected, env);
+    }
+
+    @Test
+    void testWithQueryString() throws IOException {
+        char[] password = "pass".toCharArray();
+        FTPEnvironment env = new FTPEnvironment()
+                .withCredentials("user", password);
+
+        String queryString = "localAddr=127.0.0.1"
+                + "&unknown1"
+                + "&localPort=12345"
+                + "&account=ACC"
+                + "&soTimeout=1000"
+                + "&sendBufferSize=1024"
+                + "&receiveBufferSize=2048"
+                + "&tcpNoDelay=true"
+                + "&keepAlive=true"
+                + "&soLinger.on=true"
+                + "&soLinger.val=100"
+                + "&connectTimeout=5"
+                + "&charset=ASCII"
+                + "&controlEncoding=UTF-8"
+                + "&strictMultilineParsing=true"
+                + "&dataTimeout=PT5S"
+                + "&ipAddressFromPasvResponse=true"
+                + "&remoteVerificationEnabled=true"
+                + "&defaultDir=/home"
+                + "&connectionMode=PASSIVE"
+                + "&activePortRange.min=10000"
+                + "&activePortRange.max=20000"
+                + "&activeExternalIPAddress=127.0.0.2"
+                + "&passiveLocalIPAddress=127.0.0.3"
+                + "&reportActiveExternalIPAddress=127.0.0.4"
+                + "&bufferSize=3072"
+                + "&sendDataSocketBufferSize=4096"
+                + "&receiveDataSocketBufferSize=5120"
+                + "&useEPSVwithIPv4=true"
+                + "&controlKeepAliveTimeout=PT10S"
+                + "&controlKeepAliveReplyTimeout=PT15S"
+                + "&autodetectEncoding=true"
+                + "&listHiddenFiles=true"
+                + "&poolConfig.maxWaitTime=PT5S"
+                + "&poolConfig.maxIdleTime=PT10S"
+                + "&poolConfig.initialSize=2"
+                + "&poolConfig.maxSize=10"
+                + "&unknown2";
+
+        env.withQueryString(queryString);
+
+        FTPEnvironment expected = new FTPEnvironment()
+                .withLocalAddress(InetAddress.getByName("127.0.0.1"), 12345)
+                .withCredentials("user", password, "ACC")
+                .withSoTimeout(1000)
+                .withSendBufferSize(1024)
+                .withReceiveBufferSize(2048)
+                .withTcpNoDelay(true)
+                .withKeepAlive(true)
+                .withSoLinger(true, 100)
+                .withConnectTimeout(5)
+                .withCharset(StandardCharsets.US_ASCII)
+                .withControlEncoding("UTF-8")
+                .withStrictMultilineParsing(true)
+                .withDataTimeout(Duration.ofSeconds(5))
+                .withIpAddressFromPasvResponse(true)
+                .withRemoteVerificationEnabled(true)
+                .withDefaultDirectory("/home")
+                .withConnectionMode(ConnectionMode.PASSIVE)
+                .withActivePortRange(10000, 20000)
+                .withActiveExternalIPAddress("127.0.0.2")
+                .withPassiveLocalIPAddress("127.0.0.3")
+                .withReportActiveExternalIPAddress("127.0.0.4")
+                .withBufferSize(3072)
+                .withSendDataSocketBufferSize(4096)
+                .withReceiveDataSocketBufferSize(5120)
+                .withUseEPSVwithIPv4(true)
+                .withControlKeepAliveTimeout(Duration.ofSeconds(10))
+                .withControlKeepAliveReplyTimeout(Duration.ofSeconds(15))
+                .withAutodetectEncoding(true)
+                .withListHiddenFiles(true);
+
+        // FTPPoolConfig doesn't define equals, so it needs to be removed before env can be compared to expected
+        FTPPoolConfig poolConfig = assertInstanceOf(FTPPoolConfig.class, env.remove("poolConfig"));
+
+        assertEquals(Optional.of(Duration.ofSeconds(5)), poolConfig.maxWaitTime());
+        assertEquals(Optional.of(Duration.ofSeconds(10)), poolConfig.maxIdleTime());
+        assertEquals(2, poolConfig.initialSize());
+        assertEquals(10, poolConfig.maxSize());
+
         assertEquals(expected, env);
     }
 

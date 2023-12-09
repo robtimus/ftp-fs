@@ -18,6 +18,13 @@
 package com.github.robtimus.filesystems.ftp;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -25,6 +32,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -116,6 +124,10 @@ public class FTPEnvironment implements Map<String, Object> {
     // FTP file system support
 
     private static final String POOL_CONFIG = "poolConfig"; //$NON-NLS-1$
+    private static final String POOL_CONFIG_MAX_WAIT_TIME = POOL_CONFIG + ".maxWaitTime"; //$NON-NLS-1$
+    private static final String POOL_CONFIG_MAX_IDLE_TIME = POOL_CONFIG + ".maxIdleTime"; //$NON-NLS-1$
+    private static final String POOL_CONFIG_INITIAL_SIZE = POOL_CONFIG + ".initialSize"; //$NON-NLS-1$
+    private static final String POOL_CONFIG_MAX_SIZE = POOL_CONFIG + ".maxSize"; //$NON-NLS-1$
     private static final String FILE_SYSTEM_EXCEPTION_FACTORY = "fileSystemExceptionFactory"; //$NON-NLS-1$
     private static final String FTP_FILE_STRATEGY_FACTORY = "ftpFileStrategyFactory"; //$NON-NLS-1$
 
@@ -148,6 +160,8 @@ public class FTPEnvironment implements Map<String, Object> {
      * @see Socket#bind(SocketAddress)
      * @see InetSocketAddress#InetSocketAddress(InetAddress, int)
      */
+    @QueryParam(LOCAL_ADDR)
+    @QueryParam(LOCAL_PORT)
     public FTPEnvironment withLocalAddress(InetAddress localAddr, int localPort) {
         put(LOCAL_ADDR, localAddr);
         put(LOCAL_PORT, localPort);
@@ -177,6 +191,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param account The account to use.
      * @return This object.
      */
+    @QueryParam(ACCOUNT)
     public FTPEnvironment withCredentials(String username, char[] password, String account) {
         put(USERNAME, username);
         put(PASSWORD, password);
@@ -193,6 +208,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setSoTimeout(int)
      */
+    @QueryParam(SO_TIMEOUT)
     public FTPEnvironment withSoTimeout(int timeout) {
         put(SO_TIMEOUT, timeout);
         return this;
@@ -205,6 +221,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setSendBufferSize(int)
      */
+    @QueryParam(SEND_BUFFER_SIZE)
     public FTPEnvironment withSendBufferSize(int size) {
         put(SEND_BUFFER_SIZE, size);
         return this;
@@ -217,6 +234,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setReceiveBufferSize(int)
      */
+    @QueryParam(RECEIVE_BUFFER_SIZE)
     public FTPEnvironment withReceiveBufferSize(int size) {
         put(RECEIVE_BUFFER_SIZE, size);
         return this;
@@ -229,6 +247,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setTcpNoDelay(boolean)
      */
+    @QueryParam(TCP_NO_DELAY)
     public FTPEnvironment withTcpNoDelay(boolean on) {
         put(TCP_NO_DELAY, on);
         return this;
@@ -241,6 +260,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setKeepAlive(boolean)
      */
+    @QueryParam(KEEP_ALIVE)
     public FTPEnvironment withKeepAlive(boolean keepAlive) {
         put(KEEP_ALIVE, keepAlive);
         return this;
@@ -254,6 +274,8 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#setSoLinger(boolean, int)
      */
+    @QueryParam(SO_LINGER_ON)
+    @QueryParam(SO_LINGER_VALUE)
     public FTPEnvironment withSoLinger(boolean on, int linger) {
         put(SO_LINGER_ON, on);
         put(SO_LINGER_VALUE, linger);
@@ -289,6 +311,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @see Socket#connect(SocketAddress, int)
      */
+    @QueryParam(CONNECT_TIMEOUT)
     public FTPEnvironment withConnectTimeout(int timeout) {
         put(CONNECT_TIMEOUT, timeout);
         return this;
@@ -311,6 +334,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param charset The charset to use.
      * @return This object.
      */
+    @QueryParam(CHARSET)
     public FTPEnvironment withCharset(Charset charset) {
         put(CHARSET, charset);
         return this;
@@ -326,6 +350,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param encoding The character encoding to use.
      * @return This object.
      */
+    @QueryParam(CONTROL_ENCODING)
     public FTPEnvironment withControlEncoding(String encoding) {
         put(CONTROL_ENCODING, encoding);
         return this;
@@ -338,6 +363,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 2.1
      */
+    @QueryParam(STRICT_MULTILINE_PARSING)
     public FTPEnvironment withStrictMultilineParsing(boolean strictMultilineParsing) {
         put(STRICT_MULTILINE_PARSING, strictMultilineParsing);
         return this;
@@ -365,6 +391,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 3.1
      */
+    @QueryParam(DATA_TIMEOUT)
     public FTPEnvironment withDataTimeout(Duration timeout) {
         put(DATA_TIMEOUT, timeout);
         return this;
@@ -392,6 +419,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 3.1
      */
+    @QueryParam(IP_ADDRESS_FROM_PASV_RESPONSE)
     public FTPEnvironment withIpAddressFromPasvResponse(boolean usingIpAddressFromPasvResponse) {
         put(IP_ADDRESS_FROM_PASV_RESPONSE, usingIpAddressFromPasvResponse);
         return this;
@@ -404,6 +432,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param enabled {@code true} to enable verification, or {@code false} to disable verification.
      * @return This object.
      */
+    @QueryParam(REMOTE_VERIFICATION_ENABLED)
     public FTPEnvironment withRemoteVerificationEnabled(boolean enabled) {
         put(REMOTE_VERIFICATION_ENABLED, enabled);
         return this;
@@ -416,6 +445,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param pathname The default directory to use.
      * @return This object.
      */
+    @QueryParam(DEFAULT_DIR)
     public FTPEnvironment withDefaultDirectory(String pathname) {
         put(DEFAULT_DIR, pathname);
         return this;
@@ -428,6 +458,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param connectionMode The connection mode to use.
      * @return This object.
      */
+    @QueryParam(CONNECTION_MODE)
     public FTPEnvironment withConnectionMode(ConnectionMode connectionMode) {
         put(CONNECTION_MODE, connectionMode);
         return this;
@@ -440,6 +471,8 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param maxPort The highest available port (inclusive).
      * @return This object.
      */
+    @QueryParam(ACTIVE_PORT_RANGE_MIN)
+    @QueryParam(ACTIVE_PORT_RANGE_MAX)
     public FTPEnvironment withActivePortRange(int minPort, int maxPort) {
         put(ACTIVE_PORT_RANGE_MIN, minPort);
         put(ACTIVE_PORT_RANGE_MAX, maxPort);
@@ -452,6 +485,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param ipAddress The external IP address of this machine.
      * @return This object.
      */
+    @QueryParam(ACTIVE_EXTERNAL_IP_ADDRESS)
     public FTPEnvironment withActiveExternalIPAddress(String ipAddress) {
         put(ACTIVE_EXTERNAL_IP_ADDRESS, ipAddress);
         return this;
@@ -463,6 +497,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param ipAddress The local IP address of this machine.
      * @return This object.
      */
+    @QueryParam(PASSIVE_LOCAL_IP_ADDRESS)
     public FTPEnvironment withPassiveLocalIPAddress(String ipAddress) {
         put(PASSIVE_LOCAL_IP_ADDRESS, ipAddress);
         return this;
@@ -474,6 +509,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param ipAddress The external IP address of this machine.
      * @return This object.
      */
+    @QueryParam(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS)
     public FTPEnvironment withReportActiveExternalIPAddress(String ipAddress) {
         put(REPORT_ACTIVE_EXTERNAL_IP_ADDRESS, ipAddress);
         return this;
@@ -485,6 +521,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param bufferSize The buffer size to use.
      * @return This object.
      */
+    @QueryParam(BUFFER_SIZE)
     public FTPEnvironment withBufferSize(int bufferSize) {
         put(BUFFER_SIZE, bufferSize);
         return this;
@@ -496,6 +533,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param bufferSizr The size of the buffer.
      * @return This object.
      */
+    @QueryParam(SEND_DATA_SOCKET_BUFFER_SIZE)
     public FTPEnvironment withSendDataSocketBufferSize(int bufferSizr) {
         put(SEND_DATA_SOCKET_BUFFER_SIZE, bufferSizr);
         return this;
@@ -507,6 +545,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param bufferSize The size of the buffer.
      * @return This object.
      */
+    @QueryParam(RECEIVE_DATA_SOCKET_BUFFER_SIZE)
     public FTPEnvironment withReceiveDataSocketBufferSize(int bufferSize) {
         put(RECEIVE_DATA_SOCKET_BUFFER_SIZE, bufferSize);
         return this;
@@ -533,6 +572,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param selected The flag to use.
      * @return This object.
      */
+    @QueryParam(USE_EPSV_WITH_IPV4)
     public FTPEnvironment withUseEPSVwithIPv4(boolean selected) {
         put(USE_EPSV_WITH_IPV4, selected);
         return this;
@@ -558,6 +598,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 3.1
      */
+    @QueryParam(CONTROL_KEEP_ALIVE_TIMEOUT)
     public FTPEnvironment withControlKeepAliveTimeout(Duration timeout) {
         put(CONTROL_KEEP_ALIVE_TIMEOUT, timeout);
         return this;
@@ -583,6 +624,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 3.1
      */
+    @QueryParam(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT)
     public FTPEnvironment withControlKeepAliveReplyTimeout(Duration timeout) {
         put(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, timeout);
         return this;
@@ -611,6 +653,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @param autodetect {@code true} to enable automatic server encoding detection, or {@code false} to disable it.
      * @return This object.
      */
+    @QueryParam(AUTODETECT_ENCODING)
     public FTPEnvironment withAutodetectEncoding(boolean autodetect) {
         put(AUTODETECT_ENCODING, autodetect);
         return this;
@@ -629,6 +672,7 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 2.0
      */
+    @QueryParam(LIST_HIDDEN_FILES)
     public FTPEnvironment withListHiddenFiles(boolean listHiddenFiles) {
         put(LIST_HIDDEN_FILES, listHiddenFiles);
         return this;
@@ -648,6 +692,10 @@ public class FTPEnvironment implements Map<String, Object> {
      * @return This object.
      * @since 3.0
      */
+    @QueryParam(POOL_CONFIG_MAX_WAIT_TIME)
+    @QueryParam(POOL_CONFIG_MAX_IDLE_TIME)
+    @QueryParam(POOL_CONFIG_INITIAL_SIZE)
+    @QueryParam(POOL_CONFIG_MAX_SIZE)
     public FTPEnvironment withPoolConfig(FTPPoolConfig poolConfig) {
         put(POOL_CONFIG, poolConfig);
         return this;
@@ -673,6 +721,116 @@ public class FTPEnvironment implements Map<String, Object> {
      */
     public FTPEnvironment withFTPFileStrategyFactory(FTPFileStrategyFactory factory) {
         put(FTP_FILE_STRATEGY_FACTORY, factory);
+        return this;
+    }
+
+    FTPEnvironment withQueryString(String rawQueryString) throws IOException {
+        new QueryParamProcessor(this).processQueryString(rawQueryString);
+        return this;
+    }
+
+    FTPEnvironment withQueryParam(String name, String value) throws IOException {
+        switch (name) {
+            case LOCAL_ADDR:
+                put(LOCAL_ADDR, InetAddress.getByName(value));
+                break;
+            case LOCAL_PORT:
+                put(LOCAL_PORT, Integer.parseInt(value));
+                break;
+            case ACCOUNT:
+                put(ACCOUNT, value);
+                break;
+            case SO_TIMEOUT:
+                withSoTimeout(Integer.parseInt(value));
+                break;
+            case SEND_BUFFER_SIZE:
+                withSendBufferSize(Integer.parseInt(value));
+                break;
+            case RECEIVE_BUFFER_SIZE:
+                withReceiveBufferSize(Integer.parseInt(value));
+                break;
+            case TCP_NO_DELAY:
+                withTcpNoDelay(Boolean.parseBoolean(value));
+                break;
+            case KEEP_ALIVE:
+                withKeepAlive(Boolean.parseBoolean(value));
+                break;
+            case SO_LINGER_ON:
+                put(SO_LINGER_ON, Boolean.parseBoolean(value));
+                break;
+            case SO_LINGER_VALUE:
+                put(SO_LINGER_VALUE, Integer.parseInt(value));
+                break;
+            case CONNECT_TIMEOUT:
+                withConnectTimeout(Integer.parseInt(value));
+                break;
+            case CHARSET:
+                withCharset(Charset.forName(value));
+                break;
+            case CONTROL_ENCODING:
+                withControlEncoding(value);
+                break;
+            case STRICT_MULTILINE_PARSING:
+                withStrictMultilineParsing(Boolean.parseBoolean(value));
+                break;
+            case DATA_TIMEOUT:
+                withDataTimeout(Duration.parse(value));
+                break;
+            case IP_ADDRESS_FROM_PASV_RESPONSE:
+                withIpAddressFromPasvResponse(Boolean.parseBoolean(value));
+                break;
+            case REMOTE_VERIFICATION_ENABLED:
+                withRemoteVerificationEnabled(Boolean.parseBoolean(value));
+                break;
+            case DEFAULT_DIR:
+                withDefaultDirectory(value);
+                break;
+            case CONNECTION_MODE:
+                withConnectionMode(ConnectionMode.valueOf(value));
+                break;
+            case ACTIVE_PORT_RANGE_MIN:
+                put(ACTIVE_PORT_RANGE_MIN, Integer.parseInt(value));
+                break;
+            case ACTIVE_PORT_RANGE_MAX:
+                put(ACTIVE_PORT_RANGE_MAX, Integer.parseInt(value));
+                break;
+            case ACTIVE_EXTERNAL_IP_ADDRESS:
+                withActiveExternalIPAddress(value);
+                break;
+            case PASSIVE_LOCAL_IP_ADDRESS:
+                withPassiveLocalIPAddress(value);
+                break;
+            case REPORT_ACTIVE_EXTERNAL_IP_ADDRESS:
+                withReportActiveExternalIPAddress(value);
+                break;
+            case BUFFER_SIZE:
+                withBufferSize(Integer.parseInt(value));
+                break;
+            case SEND_DATA_SOCKET_BUFFER_SIZE:
+                withSendDataSocketBufferSize(Integer.parseInt(value));
+                break;
+            case RECEIVE_DATA_SOCKET_BUFFER_SIZE:
+                withReceiveDataSocketBufferSize(Integer.parseInt(value));
+                break;
+            case USE_EPSV_WITH_IPV4:
+                withUseEPSVwithIPv4(Boolean.parseBoolean(value));
+                break;
+            case CONTROL_KEEP_ALIVE_TIMEOUT:
+                withControlKeepAliveTimeout(Duration.parse(value));
+                break;
+            case CONTROL_KEEP_ALIVE_REPLY_TIMEOUT:
+                withControlKeepAliveReplyTimeout(Duration.parse(value));
+                break;
+            case AUTODETECT_ENCODING:
+                withAutodetectEncoding(Boolean.parseBoolean(value));
+                break;
+            case LIST_HIDDEN_FILES:
+                withListHiddenFiles(Boolean.parseBoolean(value));
+                break;
+            default:
+                // ignore
+                break;
+        }
         return this;
     }
 
@@ -1198,5 +1356,112 @@ public class FTPEnvironment implements Map<String, Object> {
 
     static FTPEnvironment copyOfDefault() {
         return copy(DEFAULTS.get());
+    }
+
+    /**
+     * Indicates which query parameters can be used to define environment values.
+     *
+     * @author Rob Spoor
+     * @since 3.2
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.SOURCE)
+    @Documented
+    @Repeatable(QueryParams.class)
+    public @interface QueryParam {
+
+        /**
+         * The name of the query parameter.
+         */
+        String value();
+    }
+
+    /**
+     * A container for {@link QueryParam} annotations.
+     *
+     * @author Rob Spoor
+     * @since 3.2
+     */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.SOURCE)
+    @Documented
+    public @interface QueryParams {
+
+        /**
+         * The contained {@link QueryParam} annotations.
+         */
+        QueryParam[] value();
+    }
+
+    static class QueryParamProcessor {
+
+        private final FTPEnvironment env;
+        private FTPPoolConfig.Builder poolConfigBuilder;
+
+        QueryParamProcessor(FTPEnvironment env) {
+            this.env = env;
+        }
+
+        private void processQueryString(String rawQueryString) throws IOException {
+            int start = 0;
+            int indexOfAmp = rawQueryString.indexOf('&', start);
+            while (indexOfAmp != -1) {
+                processQueryParam(rawQueryString, start, indexOfAmp);
+                start = indexOfAmp + 1;
+                indexOfAmp = rawQueryString.indexOf('&', start);
+            }
+            processQueryParam(rawQueryString, start, rawQueryString.length());
+
+            if (poolConfigBuilder != null) {
+                env.withPoolConfig(poolConfigBuilder.build());
+            }
+        }
+
+        private void processQueryParam(String rawQueryString, int start, int end) throws IOException {
+            int indexOfEquals = rawQueryString.indexOf('=', start);
+            if (indexOfEquals == -1 || indexOfEquals > end) {
+                String name = decode(rawQueryString.substring(start, end));
+                processQueryParam(name, ""); //$NON-NLS-1$
+            } else {
+                String name = decode(rawQueryString.substring(start, indexOfEquals));
+                String value = decode(rawQueryString.substring(indexOfEquals + 1, end));
+                processQueryParam(name, value);
+            }
+        }
+
+        void processQueryParam(String name, String value) throws IOException {
+            switch (name) {
+                case POOL_CONFIG_MAX_WAIT_TIME:
+                    poolConfigBuilder().withMaxWaitTime(Duration.parse(value));
+                    break;
+                case POOL_CONFIG_MAX_IDLE_TIME:
+                    poolConfigBuilder().withMaxIdleTime(Duration.parse(value));
+                    break;
+                case POOL_CONFIG_INITIAL_SIZE:
+                    poolConfigBuilder().withInitialSize(Integer.parseInt(value));
+                    break;
+                case POOL_CONFIG_MAX_SIZE:
+                    poolConfigBuilder().withMaxSize(Integer.parseInt(value));
+                    break;
+                default:
+                    env.withQueryParam(name, value);
+                    break;
+            }
+        }
+
+        private String decode(String value) {
+            try {
+                return URLDecoder.decode(value, "UTF-8"); //$NON-NLS-1$
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        private FTPPoolConfig.Builder poolConfigBuilder() {
+            if (poolConfigBuilder == null) {
+                poolConfigBuilder = env.getPoolConfig().toBuilder();
+            }
+            return poolConfigBuilder;
+        }
     }
 }

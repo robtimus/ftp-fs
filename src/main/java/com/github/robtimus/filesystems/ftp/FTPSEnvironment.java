@@ -402,6 +402,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @param securityMode The security mode to use.
      * @return This object.
      */
+    @QueryParam(SECURITY_MODE)
     public FTPSEnvironment withSecurityMode(SecurityMode securityMode) {
         put(SECURITY_MODE, securityMode);
         return this;
@@ -427,6 +428,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @param protocol The protocol to use.
      * @return This object.
      */
+    @QueryParam(PROTOCOL)
     public FTPSEnvironment withProtocol(String protocol) {
         put(PROTOCOL, protocol);
         return this;
@@ -438,6 +440,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @param command The AUTH command to use.
      * @return This object.
      */
+    @QueryParam(AUTH_COMMAND)
     public FTPSEnvironment withAuthCommand(String command) {
         put(AUTH_COMMAND, command);
         return this;
@@ -489,6 +492,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @see SSLSocket#setSSLParameters(SSLParameters)
      * @see SSLParameters#setEndpointIdentificationAlgorithm(String)
      */
+    @QueryParam(ENDPOINT_CHECKING_ENABLED)
     public FTPSEnvironment withEndpointCheckingEnabled(boolean enabled) {
         put(ENDPOINT_CHECKING_ENABLED, enabled);
         return this;
@@ -501,6 +505,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setEnableSessionCreation(boolean)
      */
+    @QueryParam(ENABLED_SESSION_CREATION)
     public FTPSEnvironment withEnabledSessionCreation(boolean established) {
         put(ENABLED_SESSION_CREATION, established);
         return this;
@@ -513,6 +518,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setNeedClientAuth(boolean)
      */
+    @QueryParam(NEED_CLIENT_AUTH)
     public FTPSEnvironment withNeedClientAuth(boolean needClientAuth) {
         put(NEED_CLIENT_AUTH, needClientAuth);
         return this;
@@ -525,6 +531,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setWantClientAuth(boolean)
      */
+    @QueryParam(WANT_CLIENT_AUTH)
     public FTPSEnvironment withWantClientAuth(boolean wantClientAuth) {
         put(WANT_CLIENT_AUTH, wantClientAuth);
         return this;
@@ -537,6 +544,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setUseClientMode(boolean)
      */
+    @QueryParam(USE_CLIENT_MODE)
     public FTPSEnvironment withUseClientMode(boolean useClientMode) {
         put(USE_CLIENT_MODE, useClientMode);
         return this;
@@ -549,6 +557,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setEnabledCipherSuites(String[])
      */
+    @QueryParam(ENABLED_CIPHER_SUITES)
     public FTPSEnvironment withEnabledCipherSuites(String... cipherSuites) {
         put(ENABLED_CIPHER_SUITES, cipherSuites);
         return this;
@@ -561,6 +570,7 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @return This object.
      * @see SSLSocket#setEnabledProtocols(String[])
      */
+    @QueryParam(ENABLED_PROTOCOLS)
     public FTPSEnvironment withEnabledProtocols(String... protocolVersions) {
         put(ENABLED_PROTOCOLS, protocolVersions);
         return this;
@@ -574,8 +584,58 @@ public class FTPSEnvironment extends FTPEnvironment {
      * @see SSLSocket#setUseClientMode(boolean)
      * @since 2.2
      */
+    @QueryParam(DATA_CHANNEL_PROTECTION_LEVEL)
     public FTPSEnvironment withDataChannelProtectionLevel(DataChannelProtectionLevel dataChannelProtectionLevel) {
         put(DATA_CHANNEL_PROTECTION_LEVEL, dataChannelProtectionLevel);
+        return this;
+    }
+
+    @Override
+    FTPSEnvironment withQueryString(String rawQueryString) throws IOException {
+        super.withQueryString(rawQueryString);
+        return this;
+    }
+
+    @Override
+    FTPEnvironment withQueryParam(String name, String value) throws IOException {
+        switch (name) {
+            case SECURITY_MODE:
+                withSecurityMode(SecurityMode.valueOf(value));
+                break;
+            case PROTOCOL:
+                withProtocol(value);
+                break;
+            case AUTH_COMMAND:
+                withAuthCommand(value);
+                break;
+            case ENDPOINT_CHECKING_ENABLED:
+                withEndpointCheckingEnabled(Boolean.parseBoolean(value));
+                break;
+            case ENABLED_SESSION_CREATION:
+                withEnabledSessionCreation(Boolean.parseBoolean(value));
+                break;
+            case NEED_CLIENT_AUTH:
+                withNeedClientAuth(Boolean.parseBoolean(value));
+                break;
+            case WANT_CLIENT_AUTH:
+                withWantClientAuth(Boolean.parseBoolean(value));
+                break;
+            case USE_CLIENT_MODE:
+                withUseClientMode(Boolean.parseBoolean(value));
+                break;
+            case ENABLED_CIPHER_SUITES:
+                withEnabledCipherSuites(value.split(",")); //$NON-NLS-1$
+                break;
+            case ENABLED_PROTOCOLS:
+                withEnabledProtocols(value.split(",")); //$NON-NLS-1$
+                break;
+            case DATA_CHANNEL_PROTECTION_LEVEL:
+                withDataChannelProtectionLevel(DataChannelProtectionLevel.valueOf(value));
+                break;
+            default:
+                super.withQueryParam(name, value);
+                break;
+        }
         return this;
     }
 

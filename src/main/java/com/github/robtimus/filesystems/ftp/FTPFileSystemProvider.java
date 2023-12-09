@@ -50,6 +50,8 @@ import com.github.robtimus.filesystems.FileSystemMap;
 import com.github.robtimus.filesystems.LinkOptionSupport;
 import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.filesystems.URISupport;
+import com.github.robtimus.filesystems.ftp.FTPEnvironment.QueryParam;
+import com.github.robtimus.filesystems.ftp.FTPEnvironment.QueryParams;
 
 /**
  * A provider for FTP file systems.
@@ -92,7 +94,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         boolean allowUserInfo = !environment.hasUsername();
         boolean allowPath = !environment.hasDefaultDir();
 
-        checkURI(uri, allowUserInfo, allowPath);
+        checkURI(uri, allowUserInfo, allowPath, false);
 
         addUserInfoIfNeeded(environment, uri.getUserInfo());
         addDefaultDirIfNeeded(environment, uri.getPath());
@@ -137,7 +139,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      */
     @Override
     public FileSystem getFileSystem(URI uri) {
-        checkURI(uri, true, false);
+        checkURI(uri, true, false, false);
 
         URI normalizedURI = normalizeWithoutPassword(uri);
         return fileSystems.get(normalizedURI);
@@ -147,20 +149,21 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * Return a {@code Path} object by converting the given {@link URI}. The resulting {@code Path} is associated with a {@link FileSystem} that
      * already exists, or is constructed automatically.
      * <p>
-     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getQuery() query} or
-     * {@link URI#getFragment() fragment}. Because the original credentials were possibly provided through an environment map,
-     * the URI can contain {@link URI#getUserInfo() user information}, although for security reasons this should only contain a password to support
-     * automatically creating file systems.
+     * The URI must have a {@link URI#getScheme() scheme} equal to {@link #getScheme()}, and no {@link URI#getFragment() fragment}. Because the
+     * original credentials were possibly provided through an environment map, the URI can contain {@link URI#getUserInfo() user information},
+     * although for security reasons this should only contain a password to support automatically creating file systems.
      * <p>
      * If no matching file system existed yet, a new one is created. The default environment for {@link FTPEnvironment#setDefault(FTPEnvironment) FTP}
-     * or {@link FTPSEnvironment#setDefault(FTPSEnvironment) FTPS} is used for this, to allow configuring the resulting file system.
+     * or {@link FTPSEnvironment#setDefault(FTPSEnvironment) FTPS} is used for this, to allow configuring the resulting file system. URI specific
+     * settings can also be provided through the {@link URI#getQuery() query}; see usages of {@link QueryParam} and {@link QueryParams} for the
+     * possible query parameters.
      * <p>
      * Remember to close any newly created file system.
      */
     @Override
     @SuppressWarnings("resource")
     public Path getPath(URI uri) {
-        checkURI(uri, true, true);
+        checkURI(uri, true, true, true);
 
         URI normalizedURI = normalizeWithoutPassword(uri);
         FTPEnvironment env = copyOfDefaultEnvironment();
@@ -169,6 +172,11 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         // Do not add any default dir
 
         try {
+            String rawQueryString = uri.getRawQuery();
+            if (rawQueryString != null) {
+                env.withQueryString(rawQueryString);
+            }
+
             FTPFileSystem fs = fileSystems.addIfNotExists(normalizedURI, env);
             return fs.getPath(uri.getPath());
         } catch (IOException e) {
@@ -184,7 +192,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         return FTPEnvironment.copyOfDefault();
     }
 
-    private void checkURI(URI uri, boolean allowUserInfo, boolean allowPath) {
+    private void checkURI(URI uri, boolean allowUserInfo, boolean allowPath, boolean allowQuery) {
         if (!uri.isAbsolute()) {
             throw Messages.uri().notAbsolute(uri);
         }
@@ -200,7 +208,7 @@ public class FTPFileSystemProvider extends FileSystemProvider {
         if (!allowPath && !hasEmptyPath(uri) && !"/".equals(uri.getPath())) { //$NON-NLS-1$
             throw Messages.uri().hasPath(uri);
         }
-        if (uri.getQuery() != null && !uri.getQuery().isEmpty()) {
+        if (!allowQuery && uri.getQuery() != null && !uri.getQuery().isEmpty()) {
             throw Messages.uri().hasQuery(uri);
         }
         if (uri.getFragment() != null && !uri.getFragment().isEmpty()) {

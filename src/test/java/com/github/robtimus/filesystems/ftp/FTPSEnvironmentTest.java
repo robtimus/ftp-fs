@@ -18,7 +18,10 @@
 package com.github.robtimus.filesystems.ftp;
 
 import static com.github.robtimus.junit.support.ThrowableAssertions.assertChainEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,7 +32,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Stream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
@@ -80,6 +87,122 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
                 arguments("withDataChannelProtectionLevel", "dataChannelProtectionLevel", DataChannelProtectionLevel.PRIVATE),
         };
         return Stream.concat(super.findSetters(), Arrays.stream(arguments));
+    }
+
+    @Override
+    @Test
+    void testWithQueryString() throws IOException {
+        char[] password = "pass".toCharArray();
+        FTPSEnvironment env = new FTPSEnvironment()
+                .withCredentials("user", password);
+
+        String queryString = "localAddr=127.0.0.1"
+                + "&unknown1"
+                + "&localPort=12345"
+                + "&account=ACC"
+                + "&soTimeout=1000"
+                + "&sendBufferSize=1024"
+                + "&receiveBufferSize=2048"
+                + "&tcpNoDelay=true"
+                + "&keepAlive=true"
+                + "&soLinger.on=true"
+                + "&soLinger.val=100"
+                + "&connectTimeout=5"
+                + "&charset=ASCII"
+                + "&controlEncoding=UTF-8"
+                + "&strictMultilineParsing=true"
+                + "&dataTimeout=PT5S"
+                + "&ipAddressFromPasvResponse=true"
+                + "&remoteVerificationEnabled=true"
+                + "&defaultDir=/home"
+                + "&connectionMode=PASSIVE"
+                + "&activePortRange.min=10000"
+                + "&activePortRange.max=20000"
+                + "&activeExternalIPAddress=127.0.0.2"
+                + "&passiveLocalIPAddress=127.0.0.3"
+                + "&reportActiveExternalIPAddress=127.0.0.4"
+                + "&bufferSize=3072"
+                + "&sendDataSocketBufferSize=4096"
+                + "&receiveDataSocketBufferSize=5120"
+                + "&useEPSVwithIPv4=true"
+                + "&controlKeepAliveTimeout=PT10S"
+                + "&controlKeepAliveReplyTimeout=PT15S"
+                + "&autodetectEncoding=true"
+                + "&listHiddenFiles=true"
+                + "&poolConfig.maxWaitTime=PT5S"
+                + "&poolConfig.maxIdleTime=PT10S"
+                + "&poolConfig.initialSize=2"
+                + "&poolConfig.maxSize=10"
+                + "&securityMode=IMPLICIT"
+                + "&protocol=TLS"
+                + "&authCommand=CMD"
+                + "&endpointCheckingEnabled=true"
+                + "&enabledSessionCreation=true"
+                + "&needClientAuth=true"
+                + "&wantClientAuth=true"
+                + "&useClientMode=true"
+                + "&enabledCipherSuites=X,Y,Z"
+                + "&enabledProtocols=A,B,C"
+                + "&dataChannelProtectionLevel=CLEAR"
+                + "&unknown2";
+
+        env.withQueryString(queryString);
+
+        FTPSEnvironment expected = new FTPSEnvironment()
+                .withLocalAddress(InetAddress.getByName("127.0.0.1"), 12345)
+                .withCredentials("user", password, "ACC")
+                .withSoTimeout(1000)
+                .withSendBufferSize(1024)
+                .withReceiveBufferSize(2048)
+                .withTcpNoDelay(true)
+                .withKeepAlive(true)
+                .withSoLinger(true, 100)
+                .withConnectTimeout(5)
+                .withCharset(StandardCharsets.US_ASCII)
+                .withControlEncoding("UTF-8")
+                .withStrictMultilineParsing(true)
+                .withDataTimeout(Duration.ofSeconds(5))
+                .withIpAddressFromPasvResponse(true)
+                .withRemoteVerificationEnabled(true)
+                .withDefaultDirectory("/home")
+                .withConnectionMode(ConnectionMode.PASSIVE)
+                .withActivePortRange(10000, 20000)
+                .withActiveExternalIPAddress("127.0.0.2")
+                .withPassiveLocalIPAddress("127.0.0.3")
+                .withReportActiveExternalIPAddress("127.0.0.4")
+                .withBufferSize(3072)
+                .withSendDataSocketBufferSize(4096)
+                .withReceiveDataSocketBufferSize(5120)
+                .withUseEPSVwithIPv4(true)
+                .withControlKeepAliveTimeout(Duration.ofSeconds(10))
+                .withControlKeepAliveReplyTimeout(Duration.ofSeconds(15))
+                .withAutodetectEncoding(true)
+                .withListHiddenFiles(true)
+                .withSecurityMode(SecurityMode.IMPLICIT)
+                .withProtocol("TLS")
+                .withAuthCommand("CMD")
+                .withEndpointCheckingEnabled(true)
+                .withEnabledSessionCreation(true)
+                .withNeedClientAuth(true)
+                .withWantClientAuth(true)
+                .withUseClientMode(true)
+                .withDataChannelProtectionLevel(DataChannelProtectionLevel.CLEAR);
+
+        // FTPPoolConfig doesn't define equals, so it needs to be removed before env can be compared to expected
+        FTPPoolConfig poolConfig = assertInstanceOf(FTPPoolConfig.class, env.remove("poolConfig"));
+
+        assertEquals(Optional.of(Duration.ofSeconds(5)), poolConfig.maxWaitTime());
+        assertEquals(Optional.of(Duration.ofSeconds(10)), poolConfig.maxIdleTime());
+        assertEquals(2, poolConfig.initialSize());
+        assertEquals(10, poolConfig.maxSize());
+
+        // Enabled cipher suites and protocols are arrays and don't define equals, so they need to be removed before env can be compared to expected
+        String[] enabledCipherSuites = assertInstanceOf(String[].class, env.remove("enabledCipherSuites"));
+        assertArrayEquals(new String[] { "X", "Y", "Z" }, enabledCipherSuites);
+        String[] enabledProtocols = assertInstanceOf(String[].class, env.remove("enabledProtocols"));
+        assertArrayEquals(new String[] { "A", "B", "C" }, enabledProtocols);
+
+        assertEquals(expected, env);
     }
 
     private static final class TestKeyManager implements KeyManager {

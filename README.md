@@ -15,7 +15,19 @@ If the FTP file system library is available on the class path, it will register 
             .withCredentials(username, password);
     FileSystem fs = FileSystems.newFileSystem(URI.create("ftp://example.org"), env);
 
-Note that, for security reasons, it's not allowed to pass the credentials as part of the URI when creating a file system. It must be passed through the environment, as shown above.
+### Providing credentials
+
+Credentials can be provided either through the URI or through the environment, as shown above. For security reasons the latter is preferred.
+
+### Default directory
+
+The default directory can be provided through the URI or trough the environment using [withDefaultDirectory](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#withDefaultDirectory-java.lang.String-), as follows:
+
+| URI path | No default directory in the environment            | Default directory in the environment                |
+|----------|----------------------------------------------------|-----------------------------------------------------|
+| None     | The default directory is defined by the FTP server | The default directory is defined by the environment |
+| `/`      | The default directory is `/`                       | The default directory is defined by the environment |
+| Other    | The default directory is equal to the URI path     | Not allowed                                         |
 
 ## Creating paths
 
@@ -26,7 +38,7 @@ After a file system has been created, [Paths](https://docs.oracle.com/javase/8/d
     // created with credentials
     Path path2 = Paths.get(URI.create("ftp://username@example.org"));
 
-If the username in the URI does not match the username used to create the file system, this will cause a [FileSystemNotFoundException](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemNotFoundException.html) to be thrown.
+If the username in the URI does not match the username used to create the file system, or if no file system has been created for the URI, a new file system will be created. This works like [Creating file systems](#creating-file-systems). Since no environment can be provided this way, settings can still be provided through [FTPEnvironment.setDefault](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPEnvironment.html#setDefault-com.github.robtimus.filesystems.ftp.FTPEnvironment-) or [FTPSEnvironment.setDefault](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/FTPSEnvironment.html#setDefault-com.github.robtimus.filesystems.ftp.FTPSEnvironment-) and query parameters; see usages of [QueryParam](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/class-use/FTPEnvironment.QueryParam.html) and [QueryParams](https://robtimus.github.io/ftp-fs/apidocs/com/github/robtimus/filesystems/ftp/class-use/FTPEnvironment.QueryParams.html) for the possible query parameters. If creating a new file system fails, a [FileSystemNotFoundException](https://docs.oracle.com/javase/8/docs/api/java/nio/file/FileSystemNotFoundException.html) will be thrown.
 
 ## Attributes
 

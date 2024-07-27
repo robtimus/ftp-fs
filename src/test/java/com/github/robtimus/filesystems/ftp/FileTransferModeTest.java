@@ -48,6 +48,12 @@ class FileTransferModeTest {
         FileTransferMode.COMPRESSED.apply(client);
         verify(client).setFileTransferMode(FTP.COMPRESSED_TRANSFER_MODE);
         verifyNoMoreInteractions(client);
+
+        client = mock(FTPClient.class);
+        when(client.setFileTransferMode(FTP.DEFLATE_TRANSFER_MODE)).thenReturn(true);
+        FileTransferMode.DEFLATE.apply(client);
+        verify(client).setFileTransferMode(FTP.DEFLATE_TRANSFER_MODE);
+        verifyNoMoreInteractions(client);
     }
 
     @Test

@@ -29,12 +29,24 @@ import org.apache.commons.net.ftp.FTPClient;
  * @author Rob Spoor
  */
 public enum FileTransferMode implements OpenOption, CopyOption {
-    /** Indicates that files are to be transfered as streams of bytes. */
+    /**
+     * Indicates that files are to be transfered as streams of bytes.
+     */
     STREAM(FTP.STREAM_TRANSFER_MODE),
-    /** Indicates that files are to be transfered as series of blocks. */
+    /**
+     * Indicates that files are to be transfered as series of blocks.
+     */
     BLOCK(FTP.BLOCK_TRANSFER_MODE),
-    /** Indicate that files are to be transfered as FTP compressed data. */
+    /**
+     * Indicate that files are to be transfered as FTP compressed data.
+     */
     COMPRESSED(FTP.COMPRESSED_TRANSFER_MODE),
+    /**
+     * Indicate that files are to be transferred as FTP (un)compressing data in the "deflate" compression format.
+     *
+     * @since 3.3
+     */
+    DEFLATE(FTP.DEFLATE_TRANSFER_MODE),
     ;
 
     private final int mode;

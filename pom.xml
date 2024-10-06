@@ -27,7 +27,7 @@
   </parent>
 
   <artifactId>ftp-fs</artifactId>
-  <version>3.3-SNAPSHOT</version>
+  <version>3.3</version>
   <packaging>jar</packaging>
 
   <name>ftp-fs</name>
@@ -64,7 +64,7 @@
   <scm>
     <connection>scm:git:git@github.com:robtimus/ftp-fs.git</connection>
     <developerConnection>scm:git:git@github.com:robtimus/ftp-fs.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>3.3</tag>
     <url>https://github.com/robtimus/ftp-fs</url>
   </scm>
 

@@ -326,6 +326,7 @@
               <argLine>
                 @{argLine}
                 --add-opens com.github.robtimus.filesystems.ftp/com.github.robtimus.filesystems.ftp=ALL-UNNAMED
+                --add-reads com.github.robtimus.filesystems.ftp=org.slf4j
               </argLine>
             </configuration>
           </plugin>

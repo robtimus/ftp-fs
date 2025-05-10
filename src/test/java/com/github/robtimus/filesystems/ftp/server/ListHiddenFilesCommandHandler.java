@@ -83,7 +83,9 @@ public class ListHiddenFilesCommandHandler extends ListCommandHandler {
             lines.add(0, getFileSystem().formatDirectoryListing(addDot(getFileSystem().getEntry(path))));
         }
         String result = StringUtil.join(lines, endOfLine());
-        result += result.length() > 0 ? endOfLine() : "";
+        if (!result.isEmpty()) {
+            result += endOfLine();
+        }
 
         sendReply(session, ReplyCodes.TRANSFER_DATA_INITIAL_OK);
 

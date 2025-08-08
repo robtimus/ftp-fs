@@ -24,9 +24,9 @@ package com.github.robtimus.filesystems.ftp;
  */
 abstract class TransferOptions {
 
-    public final FileType fileType;
-    public final FileStructure fileStructure;
-    public final FileTransferMode fileTransferMode;
+    final FileType fileType;
+    final FileStructure fileStructure;
+    final FileTransferMode fileTransferMode;
 
     TransferOptions(FileType fileType, FileStructure fileStructure, FileTransferMode fileTransferMode) {
         this.fileType = fileType;

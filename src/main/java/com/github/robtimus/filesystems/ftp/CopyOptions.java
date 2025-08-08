@@ -35,9 +35,9 @@ import com.github.robtimus.filesystems.Messages;
  */
 final class CopyOptions extends TransferOptions {
 
-    public final boolean replaceExisting;
+    final boolean replaceExisting;
 
-    public final Collection<? extends CopyOption> options;
+    final Collection<? extends CopyOption> options;
 
     private CopyOptions(boolean replaceExisting,
             FileType fileType, FileStructure fileStructure, FileTransferMode fileTransferMode,
@@ -49,7 +49,7 @@ final class CopyOptions extends TransferOptions {
         this.options = options;
     }
 
-    public Collection<OpenOption> toOpenOptions(OpenOption... additional) {
+    Collection<OpenOption> toOpenOptions(OpenOption... additional) {
         List<OpenOption> openOptions = new ArrayList<>(options.size() + additional.length);
         for (CopyOption option : options) {
             if (option instanceof OpenOption) {

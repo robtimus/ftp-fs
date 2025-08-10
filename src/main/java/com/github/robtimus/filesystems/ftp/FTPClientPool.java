@@ -228,6 +228,7 @@ final class FTPClientPool {
             }
         }
 
+        @SuppressWarnings("resource")
         InputStream newInputStream(FTPPath path, OpenOptions options) throws IOException {
             assert options.read;
 

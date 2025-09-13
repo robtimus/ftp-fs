@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+/**
+ * An FTP(S) NIO.2 file system.
+ *
+ * @provides java.nio.file.spi.FileSystemProvider
+ */
 module com.github.robtimus.filesystems.ftp {
     requires com.github.robtimus.filesystems;
     requires transitive org.apache.commons.net;

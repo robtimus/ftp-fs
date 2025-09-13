@@ -97,28 +97,12 @@ import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.FileSystemEntry;
 import org.mockito.verification.VerificationMode;
 import com.github.robtimus.filesystems.Messages;
-import com.github.robtimus.filesystems.attribute.FileAttributeViewMetadata;
 import com.github.robtimus.filesystems.attribute.SimpleGroupPrincipal;
 import com.github.robtimus.filesystems.attribute.SimpleUserPrincipal;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
 @SuppressWarnings("nls")
 class FTPFileSystemTest {
-
-    @Test
-    void testPrefixAttributes() {
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("size", 1L);
-        attributes.put("isDirectory", "false");
-        attributes.put("owner", new SimpleUserPrincipal("test"));
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("posix:size", 1L);
-        expected.put("posix:isDirectory", "false");
-        expected.put("posix:owner", new SimpleUserPrincipal("test"));
-
-        assertEquals(expected, FTPFileSystem.prefixAttributes(attributes, FileAttributeViewMetadata.POSIX));
-    }
 
     @Nested
     @DisplayName("Use UNIX FTP server: true; FTPFile strategy factory: UNIX")
@@ -2708,21 +2692,6 @@ class FTPFileSystemTest {
                         () -> provider.readAttributes(path, "zipfs:*"));
                 assertChainEquals(Messages.fileSystemProvider().unsupportedFileAttributeView("zipfs"), exception);
             }
-        }
-
-        @Test
-        void testPrefixAttributes() {
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("size", 1L);
-            attributes.put("isDirectory", "false");
-            attributes.put("owner", new SimpleUserPrincipal("test"));
-
-            Map<String, Object> expected = new HashMap<>();
-            expected.put("posix:size", 1L);
-            expected.put("posix:isDirectory", "false");
-            expected.put("posix:owner", new SimpleUserPrincipal("test"));
-
-            assertEquals(expected, FTPFileSystem.prefixAttributes(attributes, FileAttributeViewMetadata.POSIX));
         }
 
         @Nested

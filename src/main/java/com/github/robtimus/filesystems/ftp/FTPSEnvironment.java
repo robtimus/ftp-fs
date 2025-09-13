@@ -189,18 +189,6 @@ public class FTPSEnvironment extends FTPEnvironment {
     /**
      * {@inheritDoc}
      *
-     * @deprecated Use {@link #withDataTimeout(Duration)} instead.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withDataTimeout(int timeout) {
-        super.withDataTimeout(timeout);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
      * @since 3.1
      */
     @Override
@@ -301,35 +289,11 @@ public class FTPSEnvironment extends FTPEnvironment {
     /**
      * {@inheritDoc}
      *
-     * @deprecated Use {@link #withControlKeepAliveTimeout(Duration)} instead.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withControlKeepAliveTimeout(long timeout) {
-        super.withControlKeepAliveTimeout(timeout);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
      * @since 3.1
      */
     @Override
     public FTPSEnvironment withControlKeepAliveTimeout(Duration timeout) {
         super.withControlKeepAliveTimeout(timeout);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @deprecated Use {@link #withControlKeepAliveReplyTimeout(Duration)} instead.
-     */
-    @Override
-    @Deprecated
-    public FTPSEnvironment withControlKeepAliveReplyTimeout(int timeout) {
-        super.withControlKeepAliveReplyTimeout(timeout);
         return this;
     }
 

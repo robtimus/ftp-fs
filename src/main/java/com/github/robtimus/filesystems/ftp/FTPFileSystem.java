@@ -63,7 +63,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -73,7 +72,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.commons.net.ftp.FTPFile;
 import com.github.robtimus.filesystems.AbstractDirectoryStream;
 import com.github.robtimus.filesystems.FileSystemProviderSupport;
@@ -93,11 +91,6 @@ import com.github.robtimus.filesystems.ftp.FTPClientPool.Client;
  */
 class FTPFileSystem extends FileSystem {
 
-    // TODO: remove these two and their usages as part of the next major release
-    @SuppressWarnings("nls")
-    private static final String PREFIX_ATTRIBUTES_PROPERTY = FTPFileSystem.class.getPackage().getName() + ".prefixAttributes";
-    private static final boolean PREFIX_ATTRIBUTES = Boolean.getBoolean(PREFIX_ATTRIBUTES_PROPERTY);
-
     static final FileAttributeViewCollection VIEWS = FileAttributeViewCollection.withViews(BASIC, FILE_OWNER, POSIX);
 
     private final FTPFileSystemProvider provider;
@@ -115,9 +108,9 @@ class FTPFileSystem extends FileSystem {
 
     FTPFileSystem(FTPFileSystemProvider provider, URI uri, FTPEnvironment env) throws IOException {
         this.provider = Objects.requireNonNull(provider);
-        this.rootDirectories = Collections.singleton(new FTPPath(this, ROOT_PATH));
+        this.rootDirectories = Set.of(new FTPPath(this, ROOT_PATH));
         this.fileStore = new FTPFileStore(this);
-        this.fileStores = Collections.singleton(fileStore);
+        this.fileStores = Set.of(fileStore);
 
         this.clientPool = new FTPClientPool(uri.getHost(), uri.getPort(), env);
         this.uri = Objects.requireNonNull(uri);
@@ -784,19 +777,7 @@ class FTPFileSystem extends FileSystem {
 
         Map<String, Object> result = new HashMap<>();
         populateAttributeMap(result, fileAttributes, attributeNames);
-        return prefixAttributesIfNeeded(result, view);
-    }
-
-    private static Map<String, Object> prefixAttributesIfNeeded(Map<String, Object> attributes, FileAttributeViewMetadata view) {
-        return PREFIX_ATTRIBUTES
-                ? prefixAttributes(attributes, view)
-                : attributes;
-    }
-
-    static Map<String, Object> prefixAttributes(Map<String, Object> attributes, FileAttributeViewMetadata view) {
-        String prefix = view.viewName() + ":"; //$NON-NLS-1$
-        return attributes.entrySet().stream()
-                .collect(Collectors.toMap(e -> prefix + e.getKey(), Map.Entry::getValue));
+        return result;
     }
 
     // Exposed to allow easy testing of getFTPFile(Client, FTPPath)

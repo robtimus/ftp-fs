@@ -90,7 +90,6 @@ public class ListHiddenFilesCommandHandler extends ListCommandHandler {
         sendReply(session, ReplyCodes.TRANSFER_DATA_INITIAL_OK);
 
         session.openDataConnection();
-        LOG.info("Sending [{}]", result);
         session.sendData(result.getBytes(), result.length());
         session.closeDataConnection();
 

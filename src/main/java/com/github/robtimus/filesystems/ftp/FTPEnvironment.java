@@ -18,7 +18,6 @@
 package com.github.robtimus.filesystems.ftp;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
@@ -35,6 +34,7 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.time.Duration;
@@ -372,19 +372,6 @@ public class FTPEnvironment implements Map<String, Object> {
     // FTPClient
 
     /**
-     * Stores the timeout in milliseconds to use when reading from data connections.
-     *
-     * @param timeout The timeout in milliseconds that is used when opening data connection sockets.
-     * @return This object.
-     * @deprecated Use {@link #withDataTimeout(Duration)} instead.
-     */
-    @Deprecated
-    public FTPEnvironment withDataTimeout(int timeout) {
-        put(DATA_TIMEOUT, timeout);
-        return this;
-    }
-
-    /**
      * Stores the timeout to use when reading from data connections.
      *
      * @param timeout The timeout in milliseconds that is used when opening data connection sockets.
@@ -581,19 +568,6 @@ public class FTPEnvironment implements Map<String, Object> {
     /**
      * Stores the time to wait between sending control connection keep-alive messages when processing file upload or download.
      *
-     * @param timeout The keep-alive timeout to use, in milliseconds.
-     * @return This object.
-     * @deprecated Use {@link #withControlKeepAliveTimeout(Duration)} instead.
-     */
-    @Deprecated
-    public FTPEnvironment withControlKeepAliveTimeout(long timeout) {
-        put(CONTROL_KEEP_ALIVE_TIMEOUT, timeout);
-        return this;
-    }
-
-    /**
-     * Stores the time to wait between sending control connection keep-alive messages when processing file upload or download.
-     *
      * @param timeout The keep-alive timeout to use.
      * @return This object.
      * @since 3.1
@@ -601,19 +575,6 @@ public class FTPEnvironment implements Map<String, Object> {
     @QueryParam(CONTROL_KEEP_ALIVE_TIMEOUT)
     public FTPEnvironment withControlKeepAliveTimeout(Duration timeout) {
         put(CONTROL_KEEP_ALIVE_TIMEOUT, timeout);
-        return this;
-    }
-
-    /**
-     * Stores how long to wait for control keep-alive message replies.
-     *
-     * @param timeout The keep-alive reply timeout to use, in milliseconds.
-     * @return This object.
-     * @deprecated Use {@link #withControlKeepAliveReplyTimeout(Duration)} instead.
-     */
-    @Deprecated
-    public FTPEnvironment withControlKeepAliveReplyTimeout(int timeout) {
-        put(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, timeout);
         return this;
     }
 
@@ -1040,12 +1001,7 @@ public class FTPEnvironment implements Map<String, Object> {
 
     private void configureDataTimeout(FTPClient client) {
         if (containsKey(DATA_TIMEOUT)) {
-            Duration timeout;
-            try {
-                timeout = FileSystemProviderSupport.getValue(this, DATA_TIMEOUT, Duration.class);
-            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
-                timeout = Duration.ofMillis(FileSystemProviderSupport.getIntValue(this, DATA_TIMEOUT));
-            }
+            Duration timeout = FileSystemProviderSupport.getValue(this, DATA_TIMEOUT, Duration.class);
             client.setDataTimeout(timeout);
         }
     }
@@ -1118,25 +1074,14 @@ public class FTPEnvironment implements Map<String, Object> {
 
     private void configureControlKeepAliveTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_TIMEOUT)) {
-            Duration controlIdle;
-            try {
-                controlIdle = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_TIMEOUT, Duration.class);
-            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
-                // the value is stored as ms
-                controlIdle = Duration.ofMillis(FileSystemProviderSupport.getLongValue(this, CONTROL_KEEP_ALIVE_TIMEOUT));
-            }
+            Duration controlIdle = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_TIMEOUT, Duration.class);
             client.setControlKeepAliveTimeout(controlIdle);
         }
     }
 
     private void configureControlKeepAliveReplyTimeout(FTPClient client) {
         if (containsKey(CONTROL_KEEP_ALIVE_REPLY_TIMEOUT)) {
-            Duration timeout;
-            try {
-                timeout = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, Duration.class);
-            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
-                timeout = Duration.ofMillis(FileSystemProviderSupport.getIntValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT));
-            }
+            Duration timeout = FileSystemProviderSupport.getValue(this, CONTROL_KEEP_ALIVE_REPLY_TIMEOUT, Duration.class);
             client.setControlKeepAliveReplyTimeout(timeout);
         }
     }
@@ -1450,11 +1395,7 @@ public class FTPEnvironment implements Map<String, Object> {
         }
 
         private String decode(String value) {
-            try {
-                return URLDecoder.decode(value, "UTF-8"); //$NON-NLS-1$
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException(e);
-            }
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
         }
 
         private FTPPoolConfig.Builder poolConfigBuilder() {

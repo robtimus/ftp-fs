@@ -225,22 +225,6 @@ class FTPEnvironmentTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    void testWithDataTimeoutWithInteger() {
-        FTPEnvironment env = createFTPEnvironment();
-
-        assertEquals(Collections.emptyMap(), env);
-
-        int timeout = 1000;
-
-        env.withDataTimeout(timeout);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("dataTimeout", timeout);
-        assertEquals(expected, env);
-    }
-
-    @Test
     void testWithActivePortRange() {
         FTPEnvironment env = createFTPEnvironment();
 
@@ -254,38 +238,6 @@ class FTPEnvironmentTest {
         Map<String, Object> expected = new HashMap<>();
         expected.put("activePortRange.min", minPort);
         expected.put("activePortRange.max", maxPort);
-        assertEquals(expected, env);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void testWithControlKeepAliveTimeoutWithInteger() {
-        FTPEnvironment env = createFTPEnvironment();
-
-        assertEquals(Collections.emptyMap(), env);
-
-        long timeout = 1000;
-
-        env.withControlKeepAliveTimeout(timeout);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("controlKeepAliveTimeout", timeout);
-        assertEquals(expected, env);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void testWithControlKeepAliveReplyTimeoutWithInteger() {
-        FTPEnvironment env = createFTPEnvironment();
-
-        assertEquals(Collections.emptyMap(), env);
-
-        int timeout = 1000;
-
-        env.withControlKeepAliveReplyTimeout(timeout);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("controlKeepAliveReplyTimeout", timeout);
         assertEquals(expected, env);
     }
 
@@ -696,24 +648,13 @@ class FTPEnvironmentTest {
             }
 
             @Test
-            void testDataTimeoutSetAsDuration() throws IOException {
+            void testDataTimeoutSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withDataTimeout(Duration.ofSeconds(1));
                 env.initializePreConnect(client);
 
                 verify(client).setDataTimeout(Duration.ofSeconds(1));
-            }
-
-            @Test
-            @SuppressWarnings("deprecation")
-            void testDataTimeoutSetAsMillis() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-
-                FTPEnvironment env = new FTPEnvironment().withDataTimeout(100);
-                env.initializePreConnect(client);
-
-                verify(client).setDataTimeout(Duration.ofMillis(100));
             }
         }
 
@@ -1186,24 +1127,13 @@ class FTPEnvironmentTest {
             }
 
             @Test
-            void testControlKeepAliveTimeoutSetAsDuration() throws IOException {
+            void testControlKeepAliveTimeoutSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withControlKeepAliveTimeout(Duration.ofSeconds(1));
                 env.initializePreConnect(client);
 
                 verify(client).setControlKeepAliveTimeout(Duration.ofSeconds(1));
-            }
-
-            @Test
-            @SuppressWarnings("deprecation")
-            void testControlKeepAliveTimeoutSetAsMillis() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-
-                FTPEnvironment env = new FTPEnvironment().withControlKeepAliveTimeout(1000);
-                env.initializePreConnect(client);
-
-                verify(client).setControlKeepAliveTimeout(Duration.ofMillis(1000));
             }
         }
 
@@ -1223,24 +1153,13 @@ class FTPEnvironmentTest {
             }
 
             @Test
-            void testControlKeepAliveReplyTimeoutSetAsDuration() throws IOException {
+            void testControlKeepAliveReplyTimeoutSet() throws IOException {
                 FTPClient client = mock(FTPClient.class);
 
                 FTPEnvironment env = new FTPEnvironment().withControlKeepAliveReplyTimeout(Duration.ofSeconds(1));
                 env.initializePreConnect(client);
 
                 verify(client).setControlKeepAliveReplyTimeout(Duration.ofSeconds(1));
-            }
-
-            @Test
-            @SuppressWarnings("deprecation")
-            void testControlKeepAliveReplyTimeoutSetAsMillis() throws IOException {
-                FTPClient client = mock(FTPClient.class);
-
-                FTPEnvironment env = new FTPEnvironment().withControlKeepAliveReplyTimeout(1000);
-                env.initializePreConnect(client);
-
-                verify(client).setControlKeepAliveReplyTimeout(Duration.ofMillis(1000));
             }
         }
 

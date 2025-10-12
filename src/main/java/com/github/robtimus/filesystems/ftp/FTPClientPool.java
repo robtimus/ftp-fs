@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.OpenOption;
 import java.util.Calendar;
@@ -30,6 +31,7 @@ import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import com.github.robtimus.filesystems.CleanerSupport;
 import com.github.robtimus.pool.LogLevel;
 import com.github.robtimus.pool.Pool;
 import com.github.robtimus.pool.PoolConfig;
@@ -42,6 +44,8 @@ import com.github.robtimus.pool.PoolableObject;
  * @author Rob Spoor
  */
 final class FTPClientPool {
+
+    private static final Cleaner CLEANER = Cleaner.create();
 
     private final String hostname;
     private final int port;
@@ -232,30 +236,46 @@ final class FTPClientPool {
         InputStream newInputStream(FTPPath path, OpenOptions options) throws IOException {
             assert options.read;
 
+            boolean deleteOnClose = options.deleteOnClose;
+
             applyTransferOptions(options);
 
             InputStream in = ftpClient.retrieveFileStream(path.path());
             if (in == null) {
                 throw exceptionFactory.createNewInputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
-            in = new FTPInputStream(path, in, options.deleteOnClose);
-            addReference(in);
-            return in;
+
+            // The reference will be closed when the cleanable is invoked
+            Reference<IOException> reference = addReference();
+            CleanerSupport.CleanAction cleanAction = () -> close(in, reference, path, deleteOnClose);
+
+            InputStream result = new FTPInputStream(in, cleanAction);
+
+            logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
+
+            return result;
+        }
+
+        private void close(InputStream in, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException { // NOSONAR
+            // Always finalize the stream, to prevent pool starvation
+            Closeable finalizer = this::finalizeStream;
+            try (reference; finalizer; in) {
+                // This block will close in first, finalize the stream second, close reference third, and always perform all three actions
+            }
+            if (deleteOnClose) {
+                delete(path, false);
+            }
+            logEvent(() -> FTPMessages.log.closedInputStream(path.path()));
         }
 
         private final class FTPInputStream extends InputStream {
 
-            private final FTPPath path;
             private final InputStream in;
-            private final boolean deleteOnClose;
+            private final Cleaner.Cleanable cleanable;
 
-            private boolean open = true;
-
-            private FTPInputStream(FTPPath path, InputStream in, boolean deleteOnClose) {
-                this.path = path;
+            private FTPInputStream(InputStream in, CleanerSupport.CleanAction cleanAction) {
                 this.in = in;
-                this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
+                this.cleanable = CleanerSupport.register(CLEANER, this, cleanAction);
             }
 
             @Override
@@ -285,20 +305,7 @@ final class FTPClientPool {
 
             @Override
             public void close() throws IOException {
-                if (open) {
-                    try {
-                        in.close();
-                    } finally {
-                        // always finalize the stream, to prevent pool starvation
-                        // set open to false as well, to prevent finalizing the stream twice
-                        open = false;
-                        finalizeStream(this);
-                    }
-                    if (deleteOnClose) {
-                        delete(path, false);
-                    }
-                    logEvent(() -> FTPMessages.log.closedInputStream(path.path()));
-                }
+                CleanerSupport.clean(cleanable);
             }
 
             @Override
@@ -321,6 +328,8 @@ final class FTPClientPool {
         OutputStream newOutputStream(FTPPath path, OpenOptions options) throws IOException {
             assert options.write;
 
+            boolean deleteOnClose = options.deleteOnClose;
+
             applyTransferOptions(options);
 
             OutputStream out = options.append
@@ -330,24 +339,38 @@ final class FTPClientPool {
                 throw exceptionFactory.createNewOutputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString(),
                         options.options);
             }
-            out = new FTPOutputStream(path, out, options.deleteOnClose);
-            addReference(out);
-            return out;
+
+            // The reference will be closed when the cleanable is invoked
+            Reference<IOException> reference = addReference();
+            CleanerSupport.CleanAction cleanAction = () -> close(out, reference, path, deleteOnClose);
+
+            OutputStream result = new FTPOutputStream(out, cleanAction);
+
+            logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
+
+            return result;
+        }
+
+        private void close(OutputStream out, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException { // NOSONAR
+            // Always finalize the stream, to prevent pool starvation
+            Closeable finalizer = this::finalizeStream;
+            try (reference; finalizer; out) {
+                // This block will close in first, finalize the stream second, close reference third, and always perform all three actions
+            }
+            if (deleteOnClose) {
+                delete(path, false);
+            }
+            logEvent(() -> FTPMessages.log.closedOutputStream(path.path()));
         }
 
         private final class FTPOutputStream extends OutputStream {
 
-            private final FTPPath path;
             private final OutputStream out;
-            private final boolean deleteOnClose;
+            private final Cleaner.Cleanable cleanable;
 
-            private boolean open = true;
-
-            private FTPOutputStream(FTPPath path, OutputStream out, boolean deleteOnClose) {
-                this.path = path;
+            private FTPOutputStream(OutputStream out, CleanerSupport.CleanAction cleanAction) {
                 this.out = out;
-                this.deleteOnClose = deleteOnClose;
-                logEvent(() -> FTPMessages.log.createdOutputStream(path.path()));
+                this.cleanable = CleanerSupport.register(CLEANER, this, cleanAction);
             }
 
             @Override
@@ -372,30 +395,13 @@ final class FTPClientPool {
 
             @Override
             public void close() throws IOException {
-                if (open) {
-                    try {
-                        out.close();
-                    } finally {
-                        // always finalize the stream, to prevent pool starvation
-                        // set open to false as well, to prevent finalizing the stream twice
-                        open = false;
-                        finalizeStream(this);
-                    }
-                    if (deleteOnClose) {
-                        delete(path, false);
-                    }
-                    logEvent(() -> FTPMessages.log.closedOutputStream(path.path()));
-                }
+                CleanerSupport.clean(cleanable);
             }
         }
 
-        private void finalizeStream(Object stream) throws IOException {
-            try {
-                if (!ftpClient.completePendingCommand()) {
-                    throw new FTPFileSystemException(ftpClient.getReplyCode(), ftpClient.getReplyString());
-                }
-            } finally {
-                removeReference(stream);
+        private void finalizeStream() throws IOException {
+            if (!ftpClient.completePendingCommand()) {
+                throw new FTPFileSystemException(ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
         }
 

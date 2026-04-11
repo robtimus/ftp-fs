@@ -129,6 +129,7 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
                 + "&controlKeepAliveReplyTimeout=PT15S"
                 + "&autodetectEncoding=true"
                 + "&listHiddenFiles=true"
+                + "&ftpFileStrategyFactory=UNIX"
                 + "&poolConfig.maxWaitTime=PT5S"
                 + "&poolConfig.maxIdleTime=PT10S"
                 + "&poolConfig.initialSize=2"
@@ -178,6 +179,7 @@ class FTPSEnvironmentTest extends FTPEnvironmentTest {
                 .withControlKeepAliveReplyTimeout(Duration.ofSeconds(15))
                 .withAutodetectEncoding(true)
                 .withListHiddenFiles(true)
+                .withFTPFileStrategyFactory(StandardFTPFileStrategyFactory.UNIX)
                 .withSecurityMode(SecurityMode.IMPLICIT)
                 .withProtocol("TLS")
                 .withAuthCommand("CMD")

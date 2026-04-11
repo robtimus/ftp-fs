@@ -280,6 +280,7 @@ class FTPEnvironmentTest {
                 + "&controlKeepAliveReplyTimeout=PT15S"
                 + "&autodetectEncoding=true"
                 + "&listHiddenFiles=true"
+                + "&ftpFileStrategyFactory=UNIX"
                 + "&poolConfig.maxWaitTime=PT5S"
                 + "&poolConfig.maxIdleTime=PT10S"
                 + "&poolConfig.initialSize=2"
@@ -317,7 +318,8 @@ class FTPEnvironmentTest {
                 .withControlKeepAliveTimeout(Duration.ofSeconds(10))
                 .withControlKeepAliveReplyTimeout(Duration.ofSeconds(15))
                 .withAutodetectEncoding(true)
-                .withListHiddenFiles(true);
+                .withListHiddenFiles(true)
+                .withFTPFileStrategyFactory(UNIX);
 
         // FTPPoolConfig doesn't define equals, so it needs to be removed before env can be compared to expected
         FTPPoolConfig poolConfig = assertInstanceOf(FTPPoolConfig.class, env.remove("poolConfig"));

@@ -677,9 +677,11 @@ public class FTPEnvironment implements Map<String, Object> {
      * Stores the FTP file strategy factory to use.
      * If the FTP file strategy factory is not set, it will default to {@link StandardFTPFileStrategyFactory#AUTO_DETECT}.
      *
+     * @apiNote When set as query parameter, only constants of class {@link StandardFTPFileStrategyFactory} are supported.
      * @param factory The FTP file strategy factory to use.
      * @return This object.
      */
+    @QueryParam(FTP_FILE_STRATEGY_FACTORY)
     public FTPEnvironment withFTPFileStrategyFactory(FTPFileStrategyFactory factory) {
         put(FTP_FILE_STRATEGY_FACTORY, factory);
         return this;
@@ -787,6 +789,9 @@ public class FTPEnvironment implements Map<String, Object> {
                 break;
             case LIST_HIDDEN_FILES:
                 withListHiddenFiles(Boolean.parseBoolean(value));
+                break;
+            case FTP_FILE_STRATEGY_FACTORY:
+                withFTPFileStrategyFactory(StandardFTPFileStrategyFactory.valueOf(value));
                 break;
             default:
                 // ignore

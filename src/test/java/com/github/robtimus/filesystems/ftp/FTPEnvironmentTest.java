@@ -596,7 +596,7 @@ class FTPEnvironmentTest {
                 FTPEnvironment env = new FTPEnvironment().withControlEncoding(null);
                 env.initializePreConnect(client);
 
-                verify(client).setControlEncoding(null);
+                verify(client).setControlEncoding((String) null);
             }
         }
 

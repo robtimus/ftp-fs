@@ -3,7 +3,6 @@
 [![Build Status](https://github.com/robtimus/ftp-fs/actions/workflows/build.yml/badge.svg)](https://github.com/robtimus/ftp-fs/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.github.robtimus%3Aftp-fs&metric=alert_status)](https://sonarcloud.io/summary/overall?id=com.github.robtimus%3Aftp-fs)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=com.github.robtimus%3Aftp-fs&metric=coverage)](https://sonarcloud.io/summary/overall?id=com.github.robtimus%3Aftp-fs)
-[![Known Vulnerabilities](https://snyk.io/test/github/robtimus/ftp-fs/badge.svg)](https://snyk.io/test/github/robtimus/ftp-fs)
 
 The `ftp-fs` library provides support for FTP and FTPS NIO.2 file systems, allowing FTP servers to be accessed in a similar way to local file systems.
 

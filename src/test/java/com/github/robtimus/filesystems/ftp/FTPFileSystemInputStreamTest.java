@@ -184,6 +184,8 @@ class FTPFileSystemInputStreamTest {
 
             CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
             try {
+                // Don't use try-with-resources, this test is about calling the close method so make that explicit
+                @SuppressWarnings("resource")
                 InputStream input = provider().newInputStream(createPath("/foo"));
                 assertEquals('H', input.read());
                 input.close();
@@ -201,6 +203,8 @@ class FTPFileSystemInputStreamTest {
 
             CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
             try {
+                // Don't use try-with-resources, this test is about the close call failing
+                @SuppressWarnings("resource")
                 InputStream input = provider().newInputStream(createPath("/foo"));
                 assertArrayEquals(content.getBytes(), readRemaining(input));
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, input::close);

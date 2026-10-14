@@ -245,6 +245,8 @@ class FTPFileSystemByteChannelTest {
 
             CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
             try {
+                // Don't use try-with-resources, this test is about calling the close method so make that explicit
+                @SuppressWarnings("resource")
                 SeekableByteChannel channel = newByteChannel();
                 assertEquals("He", read(channel, 2));
                 channel.close();
@@ -274,6 +276,8 @@ class FTPFileSystemByteChannelTest {
 
             CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
             try {
+                // Don't use try-with-resources, this test is about the close call failing
+                @SuppressWarnings("resource")
                 SeekableByteChannel channel = newByteChannel();
                 assertEquals("Hello World", read(channel, 1024));
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, channel::close);

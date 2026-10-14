@@ -20,6 +20,7 @@ package com.github.robtimus.filesystems.ftp.server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Objects;
 import org.mockftpserver.core.command.Command;
 import org.mockftpserver.core.command.ReplyCodes;
 import org.mockftpserver.core.session.Session;
@@ -70,7 +71,8 @@ public class RETRCommandHandler extends RetrCommandHandler {
             entry = ((SymbolicLinkEntry) entry).resolve();
         }
         verifyFileSystemCondition(entry != null, path, "filesystem.doesNotExist");
-        verifyFileSystemCondition(!entry.isDirectory(), path, "filesystem.isNotAFile");
+        // Objects.requireNonNull is needed to remove IDE warnings, as they cannot see that if entry == null the above call will fail
+        verifyFileSystemCondition(!Objects.requireNonNull(entry).isDirectory(), path, "filesystem.isNotAFile");
         FileEntry fileEntry = (FileEntry) entry;
 
         // User must have read permission to the file
@@ -88,6 +90,7 @@ public class RETRCommandHandler extends RetrCommandHandler {
             throw new FileSystemException(fileEntry.getPath(), null, e);
         }
 
+        // This use of != is copied from the super implementation
         if (session.getAttribute(SessionKeys.ASCII_TYPE) != Boolean.FALSE) {
             bytes = convertLfToCrLf(bytes);
         }

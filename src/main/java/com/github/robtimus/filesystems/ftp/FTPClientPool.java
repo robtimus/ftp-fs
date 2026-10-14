@@ -366,6 +366,7 @@ final class FTPClientPool {
             }
         }
 
+        @SuppressWarnings("resource")
         SeekableByteChannel newReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile) throws IOException {
             // the channel deletes the file itself, as seeking closes the stream
             InputStream in = newInputStream(path, options, 0, false);
@@ -391,6 +392,7 @@ final class FTPClientPool {
                 this.size = ftpFile == null ? 0 : Math.max(ftpFile.getSize(), 0);
                 this.sizeKnown = ftpFile != null && ftpFile.isFile() && ftpFile.getSize() >= 0;
                 // The reference keeps this client for later downloads, and will be closed when the cleanable is invoked
+                @SuppressWarnings("resource")
                 Reference<IOException> reference = addReference();
                 this.cleanable = CleanerSupport.register(CLEANER, this, reference::close);
                 this.download = Channels.newChannel(in);
@@ -423,7 +425,9 @@ final class FTPClientPool {
                     if (sizeKnown && position >= size) {
                         return -1;
                     }
-                    download = Channels.newChannel(newInputStream(path, options, position, false));
+                    @SuppressWarnings("resource")
+                    InputStream in = newInputStream(path, options, position, false);
+                    download = Channels.newChannel(in);
                 }
                 int read = download.read(dst);
                 if (read > 0) {

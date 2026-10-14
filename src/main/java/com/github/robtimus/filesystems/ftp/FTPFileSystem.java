@@ -319,7 +319,6 @@ class FTPFileSystem extends FileSystem {
         }
     }
 
-    @SuppressWarnings("resource")
     SeekableByteChannel newByteChannel(FTPPath path, Set<? extends OpenOption> options, FileAttribute<?>... attrs) throws IOException {
         if (attrs.length > 0) {
             throw Messages.fileSystemProvider().unsupportedCreateFileAttribute(attrs[0].name());
@@ -699,6 +698,7 @@ class FTPFileSystem extends FileSystem {
         }
 
         @Override
+        @SuppressWarnings("squid:S2612")
         public Set<PosixFilePermission> permissions() {
             Set<PosixFilePermission> permissions = EnumSet.noneOf(PosixFilePermission.class);
             addPermissionIfSet(ftpFile, FTPFile.USER_ACCESS, FTPFile.READ_PERMISSION, PosixFilePermission.OWNER_READ, permissions);

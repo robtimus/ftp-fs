@@ -39,7 +39,6 @@ import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import com.github.robtimus.filesystems.CleanerSupport;
-import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.pool.LogLevel;
 import com.github.robtimus.pool.Pool;
 import com.github.robtimus.pool.PoolConfig;
@@ -484,7 +483,7 @@ final class FTPClientPool {
 
             @Override
             public SeekableByteChannel truncate(long size) throws IOException {
-                throw Messages.unsupportedOperation(SeekableByteChannel.class, "truncate"); //$NON-NLS-1$
+                throw new NonWritableChannelException();
             }
 
             private void checkOpen() throws ClosedChannelException {

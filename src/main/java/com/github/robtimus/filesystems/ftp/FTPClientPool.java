@@ -373,23 +373,29 @@ final class FTPClientPool {
 
             // The reference keeps this client for later downloads, and will be closed when the cleanable is invoked
             Reference<IOException> reference = addReference();
-            CleanerSupport.CleanAction cleanAction = () -> close(reference, path, options.deleteOnClose);
+            CleanerSupport.CleanAction cleanAction = () -> closeReadableByteChannel(reference, path, options.deleteOnClose);
 
-            return new FTPReadableByteChannel(path, options, ftpFile, in, cleanAction);
+            FTPReadableByteChannel result = new FTPReadableByteChannel(path, options, ftpFile, in, cleanAction);
+
+            logEvent(() -> FTPMessages.log.createdReadableByteChannel(path.path()));
+
+            return result;
         }
 
-        private void close(Reference<IOException> reference, FTPPath path, boolean deleteOnClose)
+        private void closeReadableByteChannel(Reference<IOException> reference, FTPPath path, boolean deleteOnClose)
                 throws IOException {
 
             /*
              * The delete call inside the try-block ensures that deletion will be done while the reference is still active,
              * making sure this client is not used for other calls yet.
+             * Any actual resources (input streams) are already managed using the above newInputStream and close methods.
              */
             try (reference) {
                 if (deleteOnClose) {
                     delete(path, false);
                 }
             }
+            logEvent(() -> FTPMessages.log.closedReadableByteChannel(path.path()));
         }
 
         private final class FTPReadableByteChannel implements SeekableByteChannel {

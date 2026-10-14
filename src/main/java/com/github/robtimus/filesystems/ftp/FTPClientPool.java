@@ -275,7 +275,7 @@ final class FTPClientPool {
             return result;
         }
 
-        private void close(InputStream in, boolean endReached, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) // NOSONAR
+        private void close(InputStream in, boolean endReached, Reference<IOException> reference, FTPPath path, boolean deleteOnClose)
                 throws IOException {
 
             /*
@@ -289,7 +289,7 @@ final class FTPClientPool {
             // Always finalize the stream, to prevent pool starvation.
             // Servers acknowledge a download that is closed before its end with one reply whose code varies, e.g. 426, or 150 for pure-ftpd.
             // Only the reply to a download that was read to its end tells whether the transfer succeeded.
-            Closeable finalizer = endReached ? this::finalizeStream : ftpClient::completePendingCommand;
+            Closeable finalizer = () -> finalizeStream(endReached);
             try (reference) {
                 try (finalizer; in) {
                     // This block will close in first, finalize the stream second, and always perform both actions
@@ -369,8 +369,28 @@ final class FTPClientPool {
         @SuppressWarnings("resource")
         SeekableByteChannel newReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile) throws IOException {
             // the channel deletes the file itself, as seeking closes the stream
+
             InputStream in = newInputStream(path, options, 0, false);
-            return new FTPReadableByteChannel(path, options, ftpFile, in);
+
+            // The reference keeps this client for later downloads, and will be closed when the cleanable is invoked
+            Reference<IOException> reference = addReference();
+            CleanerSupport.CleanAction cleanAction = () -> close(reference, path, options.deleteOnClose);
+
+            return new FTPReadableByteChannel(path, options, ftpFile, in, cleanAction);
+        }
+
+        private void close(Reference<IOException> reference, FTPPath path, boolean deleteOnClose)
+                throws IOException {
+
+            /*
+             * The delete call inside the try-block ensures that deletion will be done while the reference is still active,
+             * making sure this client is not used for other calls yet.
+             */
+            try (reference) {
+                if (deleteOnClose) {
+                    delete(path, false);
+                }
+            }
         }
 
         private final class FTPReadableByteChannel implements SeekableByteChannel {
@@ -385,16 +405,15 @@ final class FTPClientPool {
             private long position;
             private boolean open = true;
 
-            private FTPReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile, InputStream in) {
+            private FTPReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile, InputStream in,
+                                           CleanerSupport.CleanAction cleanAction) {
+
                 this.path = path;
                 this.options = options;
                 // a size that isn't listed is -1
                 this.size = ftpFile == null ? 0 : Math.max(ftpFile.getSize(), 0);
                 this.sizeKnown = ftpFile != null && ftpFile.isFile() && ftpFile.getSize() >= 0;
-                // The reference keeps this client for later downloads, and will be closed when the cleanable is invoked
-                @SuppressWarnings("resource")
-                Reference<IOException> reference = addReference();
-                this.cleanable = CleanerSupport.register(CLEANER, this, reference::close);
+                this.cleanable = CleanerSupport.register(CLEANER, this, cleanAction);
                 this.download = Channels.newChannel(in);
             }
 
@@ -408,12 +427,11 @@ final class FTPClientPool {
                 if (open) {
                     open = false;
                     // Always release the client, to prevent pool starvation
+                    // The cleanable will also delete the file on close if needed
+                    // The order is closeDownload first, then delete on close, then close the reference
                     Closeable releaser = () -> CleanerSupport.clean(cleanable);
                     try (releaser) {
                         closeDownload();
-                        if (options.deleteOnClose) {
-                            delete(path, false);
-                        }
                     }
                 }
             }
@@ -514,7 +532,7 @@ final class FTPClientPool {
             return result;
         }
 
-        private void close(OutputStream out, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException { // NOSONAR
+        private void close(OutputStream out, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException {
             /*
              * The following will close the output stream first, then finalize the stream, then delete the path if needed, then close the reference.
              * The try-with-resources blocks will ensure that the input stream will always be closed, the stream is always finalized, and the
@@ -573,7 +591,11 @@ final class FTPClientPool {
         }
 
         private void finalizeStream() throws IOException {
-            if (!ftpClient.completePendingCommand()) {
+            finalizeStream(true);
+        }
+
+        private void finalizeStream(boolean throwOnNonSuccess) throws IOException {
+            if (!ftpClient.completePendingCommand() && throwOnNonSuccess) {
                 throw new FTPFileSystemException(ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
         }

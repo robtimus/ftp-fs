@@ -22,6 +22,7 @@ import static com.github.robtimus.filesystems.ftp.StandardFTPFileStrategyFactory
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +31,9 @@ import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockftpserver.core.command.CommandHandler;
 import org.mockftpserver.fake.filesystem.FileEntry;
+import com.github.robtimus.filesystems.ftp.server.RETRCommandHandler;
 
 @SuppressWarnings("nls")
 class FTPFileSystemInputStreamTest {
@@ -169,6 +172,41 @@ class FTPFileSystemInputStreamTest {
 
                 input.read();
                 assertEquals(0, input.available());
+            }
+        }
+
+        @Test
+        void testCloseIgnoresReplyToAbortedDownload() throws IOException {
+            final String content = "Hello World";
+
+            FileEntry file = addFile("/foo");
+            file.setContents(content);
+
+            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
+            try {
+                InputStream input = provider().newInputStream(createPath("/foo"));
+                assertEquals('H', input.read());
+                input.close();
+            } finally {
+                setCommandHandler("RETR", retrHandler);
+            }
+        }
+
+        @Test
+        void testCloseReportsFailedDownload() throws IOException {
+            final String content = "Hello World";
+
+            FileEntry file = addFile("/foo");
+            file.setContents(content);
+
+            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
+            try {
+                InputStream input = provider().newInputStream(createPath("/foo"));
+                assertArrayEquals(content.getBytes(), readRemaining(input));
+                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, input::close);
+                assertEquals(451, exception.getReplyCode());
+            } finally {
+                setCommandHandler("RETR", retrHandler);
             }
         }
 

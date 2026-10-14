@@ -23,15 +23,23 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.lang.ref.Cleaner;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.NonWritableChannelException;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.OpenOption;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import com.github.robtimus.filesystems.CleanerSupport;
+import com.github.robtimus.filesystems.Messages;
 import com.github.robtimus.pool.LogLevel;
 import com.github.robtimus.pool.Pool;
 import com.github.robtimus.pool.PoolConfig;
@@ -232,33 +240,48 @@ final class FTPClientPool {
             }
         }
 
-        @SuppressWarnings("resource")
         InputStream newInputStream(FTPPath path, OpenOptions options) throws IOException {
-            assert options.read;
+            return newInputStream(path, options, 0, options.deleteOnClose);
+        }
 
-            boolean deleteOnClose = options.deleteOnClose;
+        @SuppressWarnings("resource")
+        InputStream newInputStream(FTPPath path, OpenOptions options, long offset, boolean deleteOnClose) throws IOException {
+            assert options.read;
 
             applyTransferOptions(options);
 
-            InputStream in = ftpClient.retrieveFileStream(path.path());
+            // commons-net only clears the offset when it sends REST;
+            // clear it anyway so an earlier failure can't apply it to a later transfer
+            ftpClient.setRestartOffset(offset);
+            InputStream in;
+            try {
+                in = ftpClient.retrieveFileStream(path.path());
+            } finally {
+                ftpClient.setRestartOffset(0);
+            }
             if (in == null) {
                 throw exceptionFactory.createNewInputStreamException(path.path(), ftpClient.getReplyCode(), ftpClient.getReplyString());
             }
 
             // The reference will be closed when the cleanable is invoked
             Reference<IOException> reference = addReference();
-            CleanerSupport.CleanAction cleanAction = () -> close(in, reference, path, deleteOnClose);
+            AtomicBoolean endReached = new AtomicBoolean();
+            CleanerSupport.CleanAction cleanAction = () -> close(in, endReached.get(), reference, path, deleteOnClose);
 
-            InputStream result = new FTPInputStream(in, cleanAction);
+            InputStream result = new FTPInputStream(in, endReached, cleanAction);
 
             logEvent(() -> FTPMessages.log.createdInputStream(path.path()));
 
             return result;
         }
 
-        private void close(InputStream in, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException { // NOSONAR
-            // Always finalize the stream, to prevent pool starvation
-            Closeable finalizer = this::finalizeStream;
+        private void close(InputStream in, boolean endReached, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) // NOSONAR
+                throws IOException {
+
+            // Always finalize the stream, to prevent pool starvation.
+            // Servers acknowledge a download that is closed before its end with one reply whose code varies, e.g. 426, or 150 for pure-ftpd.
+            // Only the reply to a download that was read to its end tells whether the transfer succeeded.
+            Closeable finalizer = endReached ? this::finalizeStream : ftpClient::completePendingCommand;
             try (reference; finalizer; in) {
                 // This block will close in first, finalize the stream second, close reference third, and always perform all three actions
             }
@@ -271,26 +294,35 @@ final class FTPClientPool {
         private final class FTPInputStream extends InputStream {
 
             private final InputStream in;
+            private final AtomicBoolean endReached;
             private final Cleaner.Cleanable cleanable;
 
-            private FTPInputStream(InputStream in, CleanerSupport.CleanAction cleanAction) {
+            private FTPInputStream(InputStream in, AtomicBoolean endReached, CleanerSupport.CleanAction cleanAction) {
                 this.in = in;
+                this.endReached = endReached;
                 this.cleanable = CleanerSupport.register(CLEANER, this, cleanAction);
             }
 
             @Override
             public int read() throws IOException {
-                return in.read();
+                return checkEndReached(in.read());
             }
 
             @Override
             public int read(byte[] b) throws IOException {
-                return in.read(b);
+                return checkEndReached(in.read(b));
             }
 
             @Override
             public int read(byte[] b, int off, int len) throws IOException {
-                return in.read(b, off, len);
+                return checkEndReached(in.read(b, off, len));
+            }
+
+            private int checkEndReached(int read) {
+                if (read == -1) {
+                    endReached.set(true);
+                }
+                return read;
             }
 
             @Override
@@ -321,6 +353,123 @@ final class FTPClientPool {
             @Override
             public boolean markSupported() {
                 return in.markSupported();
+            }
+        }
+
+        SeekableByteChannel newReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile) throws IOException {
+            // the channel deletes the file itself, as seeking closes the stream
+            InputStream in = newInputStream(path, options, 0, false);
+            return new FTPReadableByteChannel(path, options, ftpFile, in);
+        }
+
+        private final class FTPReadableByteChannel implements SeekableByteChannel {
+
+            private final FTPPath path;
+            private final OpenOptions options;
+            private final long size;
+            private final boolean sizeKnown;
+            private final Cleaner.Cleanable cleanable;
+
+            private ReadableByteChannel download;
+            private long position;
+            private boolean open = true;
+
+            private FTPReadableByteChannel(FTPPath path, OpenOptions options, FTPFile ftpFile, InputStream in) {
+                this.path = path;
+                this.options = options;
+                // a size that isn't listed is -1
+                this.size = ftpFile == null ? 0 : Math.max(ftpFile.getSize(), 0);
+                this.sizeKnown = ftpFile != null && ftpFile.isFile() && ftpFile.getSize() >= 0;
+                // The reference keeps this client for later downloads, and will be closed when the cleanable is invoked
+                Reference<IOException> reference = addReference();
+                this.cleanable = CleanerSupport.register(CLEANER, this, reference::close);
+                this.download = Channels.newChannel(in);
+            }
+
+            @Override
+            public synchronized boolean isOpen() {
+                return open;
+            }
+
+            @Override
+            public synchronized void close() throws IOException {
+                if (open) {
+                    open = false;
+                    // Always release the client, to prevent pool starvation
+                    Closeable releaser = () -> CleanerSupport.clean(cleanable);
+                    try (releaser) {
+                        closeDownload();
+                        if (options.deleteOnClose) {
+                            delete(path, false);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public synchronized int read(ByteBuffer dst) throws IOException {
+                checkOpen();
+                if (download == null) {
+                    if (sizeKnown && position >= size) {
+                        return -1;
+                    }
+                    download = Channels.newChannel(newInputStream(path, options, position, false));
+                }
+                int read = download.read(dst);
+                if (read > 0) {
+                    position += read;
+                }
+                return read;
+            }
+
+            @Override
+            public int write(ByteBuffer src) throws IOException {
+                throw new NonWritableChannelException();
+            }
+
+            @Override
+            public synchronized long position() throws IOException {
+                return position;
+            }
+
+            @Override
+            public synchronized SeekableByteChannel position(long newPosition) throws IOException {
+                checkOpen();
+                if (newPosition < 0) {
+                    throw new IllegalArgumentException(newPosition + " < 0"); //$NON-NLS-1$
+                }
+                if (newPosition != position) {
+                    closeDownload();
+                    position = newPosition;
+                }
+                return this;
+            }
+
+            @Override
+            public long size() throws IOException {
+                return size;
+            }
+
+            @Override
+            public SeekableByteChannel truncate(long size) throws IOException {
+                throw Messages.unsupportedOperation(SeekableByteChannel.class, "truncate"); //$NON-NLS-1$
+            }
+
+            private void checkOpen() throws ClosedChannelException {
+                if (!open) {
+                    throw new ClosedChannelException();
+                }
+            }
+
+            private void closeDownload() throws IOException {
+                if (download == null) {
+                    return;
+                }
+                try {
+                    download.close();
+                } finally {
+                    download = null;
+                }
             }
         }
 

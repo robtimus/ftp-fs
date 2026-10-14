@@ -313,6 +313,11 @@ public class FTPFileSystemProvider extends FileSystemProvider {
      * This method does not support any file attributes to be set. If any file attributes are given, an {@link UnsupportedOperationException} will be
      * thrown.
      * <p>
+     * Channels opened for reading support {@link SeekableByteChannel#position(long) seeking}: reading after a seek starts a new download at that
+     * position using the {@code REST} command. Positions are only accurate for the {@link FileType#binary() binary} file type,
+     * {@link FileStructure#FILE file} structure and {@link FileTransferMode#STREAM stream} transfer mode. Channels opened for writing do not support
+     * seeking or truncating.
+     * <p>
      * Note: while the returned channel is not closed, the path's file system will have one available connection fewer.
      * It is therefore essential that the channel is closed as soon as possible.
      */

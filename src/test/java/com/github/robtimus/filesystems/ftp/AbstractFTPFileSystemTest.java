@@ -38,6 +38,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockftpserver.core.command.CommandHandler;
 import org.mockftpserver.fake.FakeFtpServer;
 import org.mockftpserver.fake.UserAccount;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
@@ -48,6 +49,8 @@ import org.mockftpserver.fake.filesystem.UnixFakeFileSystem;
 import com.github.robtimus.filesystems.ftp.server.ExtendedUnixFakeFileSystem;
 import com.github.robtimus.filesystems.ftp.server.ListHiddenFilesCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.MDTMCommandHandler;
+import com.github.robtimus.filesystems.ftp.server.RESTCommandHandler;
+import com.github.robtimus.filesystems.ftp.server.RETRCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
 
 @SuppressWarnings("nls")
@@ -99,8 +102,12 @@ abstract class AbstractFTPFileSystemTest {
 
         unixFtpServer.setCommandHandler("LIST", new ListHiddenFilesCommandHandler(true));
         unixFtpServer.setCommandHandler("MDTM", new MDTMCommandHandler());
+        unixFtpServer.setCommandHandler("REST", new RESTCommandHandler());
+        unixFtpServer.setCommandHandler("RETR", new RETRCommandHandler());
         nonUnixFtpServer.setCommandHandler("LIST", new ListHiddenFilesCommandHandler(false));
         nonUnixFtpServer.setCommandHandler("MDTM", new MDTMCommandHandler());
+        nonUnixFtpServer.setCommandHandler("REST", new RESTCommandHandler());
+        nonUnixFtpServer.setCommandHandler("RETR", new RETRCommandHandler());
 
         unixFtpServer.start();
         nonUnixFtpServer.start();
@@ -208,6 +215,13 @@ abstract class AbstractFTPFileSystemTest {
     protected final URI getURI() {
         FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         return URI.create("ftp://localhost:" + ftpServer.getServerControlPort());
+    }
+
+    protected final CommandHandler setCommandHandler(String commandName, CommandHandler commandHandler) {
+        FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
+        CommandHandler previous = ftpServer.getCommandHandler(commandName);
+        ftpServer.setCommandHandler(commandName, commandHandler);
+        return previous;
     }
 
     protected final String getUsername() {

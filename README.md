@@ -103,6 +103,6 @@ FTP file systems knows the following limitations:
 * Symbolic links can be read and traversed, but not created.
 * There is no support for hard links.
 * Files can be marked as executable if the FTP server indicates it is. That does not mean the file can be executed in the local JVM.
-* [SeekableByteChannel](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/SeekableByteChannel.html) is supported because it's used by [Files.createFile](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/Files.html#createFile%28java.nio.file.Path,java.nio.file.attribute.FileAttribute...%29). However, these channels do not support seeking specific positions or truncating.
+* [SeekableByteChannel](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/SeekableByteChannel.html) is supported. Channels opened for reading support seeking specific positions, by starting a new download at the new position using the `REST` command. Channels opened for writing do not, and no channels support truncating.
 * There is no support for [UserPrincipalLookupService](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/attribute/UserPrincipalLookupService.html).
 * There is no support for [WatchService](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/WatchService.html).

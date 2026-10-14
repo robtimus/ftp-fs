@@ -330,11 +330,9 @@ class FTPFileSystem extends FileSystem {
         try (Client client = clientPool.get()) {
             FTPPath normalizedPath = normalizePath(path);
             if (openOptions.read) {
-                // use findFTPFile instead of getFTPFile, to let the opening of the stream provide the correct error message
-                FTPFile ftpFile = findFTPFile(client, normalizedPath);
-                InputStream in = newInputStream(client, normalizedPath, openOptions);
-                long size = ftpFile == null ? 0 : ftpFile.getSize();
-                return FileSystemProviderSupport.createSeekableByteChannel(in, size);
+                // use findRealFTPFile instead of toRealPath, to let the opening of the stream provide the correct error message
+                FTPFile ftpFile = findRealFTPFile(client, normalizedPath);
+                return client.newReadableByteChannel(normalizedPath, openOptions, ftpFile);
             }
 
             // if append then we need the FTP file, to find the initial position of the channel
@@ -795,6 +793,14 @@ class FTPFileSystem extends FileSystem {
     private FTPFile findFTPFile(Client client, FTPPath path) throws IOException {
         try {
             return getFTPFile(client, path);
+        } catch (@SuppressWarnings("unused") NoSuchFileException e) {
+            return null;
+        }
+    }
+
+    private FTPFile findRealFTPFile(Client client, FTPPath path) throws IOException {
+        try {
+            return toRealPath(client, path, true).ftpFile;
         } catch (@SuppressWarnings("unused") NoSuchFileException e) {
             return null;
         }

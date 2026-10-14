@@ -278,15 +278,25 @@ final class FTPClientPool {
         private void close(InputStream in, boolean endReached, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) // NOSONAR
                 throws IOException {
 
+            /*
+             * The following will close the input stream first, then finalize the stream, then delete the path if needed, then close the reference.
+             * The try-with-resources blocks will ensure that the input stream will always be closed, the stream is always finalized, and the
+             * reference will always be closed.
+             * The delete call inside the outer try-block ensures that deletion will be done while the reference is still active,
+             * making sure this client is not used for other calls yet.
+             */
+
             // Always finalize the stream, to prevent pool starvation.
             // Servers acknowledge a download that is closed before its end with one reply whose code varies, e.g. 426, or 150 for pure-ftpd.
             // Only the reply to a download that was read to its end tells whether the transfer succeeded.
             Closeable finalizer = endReached ? this::finalizeStream : ftpClient::completePendingCommand;
-            try (reference; finalizer; in) {
-                // This block will close in first, finalize the stream second, close reference third, and always perform all three actions
-            }
-            if (deleteOnClose) {
-                delete(path, false);
+            try (reference) {
+                try (finalizer; in) {
+                    // This block will close in first, finalize the stream second, and always perform both actions
+                }
+                if (deleteOnClose) {
+                    delete(path, false);
+                }
             }
             logEvent(() -> FTPMessages.log.closedInputStream(path.path()));
         }
@@ -501,13 +511,23 @@ final class FTPClientPool {
         }
 
         private void close(OutputStream out, Reference<IOException> reference, FTPPath path, boolean deleteOnClose) throws IOException { // NOSONAR
+            /*
+             * The following will close the output stream first, then finalize the stream, then delete the path if needed, then close the reference.
+             * The try-with-resources blocks will ensure that the input stream will always be closed, the stream is always finalized, and the
+             * reference will always be closed.
+             * The delete call inside the outer try-block ensures that deletion will be done while the reference is still active,
+             * making sure this client is not used for other calls yet.
+             */
+
             // Always finalize the stream, to prevent pool starvation
             Closeable finalizer = this::finalizeStream;
-            try (reference; finalizer; out) {
-                // This block will close in first, finalize the stream second, close reference third, and always perform all three actions
-            }
-            if (deleteOnClose) {
-                delete(path, false);
+            try (reference) {
+                try (finalizer; out) {
+                    // This block will close out first, finalize the stream second, and always perform both actions
+                }
+                if (deleteOnClose) {
+                    delete(path, false);
+                }
             }
             logEvent(() -> FTPMessages.log.closedOutputStream(path.path()));
         }

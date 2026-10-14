@@ -52,6 +52,7 @@ import com.github.robtimus.filesystems.ftp.server.MDTMCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.RESTCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.RETRCommandHandler;
 import com.github.robtimus.filesystems.ftp.server.SymbolicLinkEntry;
+import com.github.robtimus.io.function.IORunnable;
 
 @SuppressWarnings("nls")
 abstract class AbstractFTPFileSystemTest {
@@ -217,11 +218,15 @@ abstract class AbstractFTPFileSystemTest {
         return URI.create("ftp://localhost:" + ftpServer.getServerControlPort());
     }
 
-    protected final CommandHandler setCommandHandler(String commandName, CommandHandler commandHandler) {
+    protected final void withCommandHandler(String commandName, CommandHandler commandHandler, IORunnable action) throws IOException {
         FakeFtpServer ftpServer = useUnixFtpServer ? unixFtpServer : nonUnixFtpServer;
         CommandHandler previous = ftpServer.getCommandHandler(commandName);
         ftpServer.setCommandHandler(commandName, commandHandler);
-        return previous;
+        try {
+            action.run();
+        } finally {
+            ftpServer.setCommandHandler(commandName, previous);
+        }
     }
 
     protected final String getUsername() {

@@ -36,7 +36,6 @@ import java.util.EnumSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockftpserver.core.command.CommandHandler;
 import org.mockftpserver.core.command.StaticReplyCommandHandler;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import com.github.robtimus.filesystems.ftp.server.RETRCommandHandler;
@@ -209,82 +208,73 @@ class FTPFileSystemByteChannelTest {
         void testRefusedRestartIsReported() throws IOException {
             addFile("/foo").setContents("Hello World");
 
-            CommandHandler restHandler = setCommandHandler("REST", new StaticReplyCommandHandler(502, "REST not implemented"));
-            try (SeekableByteChannel channel = newByteChannel()) {
-                channel.position(6);
-                ByteBuffer buffer = ByteBuffer.allocate(5);
-                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> channel.read(buffer));
-                assertEquals("/foo", exception.getFile());
-                assertEquals(502, exception.getReplyCode());
+            withCommandHandler("REST", new StaticReplyCommandHandler(502, "REST not implemented"), () -> {
+                try (SeekableByteChannel channel = newByteChannel()) {
+                    channel.position(6);
+                    ByteBuffer buffer = ByteBuffer.allocate(5);
+                    FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> channel.read(buffer));
+                    assertEquals("/foo", exception.getFile());
+                    assertEquals(502, exception.getReplyCode());
 
-                verify(getExceptionFactory()).createNewInputStreamException(eq("/foo"), eq(502), anyString());
-            } finally {
-                setCommandHandler("REST", restHandler);
-            }
+                    verify(getExceptionFactory()).createNewInputStreamException(eq("/foo"), eq(502), anyString());
+                }
+            });
         }
 
         @Test
         void testSeekIgnoresReplyToAbortedDownload() throws IOException {
             addFile("/foo").setContents("Hello World");
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
-            try (SeekableByteChannel channel = newByteChannel()) {
-                assertEquals("He", read(channel, 2));
-                channel.position(6);
-                assertEquals("Wor", read(channel, 3));
-                channel.position(1);
-                assertEquals("ello", read(channel, 4));
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            withCommandHandler("RETR", new RETRCommandHandler(426), () -> {
+                try (SeekableByteChannel channel = newByteChannel()) {
+                    assertEquals("He", read(channel, 2));
+                    channel.position(6);
+                    assertEquals("Wor", read(channel, 3));
+                    channel.position(1);
+                    assertEquals("ello", read(channel, 4));
+                }
+            });
         }
 
         @Test
         void testCloseIgnoresReplyToAbortedDownload() throws IOException {
             addFile("/foo").setContents("Hello World");
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
-            try {
+            withCommandHandler("RETR", new RETRCommandHandler(426), () -> {
                 // Don't use try-with-resources, this test is about calling the close method so make that explicit
                 @SuppressWarnings("resource")
                 SeekableByteChannel channel = newByteChannel();
                 assertEquals("He", read(channel, 2));
                 channel.close();
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            });
         }
 
         @Test
         void testSeekReportsFailedDownload() throws IOException {
             addFile("/foo").setContents("Hello World");
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
-            try (SeekableByteChannel channel = newByteChannel()) {
-                assertEquals("Hello World", read(channel, 1024));
-                FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> channel.position(0));
-                assertEquals(451, exception.getReplyCode());
-                assertEquals(11, channel.position());
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            withCommandHandler("RETR", new RETRCommandHandler(451), () -> {
+                try (SeekableByteChannel channel = newByteChannel()) {
+                    assertEquals("Hello World", read(channel, 1024));
+                    FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, () -> channel.position(0));
+                    assertEquals(451, exception.getReplyCode());
+                    assertEquals(11, channel.position());
+                }
+            });
         }
 
         @Test
         void testCloseReportsFailedDownload() throws IOException {
             addFile("/foo").setContents("Hello World");
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
-            try {
+            withCommandHandler("RETR", new RETRCommandHandler(451), () -> {
                 // Don't use try-with-resources, this test is about the close call failing
                 @SuppressWarnings("resource")
                 SeekableByteChannel channel = newByteChannel();
                 assertEquals("Hello World", read(channel, 1024));
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, channel::close);
                 assertEquals(451, exception.getReplyCode());
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            });
         }
 
         @Test

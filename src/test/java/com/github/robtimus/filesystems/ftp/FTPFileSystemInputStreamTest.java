@@ -31,7 +31,6 @@ import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockftpserver.core.command.CommandHandler;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import com.github.robtimus.filesystems.ftp.server.RETRCommandHandler;
 
@@ -182,16 +181,13 @@ class FTPFileSystemInputStreamTest {
             FileEntry file = addFile("/foo");
             file.setContents(content);
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(426));
-            try {
+            withCommandHandler("RETR", new RETRCommandHandler(426), () -> {
                 // Don't use try-with-resources, this test is about calling the close method so make that explicit
                 @SuppressWarnings("resource")
                 InputStream input = provider().newInputStream(createPath("/foo"));
                 assertEquals('H', input.read());
                 input.close();
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            });
         }
 
         @Test
@@ -201,17 +197,14 @@ class FTPFileSystemInputStreamTest {
             FileEntry file = addFile("/foo");
             file.setContents(content);
 
-            CommandHandler retrHandler = setCommandHandler("RETR", new RETRCommandHandler(451));
-            try {
+            withCommandHandler("RETR", new RETRCommandHandler(451), () -> {
                 // Don't use try-with-resources, this test is about the close call failing
                 @SuppressWarnings("resource")
                 InputStream input = provider().newInputStream(createPath("/foo"));
                 assertArrayEquals(content.getBytes(), readRemaining(input));
                 FTPFileSystemException exception = assertThrows(FTPFileSystemException.class, input::close);
                 assertEquals(451, exception.getReplyCode());
-            } finally {
-                setCommandHandler("RETR", retrHandler);
-            }
+            });
         }
 
         private byte[] readRemaining(InputStream input) throws IOException {
